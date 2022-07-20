@@ -1,0 +1,16 @@
+---
+title: "02_R_basics"
+author: "JR"
+date: "7/20/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(stringsAsFactors = F)
+library(tidyverse)
+library(GenomicRanges)
+source("../../../util/intersect_functions.R")
+source("../../../util/_setup.R")
+```
+
