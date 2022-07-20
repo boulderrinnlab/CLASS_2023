@@ -28,7 +28,7 @@ First let's navigate to where we are going to run the NF_CORE pipeline
 
 ```{bash nextflow.config file}
 # first make a new analysis directory for 06 then navigate to it:
-cd scratch/Shares/rinnclass/CLASS_2022/'your_folder'/class_exeRcises/analysis/06_CHIPSEQ
+cd /scratch/Shares/rinnclass/CLASS_2023/<your_folder>/CLASS_2023/CLASSES/03_Nextflow/00_Pol2_NF_CORE_RUN
 # making the .config file
 nano nextflow.config
 # Paste in the following code into the nextflow.config file
@@ -225,8 +225,8 @@ nextflow run nf-core/chipseq -r 1.2.1 \
 -profile singularity \
 --single_end \
 --input design.csv \
---fasta /scratch/Shares/rinnclass/CLASS_2023/data/data/genomes/human/gencode/v32/GRCh38.p13.genome.fa \
---gtf /scratch/Shares/rinnclass/CLASS_2023/data/data/genomes/human/gencode/v32/gencode.v32.annotation.gtf \
+--fasta /scratch/Shares/rinnclass/CLASS_2023/data/data/genomes/GRCh38.p13.genome.fa \
+--gtf /scratch/Shares/rinnclass/CLASS_2023/data/data/genomes/gencode.v32.annotation.gtf \
 --macs_gsize 3.2e9 \
 --blacklist /scratch/Shares/rinnclass/CLASS_2023/data/data/genomes/hg38-blacklist.v2.bed \
 --email youremail@colorado.edu \

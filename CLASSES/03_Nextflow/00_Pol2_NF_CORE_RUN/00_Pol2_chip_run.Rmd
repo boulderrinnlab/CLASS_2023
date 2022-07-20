@@ -1,0 +1,63 @@
+---
+title: "00_Pol2_chip_run"
+author: "JR"
+date: "7/20/2022"
+output: html_document
+---
+
+config file
+
+```{nextflow}
+
+process {
+  executor='slurm'
+  queue='short'
+  memory='32 GB'
+  maxForks=10
+}
+```
+
+run.sh file:
+
+```{bash}
+#!/bin/bash
+#SBATCH -p short
+#SBATCH --job-name=PolII_test
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=john.rinn@colorado.edu
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --mem=6gb
+#SBATCH --time=9:00:00
+#SBATCH --output=nextflow.out
+#SBATCH --error=nextflow.erry
+pwd; hostname; date
+echo "Lets go"
+module load singularity/3.1.1
+nextflow run nf-core/chipseq -r 1.2.1 \
+-profile singularity \
+--single_end \
+--input design.csv \
+--fasta /scratch/Shares/rinnclass/CLASS_2023/data/data/genomes/GRCh38.p13.genome.fa \
+--gtf /scratch/Shares/rinnclass/CLASS_2023/data/data/genomes/gencode.v32.annotation.gtf \
+--macs_gsize 3.2e9 \
+--blacklist /scratch/Shares/rinnclass/CLASS_2023/data/data/genomes/hg38-blacklist.v2.bed \
+--email john.rinn@colorado.edu \
+-resume \
+```
+
+
+Design File
+
+```{text}
+
+group,replicate,fastq_1,fastq_2,antibody,control
+POLR2A,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XWJ.fastq.gz,,POLR2A,ENCSR000EEN
+POLR2A,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PNT.fastq.gz,,POLR2A,ENCSR000BLH
+POLR2A,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XWR.fastq.gz,,POLR2A,ENCSR000EEN
+POLR2A,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PNM.fastq.gz,,POLR2A,ENCSR000BLH
+ENCSR000EEN,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XTF.fastq.gz,,,
+ENCSR000BLH,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000POQ.fastq.gz,,,
+
+```
+
