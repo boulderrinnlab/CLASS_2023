@@ -1,0 +1,342 @@
+---
+title: "01_installing_nextflow_environment"
+author: "JR"
+date: "7/19/2022"
+output: html_document
+---
+
+Can you believe that there are standardized pipelines for performing almost any 
+"omics" ! We will be using a pipeline that will do hundreds of analyses, quality control
+and much more -- all in one go. 
+
+These pipelines have two components: 
+
+(1) a language or environment: (we will be using nextflow language/env). 
+We can think of Nextflow as a taks manager that will send and organize/manage thousands of tasks. FIji 
+does not "speak nextflow" so we need to install this env. This is a common task that can be applied to loading
+other environments (e.g., Conda, python etc). So we will install nextflow and call up that environment which can 
+then task manage the processes in the pipeline of interest (RNAseq, ATACseq etc etc)
+
+[nextflow](https://www.nextflow.io/docs/latest/getstarted.html)
+
+(2) The pipeline: this is a compilation of common steps in analyzing a type of data. For example, 
+align sequencing reads to a genome, perform quality control plots on the alignments, call peaks or 
+significant genes. Perviously all these tasks had to be run individually -- now the PRO certified 
+analysis pipelines are done all at once !
+
+[NF_CORE](https://nf-co.re/): is a hub for nextflow pipelines related to numerous "omic studies"
+
+We will be focusing first on the NF_CORE ChIP-seq (Chromatin Immunoprecipitation Sequencing). 
+[NF_CORE_CHIPSEQ](https://nf-co.re/chipseq/1.2.2/usage)
+
+Later in class we will explore other pipelines such as NF_CORE RNAseq pipeline
+
+
+# First step: Install nextflow env so Fiji.
+
+****************
+Step 1 Install:
+****************
+
+Nextflow will install itself with this simple commmand below. However, you will
+want to think about where to install it. 
+
+A reasonable place to install it is in a "bin" directory within your home directory
+
+/Users/<identikey>/bin/nextflow
+
+Alrighty, give it a go:
+
+```{bash install nextflow}
+
+cd ~
+ls -lah
+cd bin
+
+# if you don't see a bin directory make one using the commands below. 
+
+mkdir bin
+cd bin
+
+# Then install nextflow using curl (we used wget previously they are similar commands)
+curl -s https://get.nextflow.io | bash
+```
+
+Nice it's installed just like that! 
+curl went and got a bash script (silent -s)
+and the results of that query were piped to bash 
+which runs the script (shell script - similar to the one you made in /bash/02_)
+That script has all the instructioon to install itself.
+
+
+If you ever want to update nextflow just run the above. At the time of this doc
+it is at: v20.10.0
+
+********************************
+Step 2: Add nextflow to $PATH 
+********************************
+
+The $PATH is a default place the computer will look for commands. Imagine you
+had to tell Bash where the ls command is?
+
+/usr/bin/ls to list files instead of just ls
+
+So that path is an important aspect of unix/bash that you will never really hear
+about until it becomes a bug :) 
+
+Let's put nextflow in our path (just as ls, cd etc are) so we can call it from anywhere on fiji.
+
+```{bash $PATH}
+
+echo $PATH
+# kinda hard to read with : separated file
+# we can make it easier to read with TRANSFORM (tr) a powerful bash command to
+# replace and find text (below is change ":" to a newline \n)
+
+echo $PATH | tr ":" "\n"
+
+# We want to make sure there is a line "that says "/usr/bin"
+# This means anything in your bin directory can be called up on demand
+
+```
+
+
+Now let's add nextflow to our .profile file
+the .profile is loaded each time you login to the terminal
+It tells fiji how to set up your environment (for example you can make)
+custom prompts or colors etc like my prompt is : [*~*]
+
+Oddly there are several . files loaded in each shell session with fiji
+Theer is:
+
+.bash_profile
+.profile (main simple path to bin directory)
+.bshrc (set up for bash in fiji - prompts env etc)
+
+```{BASH .profile}
+
+# let's take a look at our .bash_profile
+cat ~/.bash_profile
+
+# or we can put this in our .profile file
+nano .profile
+PATH=$PATH:~/bin
+
+```
+
+To append a directory to PATH, we just need to overwrite the path variable
+To assign a variable in bash the assignment operator is the equals sign. 
+When referring to the contents saved in an environment variable, the $ is used
+```{bash source .profile}
+
+# if you don't have a path in your .profile we can add it
+# should look like this (paste in with nano if no .profile file)
+export PATH=$PATH:~/bin
+# export PATH=$PATH:/Users/jori2700/bin
+
+# then source the profile so it will be embedded each time your shell starts.
+
+source ~/.bash_profile
+
+# Since /bin is in our path then after we source it will automatically
+# load in each session (just like ls, cd etc..)
+
+# or you can close your terminal and re-open and the new .profile file will be activated.
+
+```
+
+
+Now check that nextflow can be run without referring to it's location
+```{BASH}
+
+# testing that nextflow is installed
+# to call nextflow we simply start the command with "nextflow" 
+# in this case we are running the nextflow "version" command
+
+nextflow -version
+
+# You should see something like this:
+
+ # N E X T F L O W
+ #      version 21.04.3 build 5560
+ #      created 21-07-2021 15:09 UTC (09:09 MDT)
+ #      cite doi:10.1038/nbt.3820
+ #      http://nextflow.io
+```
+
+Sweet, that's it. We've successfully installed nextflow, added to $PATH and can use from anywhere now!
+
+
+****************
+Step 3: Install nf-core/chipseq pipeline
+****************
+
+Now we want to install the chipseq pipeline from NF-core. The cool thing about 
+this set up is essentially you are going to clone the latest github for chipseq
+by default. Sort of how you cloned the class git repo (but this time nextflow will do it for us :)
+
+```{BASH download chip-seq pipeline}
+
+# this is all you need to download the pipeline
+
+nextflow pull nf-core/chipseq
+
+# nextflow is called up w/ "nextflow" and then pull command and object to pull (nf-core/chipseq)
+
+```
+
+If you want a specific version you can use the flag to call that version.
+At the time of this document chipseq is at 1.2.1. 
+
+```{BASH specific nf_core pipeline version}
+
+nextflow pull -r 1.2.1 nf-core/chipseq
+
+```
+
+Whenever the pipeline is run, it actually does this step behind the scenes,
+so you don't actually need to do this in order to have the chipseq pipeline install.
+This means that if you want to run an older version, you can just indicate that when
+you're running that pipeline and it will install that version if it's not 
+already installed.
+
+*********************
+Step 4: Think about your directory structure
+*********************
+
+We have set up the class with the following directory structure -- 
+let's make your directory nice and tidy.
+We will run our first test ChIPseq analysis in the data directory.
+
+```{BASH setting up }
+cd /scratch/Shares/rinnclass/CLASS_2023/<your-folder>/class_exeRcises
+
+# first make a directory for all analyses in the class
+mdkir analysis
+
+# move to analysis 
+cd analysis
+
+# now we will make a directory for our first analysis 
+mkdir 01_nextflow_chipseq
+cd 01_nextflow_chipseq
+
+# this is where we run the pipeline!
+
+```
+
+
+Sometimes nextflow versions don't work so well with a given pipeline.
+Or you may want to change versions (this is common with any env: python, R etc)
+
+```{nextflow}
+
+# Here are a few handy references to change versions:
+
+# 1) You may need an edge release installed -- once installed 
+# all "self-update" commands will stay on edge 
+# to install edge release:
+
+export NXF_EDGE=1
+nextflow self-update
+
+# 2) to remove edge release: 
+
+export NXF_EDGE=0
+
+# 2) To update nextflow:
+nextflow self-update --version
+
+```
+
+###############
+Exercise
+###############
+
+
+Get a feel for how the nextflow language works!
+We won't be coding in nextflow since NF_CORE has
+done it for us. However it's good to see how different 
+languages work.
+
+So let's make your first NEXTFLOW script
+
+with the following commands
+
+```{bash }
+
+nano tutorial.nf
+
+```
+
+paste in the code below
+# note that the first line cannot have anything above it
+# The #! is the "shebang" that tells fiji to run in nextflow
+```{nextflow}
+#!/usr/bin/env nextflow
+nextflow.enable.dsl=2
+
+params.str = 'Hello world!'
+
+process splitLetters {
+  output:
+    path 'chunk_*'
+
+  """
+  printf '${params.str}' | split -b 6 - chunk_
+  """
+}
+
+process convertToUpper {
+  input:
+    file x
+  output:
+    stdout
+
+  """
+  cat $x | tr '[a-z]' '[A-Z]'
+  """
+}
+
+workflow {
+  splitLetters | flatten | convertToUpper | view { it.trim() }
+}
+```
+
+Now let's save this file (ctrl-x and y)
+```{bash}
+
+nextflow run tutorial.nf
+
+```
+
+# What do you see? 
+# explain to the class some line of code you find intersting 
+# and if you may have seen it in the bash lessons
+
+The explanation is below.
+
+
+This script defines two processes. The first splits a string into 6-character chunks, writing each one to a file with the prefix chunk_, and the second receives these files and transforms their contents to uppercase letters. The resulting strings are emitted on the result channel and the final output is printed by the view operator.
+
+
+It will output something similar to the text shown below:
+
+N E X T F L O W  ~  version 19.04.0
+executor >  local (3)
+[69/c8ea4a] process > splitLetters   [100%] 1 of 1 ✔
+[84/c8b7f1] process > convertToUpper [100%] 2 of 2 ✔
+HELLO
+WORLD!
+
+You can see that the first process is executed once, and the second twice. Finally the result string is printed.
+
+It’s worth noting that the process convertToUpper is executed in parallel, 
+so there’s no guarantee that the instance processing the first split (the chunk Hello) 
+will be executed before the one processing the second split (the chunk world!).
+
+Thus, it is perfectly possible that you will get the final result printed out in a different order:
+
+WORLD!
+HELLO
+

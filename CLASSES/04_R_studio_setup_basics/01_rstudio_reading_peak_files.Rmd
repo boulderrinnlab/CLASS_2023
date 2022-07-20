@@ -1,0 +1,54 @@
+---
+title: "01_R_studio_reading_peak_files"
+author: "JR"
+date: "7/20/2022"
+output: html_document
+---
+
+
+Today we are going to connect to Rstudio on the Fiji-viz server.
+
+We simply go here and login with our identikey:
+https://fiji-viz.colorado.edu/
+(click Rstudio button) -> login
+
+# If you are taking this course elsewhere you can run most of the code on a local Rstudio (free)
+https://www.rstudio.com/products/rstudio/download/
+
+
+Please see video for an orientation of Rstudio:
+
+https://www.youtube.com/watch?v=5SnLzPKa8bM
+
+# In class we will login and make our new R project for class.
+
+Please make sure you clone the class repo from git here:
+/scratch/Shares/rinnclass/CLASS_2023/<Your folder>
+
+# Once you have navigated there please clone the class repository 
+# be sure to set it to push to your github site.
+
+
+```{bash}
+# navigate to your folder
+cd scratch/Shares/rinnclass/CLASS_2023/<Your folder>
+
+# clone class_2023
+git clone git@github.com:boulderrinnlab/CLASS_2023.git
+
+# set remote origin to your github site:
+# we will set where your commits go:
+git remote set-url origin http://github.com/YOU/YOUR_REPO
+
+```
+
+Now let's make an Rpoject -- that will also connect to git.
+
+In the top right hand corner there is a dropdown with "R shield"
+
+# select open new project
+# select from an existing folder (the class_2023folder you just cloned)
+# name the project.
+
+
+

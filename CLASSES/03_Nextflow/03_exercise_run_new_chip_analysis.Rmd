@@ -1,0 +1,387 @@
+---
+title: "03_exercise_run_new_chip"
+author: "JR"
+date: "7/19/2022"
+output: html_document
+---
+
+Let's look at our results:
+Basepath: 
+"/scratch/Shares/rinnclass/CLASS_2023/Your_FOLDER/-- rest of path/results"
+
+# Here is the individual qc files:
+
+results/fastqc/*.html
+
+# All QC combined and more:
+results/multiqc/broadPeak/multiqc_report.html
+
+# Here are the peak files (we want the broad.peak files - not gapped or XLS)
+results/bwa/mergedLibrary/macs/broadPeak
+
+# Here are the bigwig files
+results/bwa/mergedLibrary/bigwig
+
+# Pipeline run information:
+results/pipeline_info/pipeline_report.html
+
+# more info on the data results
+results/pipeline_info/results_description.html
+
+
+NOW: We are about to run our first chipseq analysis!! 
+
+First we need to know how to run jobs, check on them and most importantly cancel them!
+
+*******************************************
+Running and Checking on slurm jobs
+*******************************************
+
+First thing we want to do is "run" a .sh file. Since we set this up in SBATCH we
+simply type:
+
+Don't run yet though
+```{BASH run.sh}
+sbatch run.sh
+```
+This will have sbatch send the scripts in the run.sh file to slurm to run them. 
+
+
+--- what jobs are you running? You often want to see what job is running how long it is taking and other aspects. To that end we can use 'squeue' to see what is running
+
+```{BASH jobs in queue}
+squeue -u identikey
+```
+
+the -u flag is for user.
+examine the information provided and google the column headers for more info.
+
+# canceling jobs!
+
+Let's say you accidently hit the run button and want to cancel immediately.
+
+'scancel' is the command
+
+```{BASH scancel}
+squeue -u identikey # lists all jobs you are currently running
+scancel jobid #cancels a single job
+scancel -u identikey #cancels all running jobs (with nextflow pipelines this is commonly used)
+```
+
+# canceling multiple jobs:
+
+```{BASH canceling specific jobs}
+squeue -u identikey | grep commonjobid# | awk '{print $1}' | xargs -n 1 scancel
+squeue -u jori2700  | grep 591 | awk '{print $1}' | xargs -n 1 scancel
+```
+
+Here we are using some bash to grab all the jobs running. They will typically have a common number (591 in example above -- would have aloso worked with just 5).
+
+Grep finds all your job id matches, then awk prints them, xargs is then going 
+to perform scancel on the output of awk, the -n is telling xargs how many arguments will follow. In this case just 1 -- scancel.
+
+Voila your jobs are gone :)
+
+
+
+******************************************
+RUN YOUR FIRST CHIPseq ANALYSIS
+******************************************
+
+Here is the large data set in a design file.
+
+Pick two of your favorite proteins and run the NF_CORE pipeline!
+
+Hint remember that controls are needed !!
+
+group,replicate,fastq_1,fastq_2,antibody,control
+ENCSR000BLG,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000POU.fastq.gz,,,
+ENCSR000BLG,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000POV.fastq.gz,,,
+ENCSR000BLH,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000POO.fastq.gz,,,
+ENCSR000BLH,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000POQ.fastq.gz,,,
+ENCSR000BLN,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000POC.fastq.gz,,,
+ENCSR000BLN,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000POH.fastq.gz,,,
+ENCSR000BPH,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PPI.fastq.gz,,,
+ENCSR000BPH,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PPC.fastq.gz,,,
+ENCSR000BPH,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PPF.fastq.gz,,,
+ENCSR000DUC,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF001HOD.fastq.gz,,,
+ENCSR000EEN,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XTF.fastq.gz,,,
+ENCSR000EVT,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XTE.fastq.gz,,,
+ENCSR019ZGX,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF172SXB.fastq.gz,,,
+ENCSR020QUJ,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF768QOK.fastq.gz,,,
+ENCSR042HRU,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF814WTT.fastq.gz,,,
+ENCSR055XHN,8,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF463RRE.fastq.gz,,,
+ENCSR055XHN,9,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF574VLI.fastq.gz,,,
+ENCSR055XHN,10,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF066LYG.fastq.gz,,,
+ENCSR055XHN,11,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF653JWL.fastq.gz,,,
+ENCSR055XHN,12,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF854ELY.fastq.gz,,,
+ENCSR055XHN,7,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF474ZPM.fastq.gz,,,
+ENCSR055XHN,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF356QYZ.fastq.gz,,,
+ENCSR055XHN,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF369RYY.fastq.gz,,,
+ENCSR055XHN,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF642ZJC.fastq.gz,,,
+ENCSR055XHN,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF162ADN.fastq.gz,,,
+ENCSR055XHN,6,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF881CNC.fastq.gz,,,
+ENCSR055XHN,5,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF608CWZ.fastq.gz,,,
+ENCSR239QGH,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF302HDW.fastq.gz,,,
+ENCSR313HFF,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF136JCQ.fastq.gz,,,
+ENCSR476TKW,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF654JMO.fastq.gz,,,
+ENCSR524BHN,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF599AHA.fastq.gz,,,
+ENCSR555EMB,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF987UMM.fastq.gz,,,
+ENCSR613TDP,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF002ECQ.fastq.gz,,,
+ENCSR613TDP,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF002ECU.fastq.gz,,,
+ENCSR621FPD,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF565IOH.fastq.gz,,,
+ENCSR690IYP,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF513OBT.fastq.gz,,,
+ENCSR693GOR,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF968ICP.fastq.gz,,,
+ENCSR730QNM,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF344SHX.fastq.gz,,,
+ENCSR945JOR,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF074CLV.fastq.gz,,,
+ARID3A,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XOS.fastq.gz,,ARID3A,ENCSR000EEN
+ARID3A,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XOU.fastq.gz,,ARID3A,ENCSR000EEN
+ATF3,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PFR.fastq.gz,,ATF3,ENCSR000BLN
+ATF3,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF650OMN.fastq.gz,,ATF3,ENCSR239QGH
+ATF3,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PFQ.fastq.gz,,ATF3,ENCSR000BLG
+ATF3,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF753IEK.fastq.gz,,ATF3,ENCSR239QGH
+BHLHE40,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PGB.fastq.gz,,BHLHE40,ENCSR000BLG
+BHLHE40,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XPC.fastq.gz,,BHLHE40,ENCSR000EEN
+BHLHE40,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XPA.fastq.gz,,BHLHE40,ENCSR000EEN
+BHLHE40,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PFY.fastq.gz,,BHLHE40,ENCSR000BLN
+BRCA1,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF057VSW.fastq.gz,,BRCA1,ENCSR020QUJ
+BRCA1,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF901QRB.fastq.gz,,BRCA1,ENCSR020QUJ
+BRCA1,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XPS.fastq.gz,,BRCA1,ENCSR000EEN
+BRCA1,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XPL.fastq.gz,,BRCA1,ENCSR000EEN
+CEBPB,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PGI.fastq.gz,,CEBPB,ENCSR000BLG
+CEBPB,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XQM.fastq.gz,,CEBPB,ENCSR000EEN
+CEBPB,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XQN.fastq.gz,,CEBPB,ENCSR000EEN
+CEBPB,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PGG.fastq.gz,,CEBPB,ENCSR000BLG
+CEBPZ,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XQB.fastq.gz,,CEBPZ,ENCSR000EEN
+CEBPZ,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XPZ.fastq.gz,,CEBPZ,ENCSR000EEN
+CHD2,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XQP.fastq.gz,,CHD2,ENCSR000EEN
+CHD2,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XQQ.fastq.gz,,CHD2,ENCSR000EEN
+CTCF,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PHG.fastq.gz,,CTCF,ENCSR000BLG
+CTCF,8,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF186EUH.fastq.gz,,CTCF,ENCSR693GOR
+CTCF,6,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000BED.fastq.gz,,CTCF,ENCSR055XHN
+CTCF,5,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000BEI.fastq.gz,,CTCF,ENCSR055XHN
+CTCF,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PHE.fastq.gz,,CTCF,ENCSR000BLG
+CTCF,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF001HNT.fastq.gz,,CTCF,ENCSR000DUC
+CTCF,7,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF023MCP.fastq.gz,,CTCF,ENCSR693GOR
+CTCF,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF001HNU.fastq.gz,,CTCF,ENCSR000DUC
+ELF1,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF772TIW.fastq.gz,,ELF1,ENCSR239QGH
+ELF1,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF927CDC.fastq.gz,,ELF1,ENCSR239QGH
+ELF1,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PHM.fastq.gz,,ELF1,ENCSR000BLG
+ELF1,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PHP.fastq.gz,,ELF1,ENCSR000BLG
+EP300,6,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF081ISM.fastq.gz,,EP300,ENCSR239QGH
+EP300,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XVS.fastq.gz,,EP300,ENCSR000EEN
+EP300,5,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF959LXD.fastq.gz,,EP300,ENCSR239QGH
+EP300,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PNA.fastq.gz,,EP300,ENCSR000BLG
+EP300,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XVT.fastq.gz,,EP300,ENCSR000EEN
+EP300,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PMZ.fastq.gz,,EP300,ENCSR000BLG
+ETS1,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF807INH.fastq.gz,,ETS1,ENCSR020QUJ
+ETS1,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF002EVV.fastq.gz,,ETS1,ENCSR613TDP
+ETS1,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF187JLN.fastq.gz,,ETS1,ENCSR020QUJ
+ETS1,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF002EVR.fastq.gz,,ETS1,ENCSR613TDP
+FOSL2,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PIE.fastq.gz,,FOSL2,ENCSR000BLN
+FOSL2,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PHU.fastq.gz,,FOSL2,ENCSR000BLN
+FOSL2,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF292LDB.fastq.gz,,FOSL2,ENCSR239QGH
+FOSL2,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF502WCW.fastq.gz,,FOSL2,ENCSR239QGH
+FOXA1,5,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF015SPJ.fastq.gz,,FOXA1,ENCSR239QGH
+FOXA1,6,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF128UUS.fastq.gz,,FOXA1,ENCSR239QGH
+FOXA1,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PHY.fastq.gz,,FOXA1,ENCSR000BLG
+FOXA1,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PIM.fastq.gz,,FOXA1,ENCSR000BLG
+FOXA1,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PIJ.fastq.gz,,FOXA1,ENCSR000BLN
+FOXA1,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PIB.fastq.gz,,FOXA1,ENCSR000BLN
+FOXA2,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF515SBM.fastq.gz,,FOXA2,ENCSR239QGH
+FOXA2,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF710ZUI.fastq.gz,,FOXA2,ENCSR239QGH
+FOXA2,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PIX.fastq.gz,,FOXA2,ENCSR000BLG
+FOXA2,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PIT.fastq.gz,,FOXA2,ENCSR000BLG
+GABPA,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PJF.fastq.gz,,GABPA,ENCSR000BLH
+GABPA,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PJC.fastq.gz,,GABPA,ENCSR000BLH
+GPBP1L1,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF136QSJ.fastq.gz,,GPBP1L1,ENCSR313HFF
+GPBP1L1,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF483MFB.fastq.gz,,GPBP1L1,ENCSR313HFF
+GTF2F1,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF002EAR.fastq.gz,,GTF2F1,ENCSR613TDP
+GTF2F1,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF002EAV.fastq.gz,,GTF2F1,ENCSR613TDP
+H3K27me3,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF001FLT.fastq.gz,,H3K27me3,ENCSR000DUC
+H3K27me3,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF001FLQ.fastq.gz,,H3K27me3,ENCSR000DUC
+H3K27me3,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000BFU.fastq.gz,,H3K27me3,ENCSR055XHN
+H3K27me3,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000BFR.fastq.gz,,H3K27me3,ENCSR055XHN
+H3K36me3,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF001FMC.fastq.gz,,H3K36me3,ENCSR000DUC
+H3K36me3,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF001FMA.fastq.gz,,H3K36me3,ENCSR000DUC
+H3K36me3,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000BFT.fastq.gz,,H3K36me3,ENCSR055XHN
+H3K36me3,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000BFZ.fastq.gz,,H3K36me3,ENCSR055XHN
+H3K4me3,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF084IJQ.fastq.gz,,H3K4me3,ENCSR055XHN
+H3K4me3,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000BGF.fastq.gz,,H3K4me3,ENCSR055XHN
+H3K4me3,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF001FMG.fastq.gz,,H3K4me3,ENCSR000DUC
+H3K4me3,5,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF901NZE.fastq.gz,,H3K4me3,ENCSR055XHN
+H3K4me3,6,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000BGE.fastq.gz,,H3K4me3,ENCSR055XHN
+H3K4me3,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF001FMH.fastq.gz,,H3K4me3,ENCSR000DUC
+HCFC1,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF002EDS.fastq.gz,,HCFC1,ENCSR613TDP
+HCFC1,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF002EDN.fastq.gz,,HCFC1,ENCSR613TDP
+HDAC2,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF665YPX.fastq.gz,,HDAC2,ENCSR239QGH
+HDAC2,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PJJ.fastq.gz,,HDAC2,ENCSR000BLG
+HDAC2,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PJD.fastq.gz,,HDAC2,ENCSR000BLG
+HDAC2,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF927EUS.fastq.gz,,HDAC2,ENCSR239QGH
+HNF4A,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF416JVM.fastq.gz,,HNF4A,ENCSR020QUJ
+HNF4A,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PJT.fastq.gz,,HNF4A,ENCSR000BLN
+HNF4A,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF382VQI.fastq.gz,,HNF4A,ENCSR020QUJ
+HNF4A,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PJX.fastq.gz,,HNF4A,ENCSR000BLG
+HNF4G,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PKJ.fastq.gz,,HNF4G,ENCSR000BLG
+HNF4G,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PKH.fastq.gz,,HNF4G,ENCSR000BLG
+HNF4G,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF077HNX.fastq.gz,,HNF4G,ENCSR730QNM
+HNF4G,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF277OHY.fastq.gz,,HNF4G,ENCSR730QNM
+IRF3,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XTN.fastq.gz,,IRF3,ENCSR000EEN
+IRF3,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XTO.fastq.gz,,IRF3,ENCSR000EEN
+JUN,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XQU.fastq.gz,,JUN,ENCSR000EEN
+JUN,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XQT.fastq.gz,,JUN,ENCSR000EEN
+JUN,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF702FLQ.fastq.gz,,JUN,ENCSR042HRU
+JUN,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF716JFE.fastq.gz,,JUN,ENCSR042HRU
+JUND,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PKR.fastq.gz,,JUND,ENCSR000BLN
+JUND,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PKK.fastq.gz,,JUND,ENCSR000BLN
+JUND,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XTQ.fastq.gz,,JUND,ENCSR000EEN
+JUND,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XTR.fastq.gz,,JUND,ENCSR000EEN
+KAT2B,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF002EED.fastq.gz,,KAT2B,ENCSR613TDP
+KAT2B,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF002EDZ.fastq.gz,,KAT2B,ENCSR613TDP
+MAFF,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XUA.fastq.gz,,MAFF,ENCSR000EEN
+MAFF,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XTZ.fastq.gz,,MAFF,ENCSR000EEN
+MAFK,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XUL.fastq.gz,,MAFK,ENCSR000EEN
+MAFK,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XUK.fastq.gz,,MAFK,ENCSR000EEN
+MAFK,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XUU.fastq.gz,,MAFK,ENCSR000EEN
+MAFK,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XVK.fastq.gz,,MAFK,ENCSR000EEN
+MAX,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF605GOU.fastq.gz,,MAX,ENCSR693GOR
+MAX,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XUH.fastq.gz,,MAX,ENCSR000EEN
+MAX,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF674WFO.fastq.gz,,MAX,ENCSR693GOR
+MAX,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XUF.fastq.gz,,MAX,ENCSR000EEN
+MAZ,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF622WRT.fastq.gz,,MAZ,ENCSR690IYP
+MAZ,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF179GGV.fastq.gz,,MAZ,ENCSR690IYP
+MAZ,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XUN.fastq.gz,,MAZ,ENCSR000EEN
+MAZ,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XUP.fastq.gz,,MAZ,ENCSR000EEN
+MBD4,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PLH.fastq.gz,,MBD4,ENCSR000BPH
+MBD4,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PLF.fastq.gz,,MBD4,ENCSR000BPH
+MXI1,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XVC.fastq.gz,,MXI1,ENCSR000EVT
+MXI1,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XVA.fastq.gz,,MXI1,ENCSR000EVT
+MXI1,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XUX.fastq.gz,,MXI1,ENCSR000EVT
+MYBL2,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF582TKX.fastq.gz,,MYBL2,ENCSR239QGH
+MYBL2,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PLM.fastq.gz,,MYBL2,ENCSR000BPH
+MYBL2,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF633SJT.fastq.gz,,MYBL2,ENCSR239QGH
+MYBL2,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PLP.fastq.gz,,MYBL2,ENCSR000BPH
+NFE2L2,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF002EAS.fastq.gz,,NFE2L2,ENCSR613TDP
+NFE2L2,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF002EAY.fastq.gz,,NFE2L2,ENCSR613TDP
+NFIC,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PMB.fastq.gz,,NFIC,ENCSR000BPH
+NFIC,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PLW.fastq.gz,,NFIC,ENCSR000BPH
+NRF1,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XVR.fastq.gz,,NRF1,ENCSR000EEN
+NRF1,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XVP.fastq.gz,,NRF1,ENCSR000EEN
+PHF20,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF213RLO.fastq.gz,,PHF20,ENCSR313HFF
+PHF20,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF262QIJ.fastq.gz,,PHF20,ENCSR313HFF
+PHF21A,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF982NTQ.fastq.gz,,PHF21A,ENCSR313HFF
+PHF21A,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF650OOI.fastq.gz,,PHF21A,ENCSR313HFF
+PLSCR1,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF186JOP.fastq.gz,,PLSCR1,ENCSR313HFF
+PLSCR1,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF670UXT.fastq.gz,,PLSCR1,ENCSR313HFF
+POLR2A,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XWJ.fastq.gz,,POLR2A,ENCSR000EEN
+POLR2A,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PNT.fastq.gz,,POLR2A,ENCSR000BLH
+POLR2A,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XWR.fastq.gz,,POLR2A,ENCSR000EEN
+POLR2A,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PNM.fastq.gz,,POLR2A,ENCSR000BLH
+POLR2AphosphoS2,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XXB.fastq.gz,,POLR2AphosphoS2,ENCSR000EEN
+POLR2AphosphoS2,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XXC.fastq.gz,,POLR2AphosphoS2,ENCSR000EEN
+POLR2AphosphoS5,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PNL.fastq.gz,,POLR2AphosphoS5,ENCSR000BLG
+POLR2AphosphoS5,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PNI.fastq.gz,,POLR2AphosphoS5,ENCSR000BLG
+RAD21,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XXK.fastq.gz,,RAD21,ENCSR000EEN
+RAD21,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XXL.fastq.gz,,RAD21,ENCSR000EEN
+RAD21,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PNY.fastq.gz,,RAD21,ENCSR000BLG
+RAD21,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PNW.fastq.gz,,RAD21,ENCSR000BLG
+RCOR1,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XQY.fastq.gz,,RCOR1,ENCSR000EEN
+RCOR1,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XQW.fastq.gz,,RCOR1,ENCSR000EEN
+REST,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PMK.fastq.gz,,REST,ENCSR000BLH
+REST,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PMU.fastq.gz,,REST,ENCSR000BLG
+REST,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PMN.fastq.gz,,REST,ENCSR000BLH
+REST,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PMV.fastq.gz,,REST,ENCSR000BLG
+RFX5,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XXX.fastq.gz,,RFX5,ENCSR000EEN
+RFX5,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XXZ.fastq.gz,,RFX5,ENCSR000EEN
+RORA,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF838ZPL.fastq.gz,,RORA,ENCSR313HFF
+RORA,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF614FQG.fastq.gz,,RORA,ENCSR313HFF
+RXRA,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PPM.fastq.gz,,RXRA,ENCSR000BLN
+RXRA,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PPQ.fastq.gz,,RXRA,ENCSR000BLN
+RXRA,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF408DAJ.fastq.gz,,RXRA,ENCSR239QGH
+RXRA,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF964CIX.fastq.gz,,RXRA,ENCSR239QGH
+SIN3A,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PPW.fastq.gz,,SIN3A,ENCSR000BLN
+SIN3A,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PQC.fastq.gz,,SIN3A,ENCSR000BLN
+SIN3B,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF002EDY.fastq.gz,,SIN3B,ENCSR613TDP
+SIN3B,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF002EDW.fastq.gz,,SIN3B,ENCSR613TDP
+SMC3,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XXY.fastq.gz,,SMC3,ENCSR000EEN
+SMC3,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XYC.fastq.gz,,SMC3,ENCSR000EEN
+SP1,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PQE.fastq.gz,,SP1,ENCSR000BLN
+SP1,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PQJ.fastq.gz,,SP1,ENCSR000BLN
+SP1,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF517LOQ.fastq.gz,,SP1,ENCSR239QGH
+SP1,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF612ZWV.fastq.gz,,SP1,ENCSR239QGH
+SP2,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF986GWG.fastq.gz,,SP2,ENCSR621FPD
+SP2,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PQP.fastq.gz,,SP2,ENCSR000BPH
+SP2,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PQL.fastq.gz,,SP2,ENCSR000BPH
+SP2,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF372TBP.fastq.gz,,SP2,ENCSR621FPD
+SRF,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PQU.fastq.gz,,SRF,ENCSR000BLG
+SRF,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PQW.fastq.gz,,SRF,ENCSR000BLG
+SUZ12,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF002EEA.fastq.gz,,SUZ12,ENCSR613TDP
+SUZ12,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF002EEF.fastq.gz,,SUZ12,ENCSR613TDP
+TAF1,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PRD.fastq.gz,,TAF1,ENCSR000BLH
+TAF1,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PRB.fastq.gz,,TAF1,ENCSR000BLH
+TAF1,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF339TAS.fastq.gz,,TAF1,ENCSR239QGH
+TAF1,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF739OQZ.fastq.gz,,TAF1,ENCSR239QGH
+TBL1XR1,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF001YXJ.fastq.gz,,TBL1XR1,ENCSR613TDP
+TBL1XR1,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF001YXI.fastq.gz,,TBL1XR1,ENCSR613TDP
+TBP,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF278LNQ.fastq.gz,,TBP,ENCSR020QUJ
+TBP,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF004BTT.fastq.gz,,TBP,ENCSR020QUJ
+TBP,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XZI.fastq.gz,,TBP,ENCSR000EEN
+TBP,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XZL.fastq.gz,,TBP,ENCSR000EEN
+TCF12,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PRJ.fastq.gz,,TCF12,ENCSR000BLN
+TCF12,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PRL.fastq.gz,,TCF12,ENCSR000BLN
+TCF7L2,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF903KXG.fastq.gz,,TCF7L2,ENCSR690IYP
+TCF7L2,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XYX.fastq.gz,,TCF7L2,ENCSR000EVT
+TCF7L2,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XYV.fastq.gz,,TCF7L2,ENCSR000EVT
+TCF7L2,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF835YEA.fastq.gz,,TCF7L2,ENCSR690IYP
+TEAD4,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF062BYU.fastq.gz,,TEAD4,ENCSR239QGH
+TEAD4,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PRQ.fastq.gz,,TEAD4,ENCSR000BPH
+TEAD4,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF101AMD.fastq.gz,,TEAD4,ENCSR239QGH
+TEAD4,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PRU.fastq.gz,,TEAD4,ENCSR000BPH
+USF1,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF597QDE.fastq.gz,,USF1,ENCSR239QGH
+USF1,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF358HWV.fastq.gz,,USF1,ENCSR239QGH
+USF1,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PSA.fastq.gz,,USF1,ENCSR000BLN
+USF1,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PSH.fastq.gz,,USF1,ENCSR000BLN
+USF2,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF161GYB.fastq.gz,,USF2,ENCSR690IYP
+USF2,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XZV.fastq.gz,,USF2,ENCSR000EEN
+USF2,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF821LCS.fastq.gz,,USF2,ENCSR555EMB
+USF2,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XZT.fastq.gz,,USF2,ENCSR000EEN
+YY1,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PSD.fastq.gz,,YY1,ENCSR000BLG
+YY1,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PSE.fastq.gz,,YY1,ENCSR000BLG
+ZBTB33,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PSP.fastq.gz,,ZBTB33,ENCSR000BLN
+ZBTB33,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PSW.fastq.gz,,ZBTB33,ENCSR000BLN
+ZBTB33,6,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF745CTV.fastq.gz,,ZBTB33,ENCSR239QGH
+ZBTB33,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PSY.fastq.gz,,ZBTB33,ENCSR000BLG
+ZBTB33,5,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF204TCE.fastq.gz,,ZBTB33,ENCSR239QGH
+ZBTB33,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PST.fastq.gz,,ZBTB33,ENCSR000BLG
+ZBTB7A,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PTF.fastq.gz,,ZBTB7A,ENCSR000BLG
+ZBTB7A,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PTI.fastq.gz,,ZBTB7A,ENCSR000BLG
+ZFP36,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF002EVX.fastq.gz,,ZFP36,ENCSR613TDP
+ZFP36,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF002EVO.fastq.gz,,ZFP36,ENCSR613TDP
+ZKSCAN1,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF002EEG.fastq.gz,,ZKSCAN1,ENCSR613TDP
+ZKSCAN1,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF002EEH.fastq.gz,,ZKSCAN1,ENCSR613TDP
+ZMAT5,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF594TWP.fastq.gz,,ZMAT5,ENCSR313HFF
+ZMAT5,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF847CCM.fastq.gz,,ZMAT5,ENCSR313HFF
+ZMYM3,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF355WTI.fastq.gz,,ZMYM3,ENCSR524BHN
+ZMYM3,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF017GOO.fastq.gz,,ZMYM3,ENCSR476TKW
+ZMYM3,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF705KCW.fastq.gz,,ZMYM3,ENCSR945JOR
+ZMYM3,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF551XVX.fastq.gz,,ZMYM3,ENCSR524BHN
+ZNF296,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF952PTZ.fastq.gz,,ZNF296,ENCSR313HFF
+ZNF296,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF290FAY.fastq.gz,,ZNF296,ENCSR313HFF
+ZNF33B,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF676FOK.fastq.gz,,ZNF33B,ENCSR019ZGX
+ZNF33B,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF818KEX.fastq.gz,,ZNF33B,ENCSR019ZGX
+ZNF384,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF001YXD.fastq.gz,,ZNF384,ENCSR613TDP
+ZNF384,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF001YXE.fastq.gz,,ZNF384,ENCSR613TDP
+ZNF432,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF908WAD.fastq.gz,,ZNF432,ENCSR313HFF
+ZNF432,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF932GMA.fastq.gz,,ZNF432,ENCSR313HFF
+ZNF530,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF370ACK.fastq.gz,,ZNF530,ENCSR313HFF
+ZNF530,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF497BNP.fastq.gz,,ZNF530,ENCSR313HFF
+ZNF547,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF946GMW.fastq.gz,,ZNF547,ENCSR019ZGX
+ZNF547,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF406EJW.fastq.gz,,ZNF547,ENCSR019ZGX
+ZNF687,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF917GRB.fastq.gz,,ZNF687,ENCSR019ZGX
+ZNF687,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF263PYL.fastq.gz,,ZNF687,ENCSR019ZGX
+ZNF737,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF037KKL.fastq.gz,,ZNF737,ENCSR313HFF
+ZNF737,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF348ABI.fastq.gz,,ZNF737,ENCSR313HFF
+ZNF883,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF581CMX.fastq.gz,,ZNF883,ENCSR019ZGX
+ZNF883,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF308XDZ.fastq.gz,,ZNF883,ENCSR019ZGX
+ZXDC,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF743BIY.fastq.gz,,ZXDC,ENCSR313HFF
+ZXDC,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF457XYK.fastq.gz,,ZXDC,ENCSR313HFF

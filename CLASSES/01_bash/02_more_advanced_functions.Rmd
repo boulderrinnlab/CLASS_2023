@@ -1,0 +1,383 @@
+---
+title: "Bash_grep_awk_for_loop"
+author: "JR"
+date: "7/18/2022"
+output: html_document
+---
+
+Here we are going to explore some more advanced bash commands such as
+Grep, awk, sed, and others to alter files and search for terms from the terminal.
+
+For this lesson we will use a tab seperated file (tsv) downloaded from ENCODE.
+We will download a file that has all the experimental information for the data we are going to analyze.
+
+```{BASH getting the experimental info from ENCODE }
+
+# change directory to where you want the file (/CLASS_2023/CLASSES/01_bash/data)
+# then run the wget command to download the file from a URL
+wget https://www.dropbox.com/s/ij798is442fyt3h/encode_awk_lessons.tsv
+
+```
+
+Now that we have the file Let's start with GREP:
+
+||||||||||||||||||||||||||||||||||||||||||||||||
+General Regularized Expression Print (GREP)
+||||||||||||||||||||||||||||||||||||||||||||||||
+
+Some fun background reading of the story behind GREP:
+https://www.quora.com/Where-did-GREP-come-from
+
+It's like the search bar, before there was a search bar. Grep will go look for
+the search key in a file. If there is a match then you can return just about anything
+in the file. If you have ever done Vlookup in Xcel it maybe familiar in that sense. 
+But the reality it is so simple, elegnat and powerful we will use GREP a lot in class.
+
+Now let's take a look at the file with 'cat' 
+```{BASH}
+
+cat encode_awk_lessons.tsv
+
+```
+
+Cat will print all items in a file and sometimes they are very long. 
+So there are other unix commands to look at the "head" or "tail" of the file
+
+```{BASH head and tail}
+
+head -1 encode_awk_lessons.tsv
+tail -1 encode_awk_lessons.tsv
+
+```
+
+Yikes ok, so you see all the "/" that means it is tab deliminated. We would see
+commas if it was a .csv.
+
+So this is not very readable. Let's use GREP to get what we want. Let's say we are 
+interested in all the samples that start with POL for POL II or POLR2A, there are 
+many ways to spell but we can search for anything that starts with POL.
+
+```{BASH}
+
+grep -i 'pol' data/encode_awk_lessons.tsv | wc -l
+
+```
+We see that there are 11 entries for anything matching the text of pol.
+
+-i flag = match with out caring about case of letters. We added this "flag" since people spell gene names 
+all kinds of different ways (with and with out capitals etc).
+So the -i will match Pol POl and POL as well as poL. 
+
+# This is a fantastic resource to see what flags do in bash functions:
+# grep -i 'pol' data/encode_awk_lessons.tsv | wc -l
+
+
+Let's take a look at these 11 matches from grep using ">" to print standard output to a file.
+
+```{BASH}
+
+grep -i 'pol' encode_awk_lessons.tsv > grep_out.txt
+ls
+wc -l grep_out.txt
+cat grep_out.txt
+
+```
+
+So we see a new file was printed, but let's open it in xcel or text editor for ease.
+
+Ok, so this is a great example of how to be careful with grep. We loosened the 
+search a bit too much and it turns out some of those weird encode acessions had pol 
+in the string (e.g., ENCFF744POL)! But we do see the samples we want are "POLR2A" -- let's revamp our
+grep.
+
+```{GREP}
+
+# we will use the -w flag to match exactly for what we are looking for
+grep -w 'POLR2A' encode_awk_lessons.tsv > grep_out.txt
+cat grep_out.txt
+
+# Now we see a file with just the POLR2A experiments -- as we wanted.
+```
+
+
+|||||||||||||||||||||||||||||||||||||||||||||||||||||||
+Alfred Aho peter Weinberger brian Kernighan = AWK
+|||||||||||||||||||||||||||||||||||||||||||||||||||||||
+
+Let's say we wanted to know how many unique DBPs we are about to study. We can
+bring AWK in, which is like selecting and moving columns in excel. So we could awk
+the column with DBP names and put it into "unique" to know the number of unique DBPS.
+
+So we can use AWK in a similar way to grep to get started:
+
+```{BASH}
+
+# whenever we want to read more about a function we can use "man" to get the manual
+man awk
+
+# now we can run awk to select for POLR2A
+awk -F $'\t' '{if ($6 == "POLR2A") print $0;}' data/encode_awk_lessons.tsv | wc -l 
+
+# The syntax for awk is:
+# awk -options 'selection _criteria {action }' input-file > output-file
+# *The options here is -F (for field separator in file being operated on)
+# *the $'\t' says the file is a tab separated file. the "$" is to set the variable tab separated('\t')
+
+```
+This awk command performs: the selection criteria is an if statement that if column 6 ($6)
+is equal to (exactly ==) the "POLR2A" term. print $0 means to print the lines that
+match these arguments and ; means end. Then, somewhat counter intuitive we put the
+file we want to operate on and then > output file. 
+
+
+# Let's now use awk to acomplish the goal of seeing how many unique DBPs are in this file.
+First let's make a file with just the names of DBPs.
+
+```{BASH}
+
+# We are using a variant in the syntax to set seperator
+# 'BEGING {FS="\t"} instead of the flag above -F
+
+awk 'BEGIN {FS="\t"}; {print $6}' data/encode_awk_lessons.tsv > DBP.txt
+cat DBP.txt
+
+# The statement above is using the function print to "print" the column of choice.
+# In this case we are choosing column 6 as it has the names of all the DBPs.
+# The final argument after the awk instructions is the file to search: 'encode_awk_lessons.tsv'
+
+```
+Cool, but the information from awk is in standard output
+To fix this we will just take advantage of the pipe and sort command.
+
+```{BASH}
+# let's look at the sort function
+man sort
+
+# now we can use the pipe to take take the awk output and sort it
+# then we can pipe that to wc -l to see how many enteries there are
+
+awk 'BEGIN {FS="\t"}; {print $6}' data/encode_awk_lessons.tsv | sort | wc -l
+
+# we find 564 enteries returned by AWK
+```
+
+But what if there were duplicate enteries? This number would be greater than 
+the actual number of proteins.
+
+We can use sort -u to find all the unique enteries:
+
+```{BASH}
+awk 'BEGIN {FS="\t"}; {print $6}' data/encode_awk_lessons.tsv | sort -u | wc -l
+
+# cool we see there are 480 proteins in the file!
+
+# Good thing we used sort -u !!
+```
+
+->O<-->O<-->O<-->O<-->O<-->O<-->O<-->O<-
+for loops in BASH
+->O<-->O<-->O<-->O<-->O<-->O<-->O<-->O<-
+
+
+# Syntax for all for loops in bash: For x (in) ; do ; done
+
+
+```{BASH}
+
+for x in $(seq 1 42); do echo bash is cool $x; done
+
+# in bash the $ indicates a variable
+# echo just prints whatever is after it -- try this
+
+echo "hello"
+
+```
+
+
+Let's start with an example to understand how the computer thinks about this:
+
+```{BASH}
+
+for x in 1 1 1 1
+do 
+echo BCHM5631 
+done
+
+# or
+for x in 1 1 1 1; do echo BCHM5631; done
+
+# What we get out is 4 prints of BCHM5631
+
+```
+
+
+what happens if we change the numbers?
+
+```{BASH}
+
+for x in 1 3 11 14
+do 
+echo BCHM5631 $x
+done
+
+# or
+for x in 1 3 11 14; do echo BCHM5631 $x; done
+
+# Notice the added "$x" this means it will print the variable it's "in" currently.
+
+# Same result, you could even change it to apple, banana or anything -- the number
+# of objects after "in" are the inputs for each loop until all the objects in "in" are evaluated. 
+
+```
+
+Lets try a nested for loop: where 
+
+```{BASH}
+
+for x in $(seq 1 5)
+do 
+for y in A B C
+do
+echo "$x:$y"
+done
+done
+
+# try copy and pasting the above into terminal or 
+for x in $(seq 1 5); do for y in A B C; do echo "$x:$y"; done ; done
+
+# we see that the loop evaluated 1 first and then appended A, then B, then C
+# once the first loop "counter" is finished then it moved to 2 (2:A, 2:B, 2:C)
+
+```
+
+Let's try this one:
+
+```{BASH}
+
+for x in $(seq 1 42)
+do 
+echo BCHM5631
+done
+
+# or
+for x in $(seq 1 42); do echo BCHM5631; done
+
+```
+
+
+Here is a for loop to print out each line of a file
+
+```{BASH}
+
+for line in $(cat data/encode_awk_lessons.tsv)
+do 
+echo "$line"
+done
+
+# or
+
+for line in $(cat encode_awk_lessons.tsv); do echo "$line"; done
+
+# Woah in the blink of an eye we just used cat to print each line of the file :)
+# We basically just did cat but used a for loop to print one line at a time.
+
+```
+
+{}{}{}{}{}{}{}{}{}{}{}{}
+SED function
+{}{}{}{}{}{}{}{}{}{}{}{}
+
+Here we will use the function "Sed" which is kind of like find and replace.
+
+```{BASH}
+
+# first let's look more at sed
+man sed
+
+# This basically distills down to 
+sed -i 's/old-word/new-word/g' *.txt 
+# the s/ is a substitute command 
+# -i means on the existing file (or in place)
+
+```
+
+Now let's replace the text in awk_lessons file 
+Let's try changing POLR2A to POL2
+
+```{BASH}
+
+sed -i 's/POLR2A/POL2/g' data/encode_awk_lessons.tsv
+
+# Note you have changed the file forever -- there is no undo in bash 
+
+# Did you see a change? How would you check?
+awk -F $'\t' '{if ($6 == "POLR2A") print $0;}' data/encode_awk_lessons.tsv | wc -l 
+
+# yup we see there is no POLR2A anymore -- let's see if we can find the replacement:
+awk -F $'\t' '{if ($6 == "POL2") print $0;}' data/encode_awk_lessons.tsv | wc -l 
+
+# Nice back to 4 enteries. This seems essoteric but it can be very useful to use sed 
+# in a for loop to change a chromosome name to the needed format etc.
+```
+
+*********************
+EXCERCISE
+*********************
+
+Let's make a shell script to run a bunch of bash commands in one go !
+
+Take some part of the lesson and make a "shell script" whatever.sh file -- typically run.sh
+
+Hints:
+
+# first make a file run.sh
+# this is the required Header (no lines above): #!/bin/bash
+# then make a list of commands one per line
+cd x
+awk y
+for loop etc.
+
+# then change permissions on .sh file to 
+chmod u+x run.sh
+
+# then run it in the directory of interest (./)
+./run.sh
+
+
+
+
+
+
+_________________________ Bonus Bash Fun _________________________ 
+
+
+### Bonus. Have you ever had a folder of folders of folders? This is often the case
+with photo libraries, music and other large archives. But let's say you simply just
+want to retreive all the photos on an app before the app goes extinct etc. 
+
+You can do this very easily with BASH alone: with the powerful find command:
+
+```{BASH}
+
+# check what find does
+man find
+
+# use find to dig out all the .jpg from directories of directories
+
+find . -type f -name '*.jpg' -exec mv -i {} ../compiled/ \;
+
+```
+
+with this snippet we call find to look in the directory we are in (. = here)
+we used the -type flag to look for files with -name that is anything that ends in
+.jpg ('*.jpg'). Then the cool stuff starts happening. We call -exec for execute the 
+next command. In otherwords standard out put is going to be "piped" into the move
+command (mv). So we floated all the file paths ending in .jpg to the mv funciton and
+last we just tell the computer where to move the files (or copy (cp)). The back slash
+semi-colon ends the bash script. Not so bad -- just standard input and output movements.
+
+
+
+
+
+

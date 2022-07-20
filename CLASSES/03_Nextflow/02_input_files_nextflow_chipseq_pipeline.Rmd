@@ -1,0 +1,278 @@
+---
+title: "02_input_files_nextflow_pipeline"
+author: "JR"
+date: "7/19/2022"
+output: html_document
+---
+
+
+The goal for this class is to learn the input files for the NF_CORE ChIPseq pipeline.
+
+*********************
+Input files
+*********************
+
+The NF_CORE ChIPseq pipeline requires a few input files.
+
+1) Config file:  tells next flow how to talk to Fiji
+2) shell script: info on what resources can be used on Fiji & where input files are for pipeline
+3) design file: This has all the info needed for ChIP data (replicates, input controls etc)
+
+*********************
+1. Config File
+*********************
+
+The Config file tells nextflow how to run on fiji by giving some instructions.
+
+First let's navigate to where we are going to run the NF_CORE pipeline
+
+```{bash nextflow.config file}
+# first make a new analysis directory for 06 then navigate to it:
+cd scratch/Shares/rinnclass/CLASS_2022/'your_folder'/class_exeRcises/analysis/06_CHIPSEQ
+# making the .config file
+nano nextflow.config
+# Paste in the following code into the nextflow.config file
+process {
+  executor='slurm'
+  queue='short'
+  memory='32 GB'
+  maxForks=10
+}
+```
+Cool now we can have nextflow talk to Fiji in SLURM
+
+The contents of the file are:
+
+executor : what language does Fiji speak (Next flow speaks many languages like C3PO)
+SLURM is a simple job scheduler.
+
+queue : there is a long and short queue (<24h)
+
+memory : This sets RAM or memory SLURM can use to communicate
+with next flow (usual doesn't need much)
+
+maxforks : this tells nextflow how many processes can be run in parallel.
+
+
+*****************************
+2. Design file 
+*****************************
+
+The design file will tell NF_CORE ChIPseq pipeline which samples are which.
+
+The design file will change depending on which NF_CORE Pipeline you are running
+
+Let's make a design file for chip-seq:
+
+```{bash design file}
+nano design.csv
+# paste in the following required information for NF_CORE ChIPseq pipeline
+# NF_core documentation will guide you to new changes in design file.
+group,replicate,fastq_1,fastq_2,antibody,control
+```
+
+
+*********************
+3. Shell script 
+*********************
+
+The shell script is going to contain two parts:
+
+a) SLURM instructions on how to run the pipeline (memory etc)
+b) The specifics for NF_CORE ChIPseq pipeline
+
+Let's make a run.sh file
+
+```{bash}
+nano run.sh
+# Paste the code below into the run.sh (note the #s are part of slurm speak)
+# Note that the pound sign is required.
+#!/bin/bash
+#SBATCH -p short
+#SBATCH --job-name=Hepg2_Pol_test
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=john.rinn@colorado.edu
+#SBATCH --output=nextflow.out
+#SBATCH --error=nextflow.err
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --mem=6gb
+#SBATCH --time=10:00:00
+pwd; hostname; date
+echo "Lets do chipseq"
+module load singularity/3.1.1
+nextflow run nf-core/chipseq -r 1.2.1 \
+-profile singularity \
+--single_end \
+--input design.csv \
+--fasta /Shares/rinn_class/data/genomes/human/gencode/v32/GRCh38.p13.genome.fa \
+--gtf /Shares/rinn_class/data/genomes/human/gencode/v32/gencode.v32.annotation.gtf \
+--macs_gsize 3.2e9 \
+--blacklist /scratch/Shares/rinnclass/CLASS_2022/data/hg38-blacklist.v2.bed \
+--email your email \
+-resume \
+-c nextflow.config
+date
+```
+
+Here is what is going on line by line:
+
+First step is the basic SLURM set up
+
+```{bash slurm instructions}
+#!/bin/bash
+#SBATCH -p short
+#SBATCH --job-name=Hepg2_Pol_test
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=identikey@colorado.edu
+### These lines are telling the slurm scheduler what resources we need. Here we're saying we
+### want to be in the short queue (For jobs that take less than 24 hrs to run. Name of the job, who to email etc...
+```
+
+Now we are goint to set up the resources to be used on FIJI (be careful in practice
+
+```{bash slurm instructions}
+#SBATCH --nodes=1
+### Fiji has multiple nodes and you will rarely want to run a job across more 
+### than one node. 
+#SBATCH --ntasks=1
+#### This is how many cores you're requesting. We will typically
+#### leave this at 1 so the nextflow runs only on one core (single-threaded). 
+#### For some software, they can by run multicore and you may want more that one core.
+#SBATCH --mem=6gb
+#### Simply setting how much RAM memory you're requesting for your job. This is an important consideration
+#### depending on how much RAM your software uses to do the compute task.
+  
+#SBATCH --time=10:00:00
+## The other noteable is the "WALL CLOCK" 
+## THIS IS WHERE GOOD MANNERS come into play. You want to test this out on a few
+## files and then think about how it will scale. This run.sh file is for thousadnds
+## of FASTQ files, we will change the wall clock.
+```
+
+It is super useful when running so many tasks to have
+an output file that updates at each step.
+Also an error file that if something goes wrong explains exactly
+the line of code that broke.
+
+```{bash out and err files}
+#SBATCH --output=nextflow.out
+#SBATCH --error=nextflow.err
+```
+
+
+# NEXTFLOW Parameters 
+Second is the nextflow instructions for the NF_CORE pipeline
+Each line is a command ended by \ 
+(make sure there are no extra spaces after \ -- a common bug)
+
+```{BASH nextflow parameters}
+pwd; hostname; date
+echo "Here we go again $SLURM_CPUS_ON_NODE core."
+# The first step is telling the pathway, hostname and date of where and when job was run.
+# the echo command is sort of silly and just let's you know the SLURM set up was successful!
+module load singularity/3.1.1
+# module load singularity/3.1.1 is going to load singularity & tell bash to use singularity.
+# What is Singularity: this creates a empty compute environment where packages can be installed,
+# run and version tracked. Thus, we are making a "container" of the nextflow pipeline
+# that is version tracked and is 100% reproducible.
+nextflow run nf-core/chipseq -r 1.1.0 \
+# We actually did this in the 05.RMD, basically nextflow loads the NF_CORE pipeline fresh each time.
+-profile singularity \
+# This is telling nextflow (with the single -) to talk in singularity (others could be docker etc)
+--single_end \
+# Now we are setting NF_CORE ChIPseq specific parameters (with --) in this case the data is single-end reads
+--input design.csv \
+# Giving NF_CORE specific design file. 
+--fasta /scratch/Shares/rinnclass/CLASS_2023/data/data/genomes/human/gencode/v32/GRCh38.p13.genome.fa \
+# The genome file that will be used to align reads to -- you can change to any species.
+--gtf /scratch/Shares/rinnclass/CLASS_2023/data/data/genomes/human/gencode/v32/gencode.v32.annotation.gtf \
+# genome feature file provided by GENCODE. Tells where genes, promoters etc are in .GTF format.
+# https://www.gencodegenes.org/human/
+--macs_gsize 2.7e9 \
+# MACS3 will be run to call peaks and for some reason needs to know the genome size :)
+--blacklist /scratch/Shares/rinnclass/CLASS_2023/data/data/genomes/hg38-blacklist.v2.bed \
+# Some regions of the genome are very difficult to align short-reads to so they are flagged out
+--email john.rinn@colorado.edu \
+# You will get an email with a funny job name (random-adjective_scientist-name)
+# You get an email telling you if it succeeded (exit status 0) or failed (exit status 1)
+-resume \
+# This is amazing NEXTFLOW parameter (noted by single -) that will start right where you left off!
+-c nextflow.config
+# Final nextflow command (single -) to load the config file to talk to slurm
+date
+# This is a bash command that simply prints the date
+```
+
+Here is a full "run.sh" script with slurm instructions and nextflow.
+
+```{SLURM and NEXTFLOW run.sh}
+#!/bin/bash
+#SBATCH -p short
+#SBATCH --job-name=PolII_test
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=your email 
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --mem=6gb
+#SBATCH --time=14:00:00
+#SBATCH --output=nextflow.out
+#SBATCH --error=nextflow.err
+pwd; hostname; date
+echo "Lets go"
+module load singularity/3.1.1
+nextflow run nf-core/chipseq -r 1.2.1 \
+-profile singularity \
+--single_end \
+--input design.csv \
+--fasta /scratch/Shares/rinnclass/CLASS_2023/data/data/genomes/human/gencode/v32/GRCh38.p13.genome.fa \
+--gtf /scratch/Shares/rinnclass/CLASS_2023/data/data/genomes/human/gencode/v32/gencode.v32.annotation.gtf \
+--macs_gsize 3.2e9 \
+--blacklist /scratch/Shares/rinnclass/CLASS_2023/data/data/genomes/hg38-blacklist.v2.bed \
+--email youremail@colorado.edu \
+-resume \
+-c nextflow.config
+date
+```
+
+Here is the full config file
+```{BASH .config file}
+process {
+  executor='slurm'
+  queue='short'
+  memory='32 GB'
+  maxForks=10
+}
+```
+
+Now all you need is a design file with correct headers.
+
+group,replicate,fastq_1,fastq_2,antibody,control
+
+```{Text for design.csv}
+group,replicate,fastq_1,fastq_2,antibody,control
+POLR2A,3,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XWJ.fastq.gz,,POLR2A,ENCSR000EEN
+POLR2A,2,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PNT.fastq.gz,,POLR2A,ENCSR000BLH
+POLR2A,4,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XWR.fastq.gz,,POLR2A,ENCSR000EEN
+POLR2A,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000PNM.fastq.gz,,POLR2A,ENCSR000BLH
+ENCSR000EEN,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000XTF.fastq.gz,,,
+ENCSR000BLH,1,/scratch/Shares/rinnclass/CLASS_2023/data/fastq/ENCFF000POQ.fastq.gz,,,
+```
+
+
+### RUN TIME
+
+With these three files in the directory you want to run your analysis
+all you need to do is :
+
+## !! MAKE SURE YOU ARE IN THE RIGHT DIRECTORY !! 
+```{SLURM running shell script}
+sbatch run.sh
+# Then to track progress :
+squeue -u <identikey> 
+# should see 10 jobs runnung
+tail -f nextflow.out
+# if you want to cancel a job:
+scancel -u <identikey>
+```
+

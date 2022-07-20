@@ -1,0 +1,102 @@
+---
+title: "Getting_git"
+author: "JR"
+date: "7/18/2022"
+output: html_document
+---
+Our first objective today will be to sync to the class github. We will
+go over a few needed things to establish git connections:
+
+### Sign up for github -- if you already have nothing to do.
+
+
+## FIRST STEP: set up ssh connection to github (one time only)
+
+Navigate to your home directory on fiji ~/IDENTIKEY
+
+```{bash}
+
+cd ~
+ls -lah
+
+```
+
+Note that there is a .ssh folder that you can place these unique keys to let
+servers communicate securely. We can check to see if a key already exists.
+If it doesn't we will generate one with the with ssh-keygen command.
+
+Here we are connecting out "public key" on our server "Fiji" to github.
+# If you want to connect your local computer there is also a .ssh file (MAC)
+
+```{bash}
+cd .ssh
+ls -lah
+
+# If it exists already, you can check out the public key using cat
+cat id_rsa.pub
+
+```
+
+
+# Making a new RSA keygen if you don't already have one
+```{bash}
+
+ssh-keygen -t rsa
+
+# Then cat the contents of the public key file (id_rsa.pub) and copy to clipboard.
+
+```
+
+Now let's got to your github website. 
+You will need to sign into your github account first.
+
+On the top right there is a drop down menu. 
+
+Click on "Settings". Now you will see on the left side there is a list of options. 
+
+Click on "SSH and GPG Keys" > "Add new key" on top right (green button). Paste in the new public SSH key we just generated.
+
+# You may also want to go to your local computer shell .ssh folder (same place).
+Generate a key and paste into github as done above. This way your local terminal
+(not fiji server) can push to github too. Basically any machine(s) you want to
+talk to github need this "handshake" SSH key.
+
+Cool we are all connected !
+
+
+# Setting up direct acess to fiji (no password needed anymore!)
+```{BASH}
+
+# We will be adding the public key to the `~/.ssh/authorized_keys` file on FIJI.
+
+# First: look to see if you have an id_rsa.pub in your .ssh folder (on your local computer)
+# If you don't have one: You'll create a key on your local computer . 
+
+# In windows you can use puttygen to create the key  
+# Mac or Linux you can use ssh-keygen
+
+
+# The instructions for creating a key with putty are here and detailed.
+https://www.ssh.com/ssh/putty/windows/puttygen
+
+# The location of the key file should be in cd ~/.ssh for Mac and
+# in Windows it should be in C:/Users/<username>/.ssh
+
+# Then as above for github, you'll copy the public key to your clipboard
+# and paste it into `~/.ssh/authorized_keys` on FIJI
+
+nano ~/.ssh/authorized_keys
+# Then paste in the key and save file.
+# ctrl x, y to exit nano and save
+
+# This will allow you to log-in to fiji without having to type your
+# password in each time.
+
+
+ssh identikey@fiji.colorado.edu 
+# should connect directly with out a password 
+```
+
+
+------------------Nice all connected to Git and Fiji ----------------------
+

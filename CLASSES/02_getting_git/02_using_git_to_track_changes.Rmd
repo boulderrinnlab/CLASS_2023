@@ -1,0 +1,203 @@
+---
+title: "02_git_clone_commit_push"
+author: "JR"
+date: "7/18/2022"
+output: html_document
+---
+
+Now we are going to start using git hub. Be patient it is simple but confusing :)
+
+First, Navigate to /scratch/Shares/rinnclass/CLASS_2023/<your name>
+
+# Let's clone the class git repository from GitHub
+
+On the CLASS_2023 GitHub site, click the Code dropdown, select SSH
+as your method on connecting and then click the clipboard icon which will
+copy the url to your clipboard. You can then paste it here.
+
+```{bash}
+
+git clone <paste-ssh-link>
+
+# Voila you are connected to our CLASS_2021 git repository.
+
+# I will be updating .RMD files for class 
+# To get the latest version simply go to the class git repository.
+# Copy the text in the .RMD -- edit in class as you please.
+# Then you will push those changes to your personal repository (see below).
+
+```
+
+In the real world you maybe collaborating with someone on a repository.
+In this case you would use the command git pull
+
+```{bash}
+
+git pull
+
+# Note that multiple people could make changes to the same file which results in conflicting versions.
+
+# Nicely, git will not allow any commits to be pushed to the remote without asking you to resolve
+# the conflicts between the two versions of a file.
+
+# You can minimize the likelihood of having a file conflict if you `git pull` at the start of each session.
+
+# You will not need git pull for this class -- rather copy and paste the latest version of the .RMD file
+
+```
+
+# making sure you get credit for your commits !
+
+```{git bash}
+
+# Open the command line.
+
+# Set your username:
+git config --global user.name "FIRST_NAME LAST_NAME"
+
+# Set your email address  **** this should be the same as the one associated with your git hub *****
+git config --global user.email "MY_NAME@example.com"
+
+# Now when you commit you will get credit on the github timeline for your contributions !!
+
+```
+
+Let's make some edits and make your first commit !!
+
+Let's create a new file and type whatever, then we track that file using command
+# git add
+
+```{GIT BASH}
+
+nano test.Rmd
+
+# Type in something
+# Save file
+
+git status
+git add test.Rmd
+git status
+
+```
+
+Do you see a new item (test.Rmd) that git noticed was made and ready to sync?
+
+Now we need to commit these changes that have been staged
+
+```{GIT BASH}
+
+git commit -m "Created a new test file."
+
+```
+
+sometimes you want to clone a repository and start working on it.
+But if it is someone else's repository you won't have permissions (nor would you want them to :)
+This is the case for class -- so we need to "push" our commited file to your repository (not the class)
+```{GIT BASH clone repository and push to a different one}
+
+# we will set where your commits go:
+git remote set-url origin http://github.com/YOU/YOUR_REPO
+
+# The "url that follows 'origin' is the ssh URL on the code button of your repository.
+
+```
+
+Ok let's update the github website from the terminal!
+
+```{GIT BASH}
+
+git status
+git add test.Rmd
+git commit -m "(put the notes you want on what was done inside the quotes)"
+git push
+# type git push again and you should see "up to date"
+
+# !! Always remember to PUSH before you END a session !!
+# !! Always remember to PULL before you START a session !!
+```
+
+# check out previous changes:
+
+```{GIT BASH}
+
+git log
+git diff Xsum1 Xsum2
+
+# if you run into trouble you can always delete a commit.
+# For example if you delete your .gitignore file (see below)
+# hundreds of files will be staged to be committed.
+
+# to delete a given commit follow these commands:
+
+git log
+# find the "key" for the commit you want to delete.
+git reset --hard "key"
+
+```
+
+This will show you all the changes -- you can also do this a bit more user friendly on git website.
+
+Finally we need a text file titled ".gitignore" put all the file types you don't want to track. These are large files such as .csv or .pdf etc here are some examples
+
+
+```{BASH}
+
+touch .gitignore
+nano .gitignore
+
+# add extensions of files that are large (pdf, images etc)
+# for this class copy and paste the following into .gitignore using nano
+```
+
+#################
+Excercise
+#################
+
+Change your .gitignore file to contain the following:
+Hint: use nano, cut and paste and then your git knowledge to commit and push!
+
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+*fastq*
+.nextflow*
+log/*
+results/*
+work/*
+*.Rproj
+*.csv
+*.gtf
+*data*
+*.pdf
+*.RData
+*.rda
+*results*
+*.html
+*.tbl
+*.feather
+*.log
+*.png
+*.err
+*.out
+*figures*
+*cache*
+*.cnt
+*.bam
+*.bai
+*.zip
+*work*
+*.bedGraph
+*qc*
+*align*
+*.svg
+*.bdg
+*.rds
+*bin*
+*data*
+*.txt
+*.tsv
+*.rds
+*.gtf
+*fa
+*.bed
