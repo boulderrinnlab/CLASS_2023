@@ -149,6 +149,10 @@ nano .gitignore
 # for this class copy and paste the following into .gitignore using nano
 ```
 
+# Here are some other step by step instructions:
+https://docs.github.com/en/get-started/importing-your-projects-to-github/importing-source-code-to-github/adding-locally-hosted-code-to-github
+
+
 #################
 Excercise
 #################
