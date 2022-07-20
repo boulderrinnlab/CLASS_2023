@@ -10,7 +10,9 @@ knitr::opts_chunk$set(echo = TRUE)
 options(stringsAsFactors = F)
 library(tidyverse)
 library(GenomicRanges)
-source("../../../util/intersect_functions.R")
-source("../../../util/_setup.R")
+source("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/util/intersect_functions.R")
+source("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/util/_setup.R")
 ```
 
+#TODO talk about stringasfactors = F
+# reading in a table with out it -- it defaults to true it will convert col names to a factor
