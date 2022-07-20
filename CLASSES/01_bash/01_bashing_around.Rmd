@@ -1,0 +1,239 @@
+---
+title: "02_bashing_data"
+date: "7/6/2022"
+output: github_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(stringsAsFactors = FALSE,
+        dplyr.summarise.inform = FALSE,
+        tidyverse.quiet = TRUE)
+```
+
+Let's start with some of the very basics of BASH to navigate servers and your command line:
+
+# First commands:
+cd - to change directories
+ls - list the files
+pwd - tells you the pathway you are currently at (very useful actually!)
+
+```{BASH}
+
+cd /scratch/Shares/rinnclass/CLASS_2023/
+ls
+pwd
+
+# Wait could there be more? let's try:
+
+ls -lah
+```
+-l for long
+-a for all
+-h human readable
+Basically I typically always use these flags
+
+
+# let's create your directory
+
+```{BASH}
+cd /scratch/Shares/rinnclass/CLASS_2023/
+
+mkdir NAME_of_dir
+
+# This is your new home where we will be working all of class !
+cd NAME_of_dir
+
+```
+
+# Every function has a manual entry (man)
+```{BASH}
+
+man mkdir
+# Press q to escape
+
+```
+
+Now let's make a new file using touch
+
+```{Bash}
+
+touch test.txt
+ls
+
+```
+woah a new file shows up! What is in it? lets use Nano
+
+```{Bash}
+
+nano test.txt
+# type whatever
+# ctrl x, Y for yes -- then enter -- to exit nano
+
+```
+
+Now let's take a look at the file with cat
+
+```{Bash}
+cat test.txt
+
+# here are the top 10 lines
+
+head -10 test.txt
+
+# bottom lines
+
+tail -10 test.txt
+```
+
+
+Let's make another file and combine two files
+This is done by the "cat" command
+
+```{BASH}
+
+# First let's test the remove command (using rm command) for the test.txt file 
+# then let's make a new one.
+
+# removing test.txt
+rm test.txt
+
+# making new test.txt file with nano
+touch test.txt
+nano test.txt
+"add whatever text"
+
+```
+
+Now we will make a second file and merge the two files into one file with cat.
+
+```{BASH}
+
+nano test2.txt
+# type whatever
+
+# merging the two files
+cat test.txt test2.txt > test3.txt
+
+# let's see what we get with "cat"
+cat test3.txt
+
+```
+
+let's move the files to a new file path
+Note that the file is not copied just moved to a new file path
+
+```{Bash}
+
+# making directory to move the files
+mkdir practice
+
+# moving the files
+mv test2.txt practice
+mv test3.txt practice
+mv test.txt practice
+
+# let's see what we have with "ls"
+ls
+
+# Alternatively If we want to copy the file we can use "cp"
+# note that if you use "cp" the file will be duplicated whereas "mv" just chanes the file path.
+
+cp test2.txt /practice
+
+# note simply changes file path and cp recreates the entire directory.
+
+```
+
+Nice and tidy. However that could be quite laborious if you wanted to move a bunch of files. So we can use WILDCARDS
+
+# more information on wild cards can be found here:
+http://www.linfo.org/wildcard.html
+
+```{BASH}
+
+# let's start with with the wild card "*" which means anything that has that text in the name
+# This will move any file that ends in .txt the star means anything counts.
+
+mv *.txt practice
+
+# what happened? let's use "ls"
+ls
+
+```
+
+Now let's say you want to move the files back to the original directory:
+
+```{BASH}
+
+cd practice
+# note that "../" means one directory above the current one and "../../" prefix means two dir above
+mv *.txt ../
+```
+
+Imagine how much time one uses typing long file paths in the terminal. For example, in this class we will be using:
+
+/Shares/rinn_class/data/CLASS_2021
+
+That is no fun to type every time and then go to the directory of interest. 
+
+Good news there is a solution (used by nextflow and just how useful later) its called a sym-link and you have probably used them before as all URLs on the internet are sym-links. 
+
+Let's make a sym-link to the class folder in your home directory 
+
+```{BASH}
+
+cd ~/
+# or some directory you use a lot on your local computer
+
+# creating a sym link with "ln -s /file_path
+ln -s /scratch/Shares/rinnclass/CLASS_2022/<identikey> CLASS 
+
+# what happened
+ls
+
+```
+
+Now you see a simlink called CLASS. You just cd CLASS and voila you are in class :)
+
+Another handy short cut is to see how big a folder is. 
+Often you are downloading to or working on a folder and need to see if it became bigger or smaller. 
+This is best done wtih disk usage "du"
+
+```{BASH}
+# change file path to home directory
+cd ~/
+  
+# checking on the size of this directory 
+du -sh ~/
+  
+```
+
+The -sh flag is for "s"ummary and "h"uman readable
+
+
+|||||||||||||||||||||||||||||||||
+The pipe
+|||||||||||||||||||||||||||||||||
+
+
+The pipe and xargs are two of the most elegant aspects of BASH. Let's try something
+simple, so simple it may end up being used quite often :)
+
+Many times a folder you are indexing may have hundreds or thousands of files.
+There is no way we want to count them manually. So we can use the pipe to list (ls) 
+the files in a directory and pipe it to word count (wc) to count the number of files.
+
+Let's see:
+
+```{BASH}
+
+cd ~/
+ls | wc -l
+
+```
+Here the list output becomes the standard input to the word count owing to the pipe.
+Or the pipe passed along the standard output of ls to standard input of wc. The 
+-l flag is for the line count. 
+
