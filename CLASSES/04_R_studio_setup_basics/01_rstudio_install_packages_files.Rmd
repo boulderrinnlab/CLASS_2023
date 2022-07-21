@@ -1,9 +1,18 @@
 ---
-title: "01_R_studio_reading_peak_files"
+title: "01_R_studio_install_packages_basics"
 author: "JR"
 date: "7/20/2022"
 output: html_document
 ---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(stringsAsFactors = F)
+library(tidyverse)
+library(GenomicRanges)
+source("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/util/intersect_functions.R")
+source("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/util/_setup.R")
+```
 
 Today we are going to connect to Rstudio on the Fiji-viz server.
 
@@ -79,7 +88,55 @@ BiocManager::install("GenomicRanges")
 ```
 
 
-rtracklayer
+Note at the top of the document we source packages and functions we created.
+The whole chunk looks like this:
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# this is providing information on how to "knit" the .RMD file.
+# You can make really pretty results and corresponding code.
+# Here is an example of a knitted document from last year:
+# /scratch/Shares/rinnclass/CLASS_2022/EricY/bchm/exercises/analysis/final
+
+options(stringsAsFactors = F)
+# This is an important thing to have. When you read in a table R default is to
+# make the columns have a "factor" associated with them. This is like a "meta variable"
+# The col still has a name but that name is now an associated factor above the name.
+# When we run RNAseq pipelines the comparison samples are "factorized" so the program
+# knows which cols represent which samples for differential expression etc.
+
+library(tidyverse)
+library(GenomicRanges)
+# This is how we load packages with "library(package X)
+
+
+source("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/util/intersect_functions.R")
+source("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/util/_setup.R")
+# This is how we source custom functions. You often make write your own function and then 
+# want to use it again and again. So you can create a function and source it from util.
+# We will go into this much more in the functions class and make some of our own customized to our goals.
+```
+
+
+############################################
+Exercise : install packages needed for class
+############################################
+
+# Hint google the package name and see if it is CRAN (install.packages)
+# Or if in Bioconductor (BiocManager::install)
+
+# probably worth reading what they do while installing...
+
+ggplot2
+broom
+Gviz
+ggdendro
+ggrepel
+pheatmap
+httr
+janitor
+purrr
+
 
 
 
