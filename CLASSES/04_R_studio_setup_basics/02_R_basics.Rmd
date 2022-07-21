@@ -259,9 +259,21 @@ ggplot(aes(x = peak_width, y = qValue)) +
   # + tells ggplot to add another aspect to plot (points)
   geom_point()
 
+# Interesting, we see that the smaller the peak the lower the qValue tends to be 
+
 ```
 
-Interesting, we see that the smaller the peak the lower the qValue tends to be 
+##################################################
+Exercise: compare properties of other replicates
+##################################################
+
+# Now load in the other three replicates of Pol2 ChIP
+# Address the following
+
+1) What are the average widths of peaks across replicates.
+2) What are the number of peaks across replicates
+3) What is the length of the smallest and biggest peak in each replicate
+
 
 
 
