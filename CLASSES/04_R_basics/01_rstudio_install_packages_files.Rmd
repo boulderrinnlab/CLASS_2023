@@ -1,0 +1,145 @@
+---
+title: "01_R_studio_install_packages_basics"
+author: "JR"
+date: "7/20/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(stringsAsFactors = F)
+library(tidyverse)
+library(GenomicRanges)
+source("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/util/intersect_functions.R")
+source("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/util/_setup.R")
+```
+
+Today we are going to connect to Rstudio on the Fiji-viz server.
+
+We simply go here and login with our identikey:
+https://fiji-viz.colorado.edu/
+(click Rstudio button) -> login
+
+# If you are taking this course elsewhere you can run most of the code on a local Rstudio (free)
+https://www.rstudio.com/products/rstudio/download/
+
+
+Please see video for an orientation of Rstudio:
+
+https://www.youtube.com/watch?v=5SnLzPKa8bM
+
+# In class we will login and make our new R project for class.
+
+Please make sure you clone the class repo from git here:
+/scratch/Shares/rinnclass/CLASS_2023/<Your folder>
+
+# Once you have navigated there please clone the class repository 
+# be sure to set it to push to your github site.
+
+
+```{bash}
+# navigate to your folder
+cd scratch/Shares/rinnclass/CLASS_2023/<Your folder>
+
+# clone class_2023
+git clone git@github.com:boulderrinnlab/CLASS_2023.git
+
+# set remote origin to your github site:
+# we will set where your commits go:
+git remote set-url origin http://github.com/YOU/YOUR_REPO
+
+```
+
+Now let's make an Rpoject -- that will also connect to git.
+
+In the top right hand corner there is a dropdown with "R shield"
+
+# select open new project
+# select from an existing folder (the class_2023folder you just cloned)
+# name the project.
+
+
+Now we will use Install.packages() for most packages. This will install any packages in CRAN repository. Let's try one.
+
+```{R install packages}
+?install.packages
+install.packages("tidyverse")
+```
+
+
+Cool we have our first package installed.
+
+However sometimes we need to install from Bioconductor and need to use BiocManager::install function
+
+```{R install BiocManager}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+install.packages("BiocManager", version = '3.10')
+```
+
+Let's now install genomic ranges package we will be using for most of class
+# note we will have two classes on "Iranges" and Granges before we use GenomicRanges package
+
+```{R install genomic ranges}
+# Here is an example BiocManager::install
+BiocManager::install("GenomicRanges")
+# try installing all the packages listed below.
+# note use either install.packages or BiocManager::install
+
+```
+
+
+Note at the top of the document we source packages and functions we created.
+The whole chunk looks like this:
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# this is providing information on how to "knit" the .RMD file.
+# You can make really pretty results and corresponding code.
+# Here is an example of a knitted document from last year:
+# /scratch/Shares/rinnclass/CLASS_2022/EricY/bchm/exercises/analysis/final
+
+options(stringsAsFactors = F)
+# This is an important thing to have. When you read in a table R default is to
+# make the columns have a "factor" associated with them. This is like a "meta variable"
+# The col still has a name but that name is now an associated factor above the name.
+# When we run RNAseq pipelines the comparison samples are "factorized" so the program
+# knows which cols represent which samples for differential expression etc.
+
+library(tidyverse)
+library(GenomicRanges)
+# This is how we load packages with "library(package X)
+
+
+source("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/util/intersect_functions.R")
+source("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/util/_setup.R")
+# This is how we source custom functions. You often make write your own function and then 
+# want to use it again and again. So you can create a function and source it from util.
+# We will go into this much more in the functions class and make some of our own customized to our goals.
+```
+
+
+############################################
+Exercise : install packages needed for class
+############################################
+
+# Hint google the package name and see if it is CRAN (install.packages)
+# Or if in Bioconductor (BiocManager::install)
+
+# probably worth reading what they do while installing...
+
+ggplot2
+broom
+Gviz
+ggdendro
+ggrepel
+pheatmap
+httr
+janitor
+purrr
+IRanges
+
+
+
+
+
+
