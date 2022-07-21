@@ -17,7 +17,10 @@ source("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/util/_setup.R")
 ```
 
 Today we are going to do some basic R commands and look at our Pol2 ChIP data.
-We will use read_tsv to load in a peak file that is in tab separated (tsv)
+This lesson can be applied to most data frames (similar to excel sheets). 
+
+
+We will use read_tsv to load in a peak file that is in tab separated format (tsv)
 
 ```{bash}
 
@@ -205,10 +208,60 @@ Pol2_peak1 <- Pol2_peak1 %>%
 ```
 
 
-Let's make some basic plots to get to know our data better:
+Let's get some info make some basic plots to get to know our data better:
 
+```{r getting to know the peak file}
 
+# let's use summary again:
 
+summary(Pol2_peak1$peak_width)
+# cool we see smallest peak is 114 bp and longest 12.4 Kb !
+
+# let's make a histogram plot of peak size distributions using the base R hist func:
+?hist
+
+# plotting peak_width col as histogram (we will go into plotting more later in class)
+# for now just the basics:
+
+hist(Pol2_peak1$peak_width)
+
+# looks like most are small, let's add more breaks
+
+hist(Pol2_peak1$peak_width, breaks = 50)
+
+# now let's set the x axis limits to ~3Kb
+
+hist(Pol2_peak1$peak_width, breaks = 50, xlim = c(0,3000))
+
+# nice so we observe a left centered normal dist of sizes.
+
+# let's try a density plot -here we need to calculate density then plot:
+
+density <- density(Pol2_peak1$peak_width)
+
+# now we can use plot to see the values of density
+plot(density, xlim = c(0,3000))
+
+# here we can see some sort of "shoulder" around 500bp
+
+```
+
+Now let's see how pval correlates with peak size using ggplot
+```{r}
+
+# ggplot wasnts to the axis values (peak_width and qValue)
+# then it needs to know what kind of plot (we will do much more on this later)
+
+# first pipe in the dataframe to GGplot
+Pol2_peak1 %>%
+  # set the aes(x= , y= ) 
+ggplot(aes(x = peak_width, y = qValue)) +
+  # + tells ggplot to add another aspect to plot (points)
+  geom_point()
+
+```
+
+Interesting, we see that the smaller the peak the lower the qValue tends to be 
 
 
 
