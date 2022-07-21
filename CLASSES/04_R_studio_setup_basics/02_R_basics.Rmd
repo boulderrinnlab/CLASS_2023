@@ -275,5 +275,12 @@ Exercise: compare properties of other replicates
 3) What is the length of the smallest and biggest peak in each replicate
 
 
+##################################################
+Exercise: compare properties of other replicates
+##################################################
+
+# Do the same as above for the replicates of your groups ChIPseq
+
+
 
 
