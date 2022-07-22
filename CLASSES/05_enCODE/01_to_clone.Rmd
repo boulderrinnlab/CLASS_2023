@@ -3,6 +3,8 @@ title: "01_to_clone"
 author: "JR"
 date: "7/20/2022"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -15,7 +17,7 @@ library(purrr)
 source("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/util/class_functions.R")
 source("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/util/encode_functions.R")
 ```
-
+# TODO take out wget and use transfer rename to samples.txt
 
 The goal for today is to go to the encode portal and 
 choose 2 proteins per student to study. Or more if you want.
@@ -181,6 +183,7 @@ encode_file_info <- function(experiment_accession,
   # Now we are creating a url that encode will understand
   path <- "report.tsv?"
   base_url <- modify_url("https://www.encodeproject.org/", path = path)
+  # note we are now merging in the function from above "construct query"
   url <- contstruct_query(experiment_accession,
                           base_url = base_url,
                           file_format,
@@ -222,20 +225,112 @@ But we need an input to the function which is Experimental Acession #
 ```{r reading in sample sheet}
 
 # We'll also rename this Accession column to clarify between experiment_accession and file_accession.
-samples <- read_table("files.txt", skip = 1) %>%
-  # just renaming accession to experimental acession
-  dplyr::rename(experiment_accession = Accession) 
-# It's seems mundane but starting here is the best way to make a "reproducible" sample sheet.
-# Bottom line: the download to code to analysis is the way to reproducibility (this worked a year later :)
 
-
-samples <- read_csv("files.txt",
+samples <- read.table("data/samples.txt",
                       sep = "\t", skip = 1, header = T) %>%
   # just renaming accession to experimental acession
   dplyr::rename(experiment_accession = Accession) 
+
+# It's seems mundane but starting here is the best way to make a "reproducible" sample sheet.
+# Bottom line: the download to code to analysis is the way to reproducibility (this worked a year later :)
+```
+Nice so now we have a sample sheet with experiment accessions 
+Now we can run encode_file_info function on this file and DONE !
+
+
+# running encode function to get our final sample sheet.
+```{r MAP to experiment_accession}
+
+# we are using two functions here:
+?mutate
+# mutate will make a new column and then run function (encode_file_info)
+?map
+# map will take each experiment accession in "experiment_accession" col
+# then pass that into encode_file_info (via the ~) as input .x into encode_file_info
+# map will nest all the files for 1 experimental accession number into one "cell"
+# map is amazing and we can discuss conceptually -- if you want to play with
+# it more there is some bonus code on the bottom of RMD.
+
+# Let's run it : 
+
+samples <- samples %>%
+  # note function inside a function being called.
+  mutate(file_info = map(experiment_accession, ~ encode_file_info(.x)))
+# Thus for each accession in experiment_accession mutate will use the function MAP
+# to map each experimental file to the "file_info" column and keep the data there.
+
+# let's see what this looks like:
+
+samples
+# 5 obs and 40 vars
+# cool we got md5sums we will need in a bit!
+```
+
+Now we need to unnest the mapped data
+
+# Unnesting the data from MAP
+This is a bit hard to read in this format, so we can unnest the data.frames in the file_info column using the unnest command.
+This will duplicate the remaining columns to match the number of lines in the nested data.frame.
+
+```{r unnesting MAP}
+?unnest
+# This function will extract the mapped info and make new cols and rows
+# We also need to tell it which column we want to unnest.
+# note samples is currently 5 rows
+samples <- samples %>%
+  unnest(cols = file_info)
+
+# let's look and see what happened
+samples
+# Now samples is 12 rows (obs) and 47 vars from unnesting 
+# previous 5 rows: each experimental accession had 4 files for 5 exp accession = 20 rows
+# Note we went from 48 obs to 47 because the col the samples mapped to were removed with unnest
+```
+
+# cleaning up sample sheet
+Now we have all the information we neeed in this data.frame and we just need to clean it up.
+
+```{r sample sheet curration: adding replicate number for each RNAseq experiment}
+# Let's number our replicates and create a new column called sample id 
+# where we join the experiment accesion and the rep number
+samples <- samples %>%
+  group_by(experiment_accession) %>%
+  mutate(rep_number = as.numeric(factor(replicate))) %>%
+  unite(sample_id, experiment_accession, rep_number, sep = "_rep", remove = F)
+ # unite will make a new column in samples (piped in) called sample_id
+  # here we will combine experiment accession and rep number with _rep in between
+  # This is a handy handle for the data to access later
+```
+
+# getting rid of non essential data
+Now let's get rid of all that data we don't need! 
+
+```{r removing data from sample sheet}
+# We're just selecting a subset of columns from samples with dplyr::select
+samples <- samples %>%
+   dplyr::select(accession, sample_id, experiment_accession, Assay.title,
+                Biosample.summary, md5sum, paired_end_identifier) %>%
+  
+  # here we are going to start to build the fastq file name for NF_core input
+  unite(fastq_file, sample_id, paired_end_identifier, sep = "_read", remove = F)
+# Now we have a new col fastq_file with the information for each fastq file
+# We will keep adding to this until we get to the final NF_Core input file name.
+```
+
+Excellent we now have our sample shee cleaned up and ready to use
+to make a design file for our new chip run !
+
+# Write out sample sheet to be loaded in next lesson
+# I think a good place for this is where we will run the next pipeline in nextflow:
+
+/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/03_Nextflow/01_my_chipseq
+
+```{r writting out sample sheet}
+
+write_csv(samples, "/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/03_Nextflow/01_my_chipseq/samples.csv")
+
 ```
 
 
-
-
+But first we need to check on the fastq files md5sum test next (02_fastq_checking)
 
