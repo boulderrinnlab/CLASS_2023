@@ -212,7 +212,6 @@ peaks2 <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/POLR2B_
 ?findOverlaps
 ?import
 ovf <- findOverlaps(peaks1, peaks2)
-ovf
 
 ```
 

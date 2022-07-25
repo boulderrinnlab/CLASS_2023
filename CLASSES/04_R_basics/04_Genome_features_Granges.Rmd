@@ -471,6 +471,7 @@ So 7,738 overlapping peaks resulted in 13,771 overlaps with promoters which repr
 EXCERCISE
 *********************
 
+Find overlaps with promoters of group proteins.
 
 What happens if we shrink the promoter windows? Some standards are 2Kb upstream 1kb down stream. 
 Some could be as small as 1Kb upstream 500Kb downstream. Try two different promter window sizes and record

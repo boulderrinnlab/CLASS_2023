@@ -21,6 +21,7 @@ nextflow run nf-core/chipseq -r 1.2.1 \
 --macs_gsize 3.2e9 \
 --blacklist /scratch/Shares/rinnclass/CLASS_2023/data/data/genomes/hg38-blacklist.v2.bed \
 --email john.rinn@colorado.edu \
+--save_reference
 -resume \
 -c nextflow.config
 date
