@@ -1,5 +1,5 @@
 ---
-title: "02_creating_sample_sheet"
+title: "03_creating_sample_sheet"
 author: "JR"
 date: "7/22/2022"
 output: html_document
