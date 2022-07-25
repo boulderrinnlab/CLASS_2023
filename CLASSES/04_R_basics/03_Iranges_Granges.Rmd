@@ -299,3 +299,6 @@ table(ovf2)
 EXCERCISE
 *********************
 
+Find overlaps for replicates of Group proteins. 
+How do they vary? Peak # differences?
+

@@ -30,18 +30,29 @@ cd /scratch/Shares/rinnclass/CLASS_2023/<your_folder>/CLASS_2023/CLASSES/03_Next
 
 # /scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/03_Nextflow/00_Pol2_NF_CORE_RUN/results/bwa/mergedLibrary/macs/broadPeak
 
+# We see a lot of different types of peak files and we want .braodPeak Let's load one in 
+
 ```
 
-We see a lot of different types of peak files and we want .braodPeak
-Let's load one in 
+Since that is a lot of path typing each time let's shorten it my using file.path R command
+```{r file.path}
 
-```{r basics of reading in peak file}
-# loading in peak file 1:
-# we will first need to set an object name to load into the environment (what we are calling this table)
+# change <your_folder> to your folder name to set basepath variable
+
+# we will first need to set an object name to load into the environment (what we are calling this file.path)
 # we assign it the values in the file using the assignment opperator " <- " 
-# then the file path to the peak file
+basepath <- "/scratch/Shares/rinnclass/CLASS_2023/<your_folder>"
 
-Pol2_peak1 <- read_tsv("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/03_Nextflow/00_Pol2_NF_CORE_RUN/results/bwa/mergedLibrary/macs/broadPeak/POLR2A_R1_peaks.broadPeak")
+# we can then add the rest of the path as such:
+Pol2_peak1 <- read_tsv(file.path(basepath, " rest of file path"))
+
+
+# now we can read in the peak file using file.path() function , rest of path
+# we will use the "read_tsv" baseR function and assign it ( <- ) to Pol2_peak1
+
+Pol2_peak1 <- read_tsv(file.path(basepath, "CLASS_2023/CLASSES/03_Nextflow/00_Pol2_NF_CORE_RUN/results/bwa/mergedLibrary/macs/broadPeak/POLR2A_R1_peaks.broadPeak"))
+
+# note we had to shut off base.path function with closing ) then do col_names = F
 
 # cool, let's take a look at what we got by clicking the object in the env window.
 ```
@@ -61,20 +72,6 @@ Pol2_peak1 <- read_tsv("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASS
 
 # Nice so now we have X1-X9 as col names
 ```
-
-# we can make this more succinct by setting a basepath (you can call it anything)
-# Then we can put them together with the rest of the path
-```{r }
-
-# change <your_folder> to your folder name
-basepath <- "/scratch/Shares/rinnclass/CLASS_2023/<your_folder>"
-
-# now we can read in the file using file.path() function , rest of path
-Pol2_peak1 <- read_tsv(file.path(basepath, "CLASS_2023/CLASSES/03_Nextflow/00_Pol2_NF_CORE_RUN/results/bwa/mergedLibrary/macs/broadPeak/POLR2A_R1_peaks.broadPeak"), col_names = F)
-
-# note we had to shut off base.path function with closing ) then do col_names = F
-```
-
 
 2) There are weird chromosome names that are mislocated DNA "contigs" 
 Solution: filter them out.

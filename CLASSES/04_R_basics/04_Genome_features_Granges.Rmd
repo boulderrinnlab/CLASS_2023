@@ -14,3 +14,464 @@ library(tidyverse)
 library(IRanges)
 
 ```
+
+### Have you ever wanted to find overlaps between two lists of genes? Well
+Iranges and GRanges are just the thing!
+
+#### Iranges allows one to index "windows" with properties. Say you had a vector
+of all genes and wanted to track start and stop. Iranges can keep the start, 
+stop and width of values. So this list of ranges (start and stop) for each 
+gene-length is essentially a vector or each column a gene id. With this indexing
+we can now apply several attributes to these ranges. For example if an enhancer 
+or other feature resided in the gene we could also track the start, stop of that
+"interval". 
+
+#### Granges is even more specially aadapted for features in a given genome. All
+the start, stops for each feature is given similar to Iranges. However, we could
+have a big problem since we have 23 chromosomes in the geneome! So simple start
+and stop indexing isn't enough as there could be up to 23 redudant "intervals" 
+that are actually unique. So we need to consider choromosome and coordinates. 
+Worse we also should think about the strand. So GRanges works similar to Iranges
+just having the advantage of indexing chromosome and strand to the start and stop.
+
+
+#### Let's go explore the human geneome annotations from GENCODE.
+We will do this by importing a GTF file of these annotaitons.
+A GTF file is similar in a way to a .bed file with start stop of features
+and other associated metadata that is described here:
+
+https://uswest.ensembl.org/info/website/upload/gff.html
+
+
+## Ok enough background let's start exploring the features of the human genome!
+```{r loading in GENCODE GRanges annotation file}
+
+# we used rtracklayer::import to turn the annotations into start and stops (Iranges) w/ chr (Granges)
+# This takes ~5min
+
+gencode_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/gencode.v32.annotation.gtf")
+
+# let's take a look @metadata to see what we have in here
+
+```
+
+Now let's look at the gene_id indexable part of this GRanges
+# seqnames
+```{r seqnames}
+
+?seqnames
+  
+seqnames(gencode_gr) %>% 
+  head()
+
+
+# we can see that "levels" are the chromosome names and are a meta-level
+```
+
+let's get more info with table to summary using tidy verse %>%
+# summary / table a GRanges object
+```{R summary/table GRanges}
+
+table(seqnames(gencode_gr)) %>%
+  head()
+# This is telling us how many features are associated with each chromosome.
+
+table(seqnames(gencode_gr)) %>% 
+  summary()
+# this tells us how many features there are in the genome.
+
+# Let's find out how many features the mitochondrial chr has (25th level)
+table(seqnames(gencode_gr))[25] 
+
+# we see this is the mitochondrial chromosome and has 143 elements
+
+```
+
+# Indexing Granges (@elementMetadata$INDEXING)
+```{R indexing GRanges}
+
+# we see a lot of good infromation in @elementMetadata -- let's index it.
+
+# let's see how many 'gene_id' values there are by indexing
+table(gencode_gr@elementMetadata$gene_id) %>% 
+  head()
+# This tell us how many features are associated with each gene id.
+
+# Let's see what we get with gene_name
+table(gencode_gr@elementMetadata$gene_name) %>% 
+  head()
+
+# Typical gene symbols 
+table(gencode_gr@elementMetadata$transcript_name) %>%
+  head()
+
+# it's basically memorization of what is a gene name or gene id 
+
+```
+
+
+Let's analyze some of the features of our genome!
+# Making a data frame of items in GRanges object
+```{r GRanges indexing to data.frame}
+
+#let's organize the data frame first and put it into a data frame.
+
+gencode_gr_length <- data.frame("gene_id" = gencode_gr@elementMetadata$gene_id,
+                           "gene_name" = gencode_gr@elementMetadata$gene_name,
+                           "gene_type" = gencode_gr@elementMetadata$gene_type,
+                           "type" = gencode_gr@elementMetadata$type,
+                           "start" = gencode_gr@ranges@start,
+                           "width" = gencode_gr@ranges@width)
+
+#TODO add chrm and search for genes per chr
+                           
+```
+Ok so now we have a new data frame with the information we want from gencode_gr
+Note we see that we can index the RANGES for each gene with @ranges "level"
+
+Let's look at the width for mRNA genes
+# mRNA gene width
+```{R mRNA gene width}
+
+mrna_df <- filter(gencode_gr_length, gene_type == "protein_coding", type == "gene")
+
+# table(gencode_gr@elementMetadata$gene_type)
+
+# we can easily plot a histogram of mRNA gene widths.
+hist(log10(mrna_df$width), breaks = 60)
+
+# same for lncRNAs
+lncrna_df <- filter(gencode_gr_length, gene_type == "lncRNA", type == "gene")
+
+# plotting lncRNA
+hist(log10(lncrna_df$width), breaks = 60)
+
+# Let's see what the average gene size is. Note we can no longer use width in a DF
+
+mean(lncrna_df$width)
+mean(mrna_df$width)
+
+# this all points to mRNAs being 2x longer than lncRNAs.
+```
+
+Now let's go find the widths associated with gene-length. 
+# How many types of "gene types" are there?
+```{R gene types}
+
+# indexing into gene typse 
+table(gencode_gr@elementMetadata$type)
+
+## cool this tell us a lot about the genome with one line!
+
+```
+
+# Finding genome feature lengths
+let's find the longest and shortest genes in the genome!
+But first let's see how to find the lengths of genome features.
+```{R annotation lengths} 
+
+# Let's see the range of gene sizes
+summary(width(gencode_gr))
+
+# interesting some genes are just 1 nt long!
+# let's look into that some more
+
+# we will use indexing and setting a value
+width_1_items <- gencode_gr[width(gencode_gr) == 1] %>%
+  as.data.frame()
+
+# let's look
+table(width_1_items$type)
+# so weird that a CDS can be 1nt or an exon.
+
+# looking for weird exons
+weird_exons <- width_1_items %>% 
+  filter(type == "exon")
+# huh 33 exons are 1 nt -- annotations are never perfect :)
+
+
+# The one thing that should be 1nt long is a TSS
+# to get the TSS we need to use the promters function:
+tss <- promoters(gencode_gr[gencode_gr$type == "gene"], 
+                 upstream = 0, downstream = 0) %>%
+  as.data.frame()
+
+# we see 60,609 TSS. Let's see if that is the same as # of genes
+summary(gencode_gr[gencode_gr$type == "gene"])
+# cool the same
+
+# This code will search for any feature and see if any are 1nt
+#TODO refactor to CDS
+start_codons <- gencode_gr[gencode_gr$type == "CDS"] 
+
+summary(width(start_codons))
+
+# More weird 1nt features
+length(which(width(start_codons) == 1))
+
+# 567 start codons 1nt long -- that can't be right :)
+
+?which
+
+```
+
+# Longest and shortest genes
+```{longest and shortest gene in human genome}
+
+# Let's turn gencode_gr into a data.frame and filter to only genes.
+gencode_df <- gencode_gr %>%
+  as.data.frame() %>%
+  filter(type == "gene")
+
+# Let's find the smallest genes using arrange function
+gencode_df %>% 
+  arrange(gencode_df$width) %>%
+  head()
+
+# Now let's find the Largest genes using arrange
+gencode_df %>%
+  arrange(-width) %>%
+  head()
+
+# We can also store the longest gene as an object with max function
+longest_gene <- gencode_df %>%
+  filter(width == max(width))
+
+# let's take a look at what information we have for this gene:
+longest_gene
+
+```
+
+Now let's find the total amount of the genome covered by exons.
+We start by defining total_exon_length of all exons in genome.
+
+# we need to use reduce to collapse all the exons that overlap into the longest exon
+# Exon 1.1  _____________
+# Exon 1.2      _____________
+# reduce    _________________
+# intersect     _________
+
+
+Ok let's find out what % of genome is exons!
+```{R % of genome that is exons}
+
+# first we will make an object of exons and reduce them as described above
+total_exon_length <- gencode_gr[gencode_gr$type == "exon"] %>%
+  GenomicRanges::reduce() %>% 
+  width() %>%
+  sum()
+
+table(total_exon_length)
+# We now have the total bases covered by exons in the human genome. We also know
+# the human genome is 3.9B base pairs so let's find the percentage by division:
+
+total_exon_length/3.2e9
+# Boom we can see the human genome is about 4% exons!
+
+# We can do the same for gene bodies too
+reduced_gene_bodies <- gencode_gr[gencode_gr$type == "gene"] %>%
+  GenomicRanges::reduce() %>%
+  width() %>%
+  sum()
+
+reduced_gene_bodies/3.2e9
+
+# plotting
+hist(width(reduced_gene_bodies), breaks = 100)
+
+```
+
+# genome features overlapping chip data
+Now let's use GRanges to find overlaps of genome features and peaks from ChIPseq.
+This is probably one of the most commonly used functions in genome sciences!
+First we need to import POLR2A Chip-seq files -- a simple .bed file of peaks.
+
+```{r start point : import Pol2 chip data}
+
+# Load Gencode-v32: 
+gencode_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/gencode.v32.annotation.gtf")
+
+# Import Pol2 "consensus peaks" file
+pol2_chip <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/POLR2A_consensus_peaks_filter.bed")
+
+```
+
+# promoters function
+Now let's define the promoters using the handy promoters function in GRanges
+
+```{R promoters}
+
+?promoters
+
+# let's add 3Kb upstream and downstream from the TSS to define "promoters"
+gencode_promoters <- promoters(gencode_gr[gencode_gr$type == "gene"], 
+                               upstream = 3e3, 
+                               downstream = 3e3)
+
+
+length(gencode_promoters)
+# there are ~60,000 promoters 
+
+```
+
+# findOVerlaps function
+Now we have promoter ranges and peak ranges let's use findOverlaps function
+
+```{R findoverlaps chip peaks &}
+
+# Promoter overlap function requires two parameters:
+# Query file (peaks) and subject file (promoters)
+promoter_overlaps <- findOverlaps(pol2_chip, gencode_promoters)
+promoter_overlaps
+# We get back a list of ranges of the overlaps 
+# This is a single Grange that has "indexable" @from & @to
+# Note @from (subject) @to (query)
+
+
+# What is the length of the Grange (overlaps)?
+length(promoter_overlaps)
+# We can find how many overlaps there were by the length function:
+# "length" of the resulting overlap list
+# looks like 13,771 overlaps!
+```
+
+```{R @from and @to of G(ranges)}
+
+length(promoter_overlaps@from)
+# This tell us there are 13,771 overlaps of chip-peaks (from promoters)
+# This doesn't tell us how many promoters had overlaps
+
+length(promoter_overlaps@to)
+# This tell us there are 13,771 overlaps with promoters (to chip-peaks)
+# Look in env variable and we see both are the same
+
+
+# Let's dig deeper into @from and @to with table
+table(table(promoter_overlaps@from))
+# We see ONE chip-peak overlapped 16 promoters (the sum of these numbers is 13,771)
+
+# Now for @ to
+table(table(promoter_overlaps@to))
+# We see 12,831 promoters had an overlap with one peak and
+# 4 promoters had an overlap with 3 peaks.
+# *** the sum is 13,299 ***
+
+```
+
+# Sometimes it's easier to view these things in data frames
+```{R data frame view of @from & @to}
+
+# Turning single Grange to data frame 
+promoter_overlaps_df <- data.frame(pol2_index = promoter_overlaps@from,
+                                   promoter_index = promoter_overlaps@to)
+
+promoter_overlaps_df
+# 13,771 enteries
+# look at env
+
+
+# let's make a data-frame of what we just did above separate for @from & @to
+
+# @from data frame (look in env)
+at_from_table <- table(promoter_overlaps@from) %>% 
+  as.data.frame()
+
+#@to data frame (look in env)
+at_to_table <- table(promoter_overlaps@to) %>% 
+  as.data.frame()
+```
+
+# digging deeper into @to adn @from
+Let's dig into what information results from findOverlaps
+
+```{R 10K peaks have 13K overlaps}
+
+# let's determine the length of our pol2_chip Grange (number of peaks)
+length(pol2_chip)
+# 10,255 peaks 
+
+
+# Number of peaks that overlap promoters
+length(table(promoter_overlaps@from))
+
+
+table(table(promoter_overlaps@to))
+#  1     2     3 
+# 12831   464     4 
+
+# Thus, 13,771 = 12,831 + 2*464(=928) + 3*4(=12) -> 13,771
+# or 12,831 + 928 + 12 = 13,771
+
+### How many of these are unique:
+# 12,831 + 464 + 4 = 13,299
+# We will come back to this
+
+```
+
+# Different dataframe persepective on overlaps
+```{R accounting oerlaps in @to and @from}
+
+# Let's look at all the peak overlaps (13,771) in two different data frames:
+# Data frame from peak perspective (@from)
+overlapping_pol2 <- pol2_chip[promoter_overlaps_df$pol2_index] %>% 
+  as.data.frame()
+
+# Data frame from promoter perspective (@to)
+overlapping_promoters <- gencode_promoters[promoter_overlaps_df$promoter_index] %>% 
+  as.data.frame()
+# note most promoters are unique
+# >> Note both are 13,771 long
+
+# Now let's merge these two data frames (they both have the same gene_id)
+# We are using the promoter_overlaps_df we made above as it's the same as
+# overlapping_pol2
+
+promoter_overlaps_df$promoter_gene_id <- overlapping_promoters$gene_id
+promoter_overlaps_df
+# Look in env
+
+# adding more data to the same data frame (gene_name & peak_name)
+# adding gene_name
+promoter_overlaps_df$promoter_gene_name <- overlapping_promoters$gene_name
+
+# adding pol2 chip-peak name
+promoter_overlaps_df$peak_name <- overlapping_pol2$name
+
+# How many promoters had overlaps:
+length(unique(promoter_overlaps_df$promoter_gene_id))
+# Chip-peaks overlapped 13,299 promoters.
+
+# Now lets find the length of "unique" pol2 chip-peaks
+length(unique(promoter_overlaps_df$peak_name))
+# We can see 7,738 peaks were in the overlaps
+# Thus ~2K were not overlapping promoters (10K chip peaks total)
+
+# IN CONCLUSION:
+
+# 7,738 of 10,255 Pol2 ChiP-peaks observed overlapped 13,299 promoters.
+
+# Thus, it is important to know how overlaps work to be sure you have the
+# correct numbers !
+
+```
+
+Let's bring this all back together.
+
+10,255 chip-peaks were observed
+7,738 of these peaks overlapped  13,771 promoter overlaps (@from)
+13,771 promoters had overlaps (@to)
+13,299 unique promoters had overlaps (@to)
+
+
+So 7,738 overlapping peaks resulted in 13,771 overlaps with promoters which represented 13,299 unique promoters.
+
+
+
+*********************
+EXCERCISE
+*********************
+
+
+What happens if we shrink the promoter windows? Some standards are 2Kb upstream 1kb down stream. 
+Some could be as small as 1Kb upstream 500Kb downstream. Try two different promter window sizes and record
+@from and @to values as well as unique peaks. 
