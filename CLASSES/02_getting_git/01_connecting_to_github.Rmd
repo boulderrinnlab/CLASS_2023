@@ -97,6 +97,29 @@ ssh identikey@fiji.colorado.edu
 # should connect directly with out a password 
 ```
 
+There are often little bugs along the way we will fix.
+Here is some good trouble shooting steps.
+# trouble shooting
+```{r}
+# (***) check  push pull on Rstudio -- if grey doesn't know remote origin.
+
+# From the start:
+
+# (1) Go to GitHub and make repo - add a file (e.g. .readme)
+
+# GO TO TERMINAL and project directory
+
+# (2)  git remote add origin git@github.com:YOU/REPO_NAME.git
+# Example - DON'T USE :) git remote add origin git@github.com:Boulderrinnlab/CODE_VAULT.git
+
+# (3)  git remote set-url origin git@github.com:YOU/REPO_NAME.git
+
+# Example - DON'T USE :) git remote set-url origin git@github.com:Boulderrinnlab/CODE_VAULT.git
+
+# (4) git pull
+
+# (5) git push --set-upstream origin master 
+
+```
 
 ------------------Nice all connected to Git and Fiji ----------------------
-
