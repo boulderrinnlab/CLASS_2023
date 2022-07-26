@@ -122,4 +122,22 @@ Here is some good trouble shooting steps.
 
 ```
 
+
+# if you find that your commits are not being tracked by github it's likely that 
+# the email you made the github account is different than CU boulder
+# to get credit change git env email on fiji to the one used to start git hub
+
+```{git}
+git change-commits GIT_AUTHOR_EMAIL "valle20t@gmail.com" "teva8543@colorado.edu" HEAD~10..HEAD
+
+git change-commits GIT_AUTHOR_EMAIL "githubemail" "oldemail" HEAD~10..HEAD
+
+git change-commits GIT_AUTHOR_EMAIL "old@email.com" "new@email.com" HEAD~10..HEAD
+
+```
+
+
+
+
+
 ------------------Nice all connected to Git and Fiji ----------------------
