@@ -3,6 +3,8 @@ title: "05_overlapping_Granges"
 author: "JR"
 date: "7/26/2022"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -14,99 +16,240 @@ library(IRanges)
 
 ```
 
+# genome features overlapping chip data
+Now let's use GRanges to find overlaps of genome features and peaks from ChIPseq.
+This is probably one of the most commonly used functions in genome sciences!
+First we need to import POLR2A Chip-seq files -- a simple .bed file of peaks.
 
-# digging deeper into @to adn @from
-Let's dig into what information results from findOverlaps
+```{r reading in Pol2 peaks}
 
-```{R 10K peaks have 13K overlaps}
+# setting file path to peak files
 
-# let's determine the length of our pol2_chip Grange (number of peaks)
-length(pol2_chip)
-# 10,255 peaks 
+basepath <- "/scratch/Shares/rinnclass/CLASS_2023/<your_folder>"
+path <- "CLASS_2023/CLASSES/03_Nextflow/00_Pol2_NF_CORE_RUN/results/bwa/mergedLibrary/macs/broadPeak"
 
+# first we read the peak files in as gRanges object with rtracklayer function.
+peaks1 <- rtracklayer::import(file.path(basepath,path, "POLR2A_R1_peaks.broadPeak"))
+peaks2 <- rtracklayer::import(file.path(basepath,path, "POLR2A_R2_peaks.broadPeak"))
 
-# Number of peaks that overlap promoters
-length(table(promoter_overlaps@from))
-
-
-table(table(promoter_overlaps@to))
-#  1     2     3 
-# 12831   464     4 
-
-# Thus, 13,771 = 12,831 + 2*464(=928) + 3*4(=12) -> 13,771
-# or 12,831 + 928 + 12 = 13,771
-
-### How many of these are unique:
-# 12,831 + 464 + 4 = 13,299
-# We will come back to this
+# Load Gencode-v32: for genome features.
+gencode_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2023/data/data/genomes/gencode.v32.annotation.gtf")
 
 ```
 
-# Different dataframe persepective on overlaps
-```{R accounting oerlaps in @to and @from}
+# promoters function
+Now let's define the promoters using the handy promoters function in GRanges
 
-# Let's look at all the peak overlaps (13,771) in two different data frames:
-# Data frame from peak perspective (@from)
-overlapping_pol2 <- pol2_chip[promoter_overlaps_df$pol2_index] %>% 
-  as.data.frame()
+```{R promoters}
 
-# Data frame from promoter perspective (@to)
-overlapping_promoters <- gencode_promoters[promoter_overlaps_df$promoter_index] %>% 
-  as.data.frame()
-# note most promoters are unique
-# >> Note both are 13,771 long
+# The promoter functions will use the first base in a genbody at the TSS.
+# Then we can define the promoter up and downstream from there.
+?promoters
 
-# Now let's merge these two data frames (they both have the same gene_id)
-# We are using the promoter_overlaps_df we made above as it's the same as
-# overlapping_pol2
+# let's add 1Kb upstream and downstream from the TSS to define "promoters"
+gencode_promoters <- promoters(gencode_gr[gencode_gr$type == "gene"], 
+                               upstream = 1e3, 
+                               downstream = 1e3)
 
-promoter_overlaps_df$promoter_gene_id <- overlapping_promoters$gene_id
-promoter_overlaps_df
-# Look in env
 
-# adding more data to the same data frame (gene_name & peak_name)
-# adding gene_name
-promoter_overlaps_df$promoter_gene_name <- overlapping_promoters$gene_name
-
-# adding pol2 chip-peak name
-promoter_overlaps_df$peak_name <- overlapping_pol2$name
-
-# How many promoters had overlaps:
-length(unique(promoter_overlaps_df$promoter_gene_id))
-# Chip-peaks overlapped 13,299 promoters.
-
-# Now lets find the length of "unique" pol2 chip-peaks
-length(unique(promoter_overlaps_df$peak_name))
-# We can see 7,738 peaks were in the overlaps
-# Thus ~2K were not overlapping promoters (10K chip peaks total)
-
-# IN CONCLUSION:
-
-# 7,738 of 10,255 Pol2 ChiP-peaks observed overlapped 13,299 promoters.
-
-# Thus, it is important to know how overlaps work to be sure you have the
-# correct numbers !
+length(gencode_promoters)
+# there are ~60,000 promoters in the $type == gene
 
 ```
 
-Let's bring this all back together.
+# findOVerlaps function
+Now we have promoter ranges and peak ranges let's use findOverlaps function
 
-10,255 chip-peaks were observed
-7,738 of these peaks overlapped  13,771 promoter overlaps (@from)
-13,771 promoters had overlaps (@to)
-13,299 unique promoters had overlaps (@to)
+```{R findoverlaps chip peaks &}
+# Promoter overlap function requires two parameters:
+# Query file (peaks) and subject file (promoters)
+promoter_overlaps_pol2_peaks1 <- findOverlaps(peaks1, gencode_promoters)
+promoter_overlaps_pol2_peaks1
+
+# nice we see that 19,063 promoters overlap with Pol2 replicate 1.
+# Let's try the same for replicate 2:
+
+promoter_overlaps_pol2_peaks2 <- findOverlaps(peaks2, gencode_promoters)
+promoter_overlaps_pol2_peaks2
+
+# 19,700 promoters overlap -- so similar to rep 1.
+```
+
+This raises the question: Are these the same promoters?
+We can use our new skill and findOverlaps of the overlaps :)
+
+# Overlap of promoters between replicates
+
+```{r overlap of overlaps}
+# one obvious thought maybe to do findOverlaps(promoter_overlaps_pol2_peaks1, promoter_overlaps_pol2_peaks2)
+# Let's try it !
+
+same_prom_ov <- findOverlaps(promoter_overlaps_pol2_peaks1, promoter_overlaps_pol2_peaks2)
+
+# huh that didn't work? Why not?
+```
+well the findOveralps provides @to and @from that can's be overlapped 
+these are indicies of which one overlaps
+Peak 1 w. Peak 7, Peak 1 with peak 10 etc ...
+NOTE: each peak is going to have numerous overlaps so we want only the unique ones.
+
+# indexing into an overlaps file and then finding overlaps.
+
+```{r overlap of overlaps}
+# We have all the info we need in peaks1 and 2.
+# Thus we can index there and only retreive the peaks that had overlaps
+# Since we did peaks1, gencode promoters peaks1 is @ from adn promoters @ to
+
+# indexing
+peak1_ov_gr <- peaks1[unique(promoter_overlaps_pol2_peaks1@from)] 
+
+# indexing
+peak2_ov_gr <- peaks2[unique(promoter_overlaps_pol2_peaks2@from)]
+
+# now let's find the overlaps of the overlaps
+ov_of_ov <- findOverlaps(peak1_ov_gr, peak2_ov_gr)
+ov_of_ov
+
+# nice we see that there are 12,961 promoter overlaps in common.
+# 13,857 and 14,403 promoter ov had 12,961 in common ~90% !
+```
+
+So the good news is we have good overlap but that was kinda 
+annoying to have to index before the second overlaps.
+
+Luckily someone thought of that too and made a function called:
+subsetbyoverlaps!
+
+This will retrieve the overlapping index only from the original Granges.
 
 
-So 7,738 overlapping peaks resulted in 13,771 overlaps with promoters which represented 13,299 unique promoters.
+# Using subseByOverlaps instead of findOverlaps
+
+```{r SubsetByOverlaps }
+
+# subset overlaps from peaks1 and promoters
+promoter_overlaps_pol2_peaks1 <- subsetByOverlaps(peaks1, gencode_promoters)
+promoter_overlaps_pol2_peaks1
+# 13,857 = same as before with findOverlaps
+
+# subset overlaps from peaks2 and promoters
+promoter_overlaps_pol2_peaks2 <- subsetByOverlaps(peaks2, gencode_promoters)
+promoter_overlaps_pol2_peaks2
+# 14,403 = same as before with findOverlaps
+
+# now overlapping the two overlaps by findOverlaps
+subset_overlaps_peaks <- findOverlaps(promoter_overlaps_pol2_peaks1, promoter_overlaps_pol2_peaks2)
+subset_overlaps_peaks
+# 12,961 -- It's the same -- yay and simpler code.
+
+```
+
+This is great that findOverlaps + indexing = subsetByOverlaps 
+However, remember how we had more overlaps than peaks in R_basics/03 ???
+
+Let's see if perhaps this is more overlaps than peaks !
+
+# how many unique peaks resulted in 12,961 overlaps
+```{r how many unique peaks had overlaps}
+
+# we can use length and unique to solve this
+length(unique(subset_overlaps_peaks@to))
+length(unique(subset_overlaps_peaks@to))
+# Yup there were only 12,257 peaks that had 12,961 overlaps!
 
 
+# let's use our lessons from R_basics/03 to find out:
+table(table(subset_overlaps_peaks@from))
 
-*********************
-EXCERCISE
-*********************
+#1     2     3     4 
+# 11589   633    34     1 
 
-Find overlaps with promoters of group proteins.
+# This means there are = 12,961 overlaps and unique = from 12,257 peaks
+# note we did this for @from (promoter_overlaps_pol2_peaks1)
+# let's look at @to
+table(table(subset_overlaps_peaks@to))
 
-What happens if we shrink the promoter windows? Some standards are 2Kb upstream 1kb down stream. 
-Some could be as small as 1Kb upstream 500Kb downstream. Try two different promter window sizes and record
-@from and @to values as well as unique peaks. 
+#  1     2     3     4 
+# 12037   413    30     2 
+
+# This also adds up to 12,961 with
+# 12,482 unique peaks
+
+```
+
+Nice so we are getting really good at overlaps in GenomicRanges!
+Abover we took the approach of overlap each peak file to promoters
+then overlapping those overlaps.
+
+Alternatively we can find overlaps of the peak files and then
+overlaps with promoters. 
+
+Let's try overlapping peaks first then promoters:
+
+# peak overlaps realtive to promoters
+
+```{r peak overlaps and promoter overlaps}
+
+pol2_consensus_peaks <- subsetByOverlaps(peaks1, peaks2)
+pol2_consensus_peaks
+# 27,206 
+peaks1
+# 33,582
+peaks2
+# 43,435
+
+# Ok so we somethign similar to R_basica/03_
+
+# Overlap with promoters:
+pol2_consensus_peaks_ov_promoters <- subsetByOverlaps(pol2_consensus_peaks, gencode_promoters)
+pol2_consensus_peaks_ov_promoters
+# 12,331
+```
+
+cool so we saw before that it was 12,961 promoter overlaps 
+now we have 12,331 which is pretty close 
+
+# Do we dare to compare the promters ov from both methods?
+# Go on then :)
+
+```{r promoter overlaps between methods}
+
+# so we previously made overlaps this way (changed to subsetByOverlaps)
+
+subset_overlaps_peaks <- subsetByOverlaps(promoter_overlaps_pol2_peaks1, promoter_overlaps_pol2_peaks2)
+subset_overlaps_peaks
+# 12,257 unique overlap
+
+
+# let's overlap this with peak overlaps
+
+both_method_ov <- subsetByOverlaps(subset_overlaps_peaks, pol2_consensus_peaks_ov_promoters )
+both_method_ov
+# 12,257 that is a good sign that we got the same result !
+
+# The one downside is we can't see how this all worked with @to and @from
+both_method_ov@from 
+#error :( 
+
+```
+
+Ok, that was a lot of overlapping. To summarize:
+1) FindOverlaps will keep the @from and @to information 
+2) Subset by overlaps only keeps the ranges that overlap 
+3) you can do the same by indexing the original query or subject file
+e.g. peaks1[unique(promoter_overlaps_pol2_peaks1@from)] 
+4) Subset by overlaps is great for continuing to do lots of overlaps
+5) @from = subject, @to = query
+
+
+#########################
+Excercise 
+#########################
+
+1) Find the peaks that overlap in all the replicates of your favorite protein.
+- make sure to document how many peaks were in each starting file for overlaps
+- how did this number change
+
+2) How many of those peaks overlap promoters? 
+- how many unqiue peaks are there that resulted in N overlaps?
+

@@ -341,104 +341,14 @@ mean(width(gene_body_lengths))
 # answer is 38Kb !
 ```
 
+####################
+Excercise
+###################
 
-# genome features overlapping chip data
-Now let's use GRanges to find overlaps of genome features and peaks from ChIPseq.
-This is probably one of the most commonly used functions in genome sciences!
-First we need to import POLR2A Chip-seq files -- a simple .bed file of peaks.
+Determine:
 
-```{r start point : import Pol2 chip data}
+1) How many CDS (Coding sequences there are in the genome)
+2) What is the longest and shortest CDS?
+3) What is the distribution of CDS lengths?
 
-# Load Gencode-v32: 
-gencode_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/gencode.v32.annotation.gtf")
-
-# Import Pol2 "consensus peaks" file
-pol2_chip <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/POLR2A_consensus_peaks_filter.bed")
-
-```
-
-# promoters function
-Now let's define the promoters using the handy promoters function in GRanges
-
-```{R promoters}
-
-?promoters
-
-# let's add 3Kb upstream and downstream from the TSS to define "promoters"
-gencode_promoters <- promoters(gencode_gr[gencode_gr$type == "gene"], 
-                               upstream = 3e3, 
-                               downstream = 3e3)
-
-
-length(gencode_promoters)
-# there are ~60,000 promoters 
-
-```
-
-# findOVerlaps function
-Now we have promoter ranges and peak ranges let's use findOverlaps function
-
-```{R findoverlaps chip peaks &}
-
-# Promoter overlap function requires two parameters:
-# Query file (peaks) and subject file (promoters)
-promoter_overlaps <- findOverlaps(pol2_chip, gencode_promoters)
-promoter_overlaps
-# We get back a list of ranges of the overlaps 
-# This is a single Grange that has "indexable" @from & @to
-# Note @from (subject) @to (query)
-
-
-# What is the length of the Grange (overlaps)?
-length(promoter_overlaps)
-# We can find how many overlaps there were by the length function:
-# "length" of the resulting overlap list
-# looks like 13,771 overlaps!
-```
-
-```{R @from and @to of G(ranges)}
-
-length(promoter_overlaps@from)
-# This tell us there are 13,771 overlaps of chip-peaks (from promoters)
-# This doesn't tell us how many promoters had overlaps
-
-length(promoter_overlaps@to)
-# This tell us there are 13,771 overlaps with promoters (to chip-peaks)
-# Look in env variable and we see both are the same
-
-
-# Let's dig deeper into @from and @to with table
-table(table(promoter_overlaps@from))
-# We see ONE chip-peak overlapped 16 promoters (the sum of these numbers is 13,771)
-
-# Now for @ to
-table(table(promoter_overlaps@to))
-# We see 12,831 promoters had an overlap with one peak and
-# 4 promoters had an overlap with 3 peaks.
-# *** the sum is 13,299 ***
-
-```
-
-# Sometimes it's easier to view these things in data frames
-```{R data frame view of @from & @to}
-
-# Turning single Grange to data frame 
-promoter_overlaps_df <- data.frame(pol2_index = promoter_overlaps@from,
-                                   promoter_index = promoter_overlaps@to)
-
-promoter_overlaps_df
-# 13,771 enteries
-# look at env
-
-
-# let's make a data-frame of what we just did above separate for @from & @to
-
-# @from data frame (look in env)
-at_from_table <- table(promoter_overlaps@from) %>% 
-  as.data.frame()
-
-#@to data frame (look in env)
-at_to_table <- table(promoter_overlaps@to) %>% 
-  as.data.frame()
-```
 
