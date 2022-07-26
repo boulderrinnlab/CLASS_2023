@@ -284,33 +284,63 @@ We start by defining total_exon_length of all exons in genome.
 
 
 Ok let's find out what % of genome is exons!
-```{R % of genome that is exons}
 
+# What percetnage of the genome (3Billion) are exons?
+```{R % of genome that is exons}
 # first we will make an object of exons and reduce them as described above
 total_exon_length <- gencode_gr[gencode_gr$type == "exon"] %>%
+  # now reduce will take the union of overlapping exons 
   GenomicRanges::reduce() %>% 
   width() %>%
   sum()
 
-table(total_exon_length)
 # We now have the total bases covered by exons in the human genome. We also know
 # the human genome is 3.9B base pairs so let's find the percentage by division:
 
 total_exon_length/3.2e9
 # Boom we can see the human genome is about 4% exons!
 
-# We can do the same for gene bodies too
+# if we want to plot the range of exon sizes we simply remove the sum function and plot:
+exon_lengths <- gencode_gr[gencode_gr$type == "exon"] %>%
+  # now reduce will take the union of overlapping exons 
+  GenomicRanges::reduce() 
+
+# plotting
+hist(width(exon_lengths), breaks = 100, xlim = c(0,10000))
+# we see most exons are under 2kb what is the average?
+
+avergage_exon_length <- mean(width(exon_lengths))
+# Cool the average exon length is 444nt !
+```
+
+# what percentage of the genome is comprised of gene bodies?
+```{R % of genome that is Gene bodies}
+
+# To do this we simply change index in $type to == gene
 reduced_gene_bodies <- gencode_gr[gencode_gr$type == "gene"] %>%
   GenomicRanges::reduce() %>%
   width() %>%
   sum()
 
 reduced_gene_bodies/3.2e9
+# Woah gene bodies take up 50% of genome !!
+
+# lets' see the range of sizes (take out width adn sum from above)
+gene_body_lengths <- gencode_gr[gencode_gr$type == "gene"] %>%
+  GenomicRanges::reduce()
 
 # plotting
-hist(width(reduced_gene_bodies), breaks = 100)
+hist(width(gene_body_lengths), breaks = 100, xlim = c(0,500000))
 
+# we see most are less than 200Kb long (we previous saw longest was 2M !)
+
+# what is the average length of a gene body?
+
+mean(width(gene_body_lengths))
+
+# answer is 38Kb !
 ```
+
 
 # genome features overlapping chip data
 Now let's use GRanges to find overlaps of genome features and peaks from ChIPseq.
@@ -412,98 +442,3 @@ at_to_table <- table(promoter_overlaps@to) %>%
   as.data.frame()
 ```
 
-# digging deeper into @to adn @from
-Let's dig into what information results from findOverlaps
-
-```{R 10K peaks have 13K overlaps}
-
-# let's determine the length of our pol2_chip Grange (number of peaks)
-length(pol2_chip)
-# 10,255 peaks 
-
-
-# Number of peaks that overlap promoters
-length(table(promoter_overlaps@from))
-
-
-table(table(promoter_overlaps@to))
-#  1     2     3 
-# 12831   464     4 
-
-# Thus, 13,771 = 12,831 + 2*464(=928) + 3*4(=12) -> 13,771
-# or 12,831 + 928 + 12 = 13,771
-
-### How many of these are unique:
-# 12,831 + 464 + 4 = 13,299
-# We will come back to this
-
-```
-
-# Different dataframe persepective on overlaps
-```{R accounting oerlaps in @to and @from}
-
-# Let's look at all the peak overlaps (13,771) in two different data frames:
-# Data frame from peak perspective (@from)
-overlapping_pol2 <- pol2_chip[promoter_overlaps_df$pol2_index] %>% 
-  as.data.frame()
-
-# Data frame from promoter perspective (@to)
-overlapping_promoters <- gencode_promoters[promoter_overlaps_df$promoter_index] %>% 
-  as.data.frame()
-# note most promoters are unique
-# >> Note both are 13,771 long
-
-# Now let's merge these two data frames (they both have the same gene_id)
-# We are using the promoter_overlaps_df we made above as it's the same as
-# overlapping_pol2
-
-promoter_overlaps_df$promoter_gene_id <- overlapping_promoters$gene_id
-promoter_overlaps_df
-# Look in env
-
-# adding more data to the same data frame (gene_name & peak_name)
-# adding gene_name
-promoter_overlaps_df$promoter_gene_name <- overlapping_promoters$gene_name
-
-# adding pol2 chip-peak name
-promoter_overlaps_df$peak_name <- overlapping_pol2$name
-
-# How many promoters had overlaps:
-length(unique(promoter_overlaps_df$promoter_gene_id))
-# Chip-peaks overlapped 13,299 promoters.
-
-# Now lets find the length of "unique" pol2 chip-peaks
-length(unique(promoter_overlaps_df$peak_name))
-# We can see 7,738 peaks were in the overlaps
-# Thus ~2K were not overlapping promoters (10K chip peaks total)
-
-# IN CONCLUSION:
-
-# 7,738 of 10,255 Pol2 ChiP-peaks observed overlapped 13,299 promoters.
-
-# Thus, it is important to know how overlaps work to be sure you have the
-# correct numbers !
-
-```
-
-Let's bring this all back together.
-
-10,255 chip-peaks were observed
-7,738 of these peaks overlapped  13,771 promoter overlaps (@from)
-13,771 promoters had overlaps (@to)
-13,299 unique promoters had overlaps (@to)
-
-
-So 7,738 overlapping peaks resulted in 13,771 overlaps with promoters which represented 13,299 unique promoters.
-
-
-
-*********************
-EXCERCISE
-*********************
-
-Find overlaps with promoters of group proteins.
-
-What happens if we shrink the promoter windows? Some standards are 2Kb upstream 1kb down stream. 
-Some could be as small as 1Kb upstream 500Kb downstream. Try two different promter window sizes and record
-@from and @to values as well as unique peaks. 
