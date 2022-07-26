@@ -202,12 +202,17 @@ I have some set up to test in the data folder.
 # finding overlapping peaks in our actual data sets !!
 ```{R find overlaps}
 
-# first we read the consensus peak files in as gRanges object with rtracklayer function.
+# setting file path to peak files
 
-peaks1 <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/POLR2A_consensus_peaks_filter.bed")
+basepath <- "/scratch/Shares/rinnclass/CLASS_2023/<your_folder>"
+path <- "CLASS_2023/CLASSES/03_Nextflow/00_Pol2_NF_CORE_RUN/results/bwa/mergedLibrary/macs/broadPeak"
 
-peaks2 <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/POLR2B_consensus_peaks_filter.bed")
- 
+# first we read the peak files in as gRanges object with rtracklayer function.
+
+peaks1 <- rtracklayer::import(file.path(basepath,path, "POLR2A_R1_peaks.broadPeak"))
+
+peaks2 <- rtracklayer::import(file.path(basepath,path, "POLR2A_R2_peaks.broadPeak"))
+
 # now we can use the findOverlaps function to see what overlaps!
 ?findOverlaps
 ?import
@@ -221,22 +226,51 @@ the first file is query and second is the subject.
 
 # Let's take a look at the overlaps results.
 ```{r digging into findOverlap results}
-
 summary(ovf)
 
-# Huh 11,000 overlaps -- let's see what we stared with
+# Huh 28445 overlaps -- let's see what we stared with
 
 summary(peaks1)
-# Only 10,000 peaks
+# we had 33582 peaks in replicate 1
 
 summary(peaks2)
-# 19,000 peaks
+# 43435 peaks in replicate 2
+
+# This means 28,445 peaks overlapped but we need to consider 
+# the subject and query.
+```
+
+Imagine the scenario where you had more overlaps than one of 
+the peak files had peaks -- mind twister but happens
+```{r crazy peaks}
+# loading in a situation to get to know query subject (@to and @ from)
+crazy_peaks1 <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2023/data/data/POLR2A_consensus_peaks_filter.bed")
+crazy_peaks2 <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2023/data/data/POLR2B_consensus_peaks_filter.bed")
+
+# find overlaps
+crazy_ovf <- findOverlaps(crazy_peaks1, crazy_peaks2)
+
+# seeing how many overlaps
+summary(crazy_ovf)
+# 11042 overlaps 
+
+# how many peaks in 1
+summary(crazy_peaks1)
+# we had 10255 crazy_peaks1 
+
+# how many peaks in crazy_peaks2
+summary(crazy_peaks2)
+# 19455 peaks in replicate 2
+
+```
 
 # How did we get more than 10,255 peak overlaps (min number of peaks in peaks1)?
 
+
+```{r digging into findOverlap results}
 # let's see with iranges "width function"
-summary(width(peaks1))
-summary(width(peaks2))
+summary(width(crazy_peaks1))
+summary(width(crazy_peaks2))
 
 # there peaks in peak1 are generally larger than peak2
 # thus a peak in peak1 could overlap multiple peaks in peak2 (vice versa too).
@@ -259,18 +293,18 @@ We can get more information from then results of findOverlaps. Let's look at env
 # let's understand this more deeply there are some subtilties we should cover
 # let's table the @from index
 
-table(ovf@from) 
-table(table(ovf@from))
-table(table(table(ovf@from)))
+table(crazy_ovf@from) 
+table(table(crazy_ovf@from))
+table(table(table(crazy_ovf@from)))
 # bit too much info -- let's table the table
 
-table(table(table(table(table(ovf@from)))))
+table(table(table(table(table(crazy_ovf@from)))))
 
 # NOTE: we see how many peaks in peak1 file had multiple overlaps
 # thus there is one peak in peak1 that overlaps 14 peaks in peak2
 
 # same for @to
-table(table(ovf@to))
+table(table(crazy_ovf@to))
 
 # huh most only have one overlap probably because:
 # the multiple overlaps in peak2 are assigned to 1 peak in peak1
@@ -284,20 +318,30 @@ We can look at how overlaps are reported using: countOverlaps
 ```{r countOverlaps for GRanges}
 
 # let's try countOverlaps
-ovf2 <-countOverlaps(peaks1, peaks2)
+crazy_ovf2 <-countOverlaps(crazy_peaks1, crazy_peaks2)
 
 # let's look
-table(ovf2)
+table(crazy_ovf2)
 
-# same results as "table(table())
+# if we sum the overlaps we get the 11,000 !
+
+# crazy_ovf2
+#   0    1    2    3    4    5    6    7    8    9   10   11   12   14 
+# 2242 6388  918  382  155   81   37   27    8    8    3    4    1    1 
+
+# 6388 + 2*(918) + 3(382) + 4*(155) ...... >> 11,042
 
 ```
+
+# Thus, the crazy_peak1 file with ~10,000 peaks (@from) had more overlaps because:
+# Crazy_peak1 had wider peaks thus the smaller peaks overlapped multiple times in
+# the same window in @to (crazy_peak2)
 
 
 *********************
 EXCERCISE
 *********************
 
-Find overlaps for replicates of Group proteins. 
+Find overlaps for replicates of your group's proteins. 
 How do they vary? Peak # differences?
 
