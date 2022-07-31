@@ -1,0 +1,100 @@
+---
+title: "0X_bash_shell_info"
+author: "JR"
+date: "7/31/2022"
+output: html_document
+---
+
+
+The first thing to distinguish for bash whether it is interactive or non-interactive.
+When you login to Fiji via ssh you will be in an interactive bash shell. We also call it a login shell. 
+It will take it's input from tty from your terminal.
+
+When you open a new shell for example: $ bash
+It will also be an interactive shell but it is technically not a login shell. Some Xterm, putty, or some other terminal emulators can open a shell that is not a login shell. 
+
+A bash script however is  Non-interactive and Non-login and it is a third category. It runs or can run in the background without your input.
+
+So, this results in three different scenarios. Each will have a different set of files that will be used for it's initialization.
+
+When one logs into fiji one will get a bash login shell. In /etc/passwd we use /bin/bash as default login shell.
+
+```{BASH}
+
+
+$ grep jori2700 /etc/passwd
+jori2700:x:532469:718:John Rinn:/Users/jori2700:/bin/bash
+
+
+When the shell itself starts/opens at login it will use /etc/profile first which part of the OS bash package installation/implementation:
+bash.x86_64                                 4.2.46-34.el7              @base
+
+/etc/profile will then source "." some more files:
+
+/etc/profile     # System wide environment and startup programs, for login setup
+
+<----snip--->
+for i in /etc/profile.d/*.sh /etc/profile.d/sh.local ; do
+   if [ -r "$i" ]; then
+       if [ "${-#*i}" != "$-" ]; then
+           . "$i"
+       else
+           . "$i" >/dev/null
+       fi
+   fi
+done
+<----snip--->
+
+so this is how you get to the modules you are using on Fiji:
+
+/etc/profile.d/modules.sh
+
+<---snip--->
+   export MODULEPATH_ROOT="/opt/lmod/lmod/modulefiles"
+   export LMOD_SETTARG_CMD=":"
+   export LMOD_FULL_SETTARG_SUPPORT=no
+   export LMOD_COLORIZE=yes
+   export LMOD_PREPEND_BLOCK=normal
+   export MODULEPATH=$(/opt/lmod/lmod/libexec/addto --append MODULEPATH $MODULEPATH_ROOT/$LMOD_sys $MODULEPATH_ROOT/Core)
+   export MODULEPATH=$(/opt/lmod/lmod/libexec/addto --append MODULEPATH /opt/lmod/lmod/modulefiles/Core)
+   export MODULESHOME=/opt/lmod/lmod
+<---snip--->
+
+In the login shell at opening the order of initialization is:
+  /etc/profile (from the OS/system) -> will source more files from /etc/profile.d/
+~/.bash_profile   (we provide it and it has a single line "umask 002" to set up default directory and file permissions)
+~/.bash_login     (we do not provide it by default)
+~/.profile       (we do not provide it by default)      
+
+
+When a bash shell script is executed non of these environment files are used so this is why we need to set up everything in the batch scripts.
+The only thing is used by a bash script that runs with your user id is the BASH_ENV environment variable if that exists. We also do not have that by default.
+
+For a non-login shell (bash script) the order is:
+/etc/bashrc   (from the OS)
+~/.bashrc             (we do not provide it, users create it)
+
+So, when your student logs in for the first time they will get an interactive bash. In their home directory by default there is only one file ".bash_profile" 
+And it only has a single line "umask 002"
+
+Which means that in the first Fiji interactive shell environment comes from /etc/profile then /etc/profile.d/modules.sh
+To add additional paths, variables aliases users need to create and add things to ~/.bash_profile
+
+If anyone needs or uses a non-interactive bash that is not an ssh login then ~/.bashrc should be created
+If you do not want difference between interactive and non-interactive bash then you can have some pointer to one another,
+for example in ~/.bash_profile
+
+if [ -f ~/.bashrc ];
+then
+   .  ~/.bashrc;
+fi
+
+And you can also source your ~/.bash_profile from ~/.bashrc
+To me it was really confusing at first that I noticed that sometimes I would get the lmod modules and sometimes I would not.
+This is when I realized that I needed to update my .bashrc for non-interactive shells. (like an xterm or some putty sessions)
+
+~/.profile also can be used to set up your interactive bash as you saw it above, being the last file sourced. Bash is built on sh and sh is using .profile so it is there for compatibility.
+
+
+```
+
