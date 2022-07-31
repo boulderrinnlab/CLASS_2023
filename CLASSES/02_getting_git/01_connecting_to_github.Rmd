@@ -4,6 +4,7 @@ author: "JR"
 date: "7/18/2022"
 output: html_document
 ---
+
 Our first objective today will be to sync to the class github. We will
 go over a few needed things to establish git connections:
 
