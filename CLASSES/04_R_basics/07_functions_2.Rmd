@@ -1,0 +1,51 @@
+---
+title: "07_functions_2"
+author: "JR"
+date: "8/1/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(stringsAsFactors = F)
+library(GenomicRanges)
+library(tidyverse)
+library(IRanges)
+source("../../util/my_class_functions.R")
+
+basepath <- "/scratch/Shares/rinnclass/CLASS_2023/<your_folder>"
+peak_path <- "CLASS_2023/CLASSES/03_Nextflow/00_my_chipseq/results/bwa/mergedLibrary/macs/broadPeak/"
+broadpeakfilepath <- file.path(basepath, peak_path)
+
+```
+
+
+
+
+# interesect peaks custom function
+Cool now we have a function to import peak files as a GRanges.
+We can now use this to find overlaps in replicates using another function
+"intersect peaks" Let's take a look at our "intersect_peaks" function. 
+
+
+Here we will use the peak_list we generated above and push it into this function intersect_peaks.
+```{r creating intersect_peaks function}
+# note the dependence on peak_list which is the output of import_peaks.
+intersect_peaks <- function(peak_list) {
+  
+  combined_peaks <- peak_list[[1]]
+  for(i in 2:length(peak_list)) {
+    suppressWarnings(pl_ov <- findOverlaps(combined_peaks, peak_list[[1]]))
+    pl1 <- combined_peaks[unique(pl_ov@from)]
+    pl2 <- peak_list[[i]][unique(pl_ov@to)]
+    suppressWarnings(combined_peaks <- GenomicRanges::reduce(union(pl1, pl2)))
+    
+  }
+  return(combined_peaks)
+}
+# Now that we have this function in this environment session we
+# could just run it like this:
+overlaps <- intersect_peaks(peak_list)
+```
+
+# ***** Let's add this as a function in our util ******
