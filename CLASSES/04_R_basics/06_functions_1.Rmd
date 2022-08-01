@@ -239,7 +239,8 @@ import_peaks <- function(consensus_file_path = broadpeakfilepath) {
   # extracting DBP name from peak files
   dbp_name <- sapply(peak_files, function(x){
     y <-  str_extract(x, "([^\\/]+$)")
-    unlist(strsplit(y, "_"))[[1]] })
+    paste(unlist(strsplit(y, "_"))[c(1,2)], collapse = "_") })
+  
   
   
 # setting an empty list "peak_list" to be filled by for loop

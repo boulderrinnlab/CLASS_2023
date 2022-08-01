@@ -3,6 +3,8 @@ title: "07_functions_2"
 author: "JR"
 date: "8/1/2022"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -13,24 +15,98 @@ library(tidyverse)
 library(IRanges)
 source("../../util/my_class_functions.R")
 
-basepath <- "/scratch/Shares/rinnclass/CLASS_2023/<your_folder>"
+basepath <- "/scratch/Shares/rinnclass/CLASS_2023/JR"
 peak_path <- "CLASS_2023/CLASSES/03_Nextflow/00_my_chipseq/results/bwa/mergedLibrary/macs/broadPeak/"
 broadpeakfilepath <- file.path(basepath, peak_path)
+
+```
+
+# interesect peaks custom function
+In the previous class we created a function to import peak files as a GRanges.
+We can now use this to find overlaps in replicates using another function
+"intersect peaks" Let's take a look at our "intersect_peaks" function. 
+
+
+Let's first run import_peaks 
+
+```{r import peaks}
+
+# import peaks to get peak_list
+peak_list <- import_peaks(consensus_file_path = broadpeakfilepath)
+
+# This will be the input into our intersect_peaks function
+```
+
+Now that we have a named list of GRanges for each peak file 
+We can export them as consensus peak files
+
+
+Now let's create consensus peaks where all peaks overlap 
+This is a lot so hang in there ;)
+```{r}
+
+
 
 ```
 
 
 
 
-# interesect peaks custom function
-Cool now we have a function to import peak files as a GRanges.
-We can now use this to find overlaps in replicates using another function
-"intersect peaks" Let's take a look at our "intersect_peaks" function. 
 
 
-Here we will use the peak_list we generated above and push it into this function intersect_peaks.
+
+
+
+
+
+
+
+
+
+
+
+
+# for loop to export peak_files into .bed
+
+```{r export peak files from peak_list}
+
+# export peak files from named list of GRanges (peak_list) 
+# for loop to export
+
+dbp <- names(peak_list)
+
+for(i in 1:length(dbp)) {
+rtracklayer::export(peak_list[[i]], 
+paste0("results/consensus_peaks/", names(peak_list)[i], "_peaks.broadPeak")) }
+
+
+# excellent now we have .bed files for our consensus peaks let's look at one:
+
+peak_1 <- read_tsv("results/consensus_peaks/EP300_R1_peaks.bed", col_names = F)
+
+names(peak_1) <- c('chromosome', 'start', 'end', 'name', 'score', 'strand', 
+                       'signalValue', 'pValue', 'qValue')
+
+# add col names
+
+
+# note we have the same issue
+
+```
+
+
+
+
+
+
+
+
+
+
+# Intersect peaks function (version 1 )
 ```{r creating intersect_peaks function}
 # note the dependence on peak_list which is the output of import_peaks.
+
 intersect_peaks <- function(peak_list) {
   
   combined_peaks <- peak_list[[1]]
