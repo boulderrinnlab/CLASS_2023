@@ -47,7 +47,13 @@ peak_num <- sapply(peak_list, length) %>% as.data.frame(row.names = T)
 names(peak_num) <- c("num_peaks")
 
 # make dbp name a col.
-peak_num <- rownames_to_column(peak_num, var = "dbp")
+
+peak_num <- peak_num %>%
+  rownames_to_column(var = "dbp") %>%
+  separate(col = dbp,  into = c('dbp', 'replicate'), sep = "_")
+  
+# peak_num <- separate(peak_num, col = dbp,  into = c('dbp', 'replicate'), sep = "_")
+
 
 # let's save this for our records 
 write_csv(peak_num, "results/num_peaks_df.csv")
@@ -58,8 +64,7 @@ write_csv(peak_num, "results/num_peaks_df.csv")
 
 # STEP2: create consensus peaks
 ```{r create consensus peaks}
-
-# first we need a list of unique dbps
+# first we need a list of unique dbps as input parameter
 dbps <- unique(sapply(names(peak_list), function(x) {
    unlist(strsplit(x, "_"))[1]
 }))
@@ -68,15 +73,23 @@ dbps <- unique(sapply(names(peak_list), function(x) {
 consensus_list <- lapply(dbps, consensus_from_reduced, peak_list)
 names(consensus_list) <- dbps
 
-# nice let's see the num_peaks for consensus 
-num_consensus_peaks <- sapply(consensus_list, length) %>% as.data.frame()
-names(consensus_peaks) <- c("num_peaks")
+```
 
-#TODO why doesn't this work?
-peak_num$replicate <- unlist(strsplit(peak_num$dbp, "_"))[2]
-#TODO merge in num_consnesus_peaks
-# saving file
-write_csv(peak_num)
+# let's gather some data about peak numbers and save
+```{r num_peaks data frame}
+# nice let's see the num_peaks for consensus 
+num_consensus_peaks <- sapply(consensus_list, length) %>% 
+  as.data.frame() %>%
+  rownames_to_column( var = "dbp") %>%
+  dplyr::rename(number_consensus_peaks = ".")
+
+
+# merge into num_peaks
+peak_num <- left_join(peak_num, num_consensus_peaks)
+
+# saving 
+write_csv(peak_num, "results/num_peaks_df.csv")
+
 ```
 
 #STEP 3: export consensus files
@@ -95,7 +108,7 @@ rtracklayer::export(consensus_list[[i]], paste0(exportpath, names(consensus_list
 
 # alternative local export:
 for(i in 1:length(consensus_list)) {
-rtracklayer::export(consensus_list[[i]], paste0("results/consensus_peaks/", names(consensus_list)[i],"_consensus_peaks.bed")) }
+rtracklayer::export(consensus_list[[i]], paste0("results/consensus_peaks/test", names(consensus_list)[i],"_consensus_peaks.bed")) }
 
 ```
 
@@ -104,137 +117,44 @@ rtracklayer::export(consensus_list[[i]], paste0("results/consensus_peaks/", name
 Now let's read in one of these files and see what we see:
 
 ```{r reading .bed file from rtracklayer_export}
-
 # read in a given peak file 
 peak_1 <- read_tsv("analysis/00_consensus_peaks/EP300_consensus_peaks.bed", col_names = F)
 
 # ok we can see that rtracklayer did not keep qvalue sigvalue etc
 # we also see the odd contings etc.
-
-# we don't want to fix all of these manually so LET'S MAKE A FUNCTION :) 
-
-```
-# Demo trying to load one of these peak files into UCSC.
-
-
-Goal: to format the consensus peaks to be used in UCSC genome browser.
-We will arrange these consensus_peak files and then look to see how raw data
-compares to consensus peaks -- making sure our consensus peak function is working well.
-
-# Creating for loop to be able to load into UCSC browser.
-
-
-```{r formatting consensus .bed files }
-
-ucsc_file_list <- list.files("results/consensus_peaks")
-
-
-peaks <- lapply(fl, read.table, col.names = c("chr", "start", "end", "name", "score", "strand", "signal_value", "pval", "qval"))
-#TODO start here
+# let's clean this up with lapply:
 ```
 
+# STEP4_2 : cleaning up .bed file basics (col anmes and chromosomes)
+```{r reading .bed file from rtracklayer_export}
+# FIRST a file list:
+consensus_file_list <- list.files("analysis/00_consensus_peaks", full.names = T, pattern = ".bed")
 
+# lapply (for loop) across consensus file list to add colnames
+peaks <- lapply(consensus_file_list, read.table, col.names = c("chr", "start", "end", "name", "score", "strand"))
+names(peaks) <- dbps
+# double check order by looking at consensus_file_list is same order as dbps
 
-
-
-
-
-
-
-
-
-First make a list of file names with list.files. 
-```{r make a list of file names}
-
-# make a new directory called broad_peaks
-# mkdir broad_peak
-# mv *.broadPeak broad_peak
-
-fl <- list.files("/scratch/Shares/rinnclass/CLASS_2022/<YOUR_FOLDER>/CLASS_2022/class_exeRcises/analysis/06_nf_core_first_chip_Seq/data/results/bwa/mergedLibrary/macs/broadPeak/broad_peak2", full.names = T)
-
-# fl <- list.files("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/06_nf_core_first_chip_Seq/data/results/bwa/mergedLibrary/macs/broadPeak/broad_peak2", full.names = T)
-
-summary(fl)
-
-# table will let us see what these files are labeled as
-table(fl)
-
-# we see there is the file path appended onto the file name
-# we can also see that the DBP name is the filename too.
-# let's clean up the label  with 'gsub' function
-
-```
-
-gsub: cleaning up file names 
-
-```{R cleaning up file names}
-
-?names
-# by default the row names are 1-how many rows
-# however we can name these with names
-# note that "names" are a meta label and don't contribute in a column
-
-?gsub
-# gsub is just like find and replace 
-# syntax: what do you want to replace "|" means 'or'
-
-# gsub to remove file path and _peak.broadPeak
-
-names(fl) <- gsub("/scratch/Shares/rinnclass/CLASS_2022/<YOUR_FOLDER>/CLASS_2022/class_exeRcises/analysis/06_nf_core_first_chip_Seq/data/results/bwa/mergedLibrary/macs/broadPeak/broad_peak2/|.broadPeak", "", fl)
-
-# names(fl) <- gsub("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/06_nf_core_first_chip_Seq/data/results/bwa/mergedLibrary/macs/broadPeak/broad_peak2/|.broadPeak", "", fl)
-
-# Let's look at it 
-
-summary(fl)
-table(fl)
-names(fl)
-```
-
-# making bed format for each peak file
-Now we are going to make a table of the peak files -- 
-then we can print them out with header next
-```{R creating a specific .bed file format}
-
-# to read in a bed file we can use read.table
-?read.table
-
-# lapply will run a function on a list of files
-?lapply
-
-# running lapply to use function 'read.table' to get the values in each peak file 
-# note fl is just file path list
-
-peaks <- lapply(fl, read.table, col.names = c("chr", "start", "end", "name", "score", "strand", "signal_value", "pval", "qval"))
-
-# let's take a look
-summary(peaks)
-names(peaks)
-fl
-
-# note that read.table is still using the file path to read in each file 
-# and names is a meta-header
-
-```
-
-
-# filter out the non-canonical chromosomes
-```{R filter to cannonical chromosomes}
-
-# Make a object of the chromosomes we want to keep.
-
+# now clean up the chromosomes:
 canonical_chr <- c(paste0("chr", 1:22), "chrM", "chrX", "chrY")
-
-# now let's use lapply to run a generic function 'function(x)'
-# we run function(x) and then send x to filter (using pipe %>%)
-# filter uses %in% to select only chromosomes in 'canonical_chr'
-  
+# let's use lapply with filter funciton to cannonical_chr
 peaks <- lapply(peaks, function(x) x %>% filter(chr %in% canonical_chr))
 
+
+# now that these are all nice and clean let's export:
+new_filenames <- paste0("analysis/00_consensus_peaks/", names(peaks), "_consensus.bed")
+for(i in 1:length(peaks)) {
+  write.table(peaks[[i]], new_filenames[[i]],
+              sep = "\t", col.names = FALSE, row.names = FALSE,
+              quote = FALSE, append = TRUE)
+}
+
+
 ```
 
-# creating a header for UCSC
+# Demo trying to load one of these peak files into UCSC.
 
+# STEP4_3 create header on each file
 Next we need a header to be compatible with UCSC 
 We are using a broadPeak file which UCSC recognizes
 but we need to tell it which one it is in header
@@ -249,15 +169,12 @@ The header we need is : track type=broadPeak name="
 # we are using paste0 to print the header text
 # then we are adding the names as the value the header equals with 'names' function
 
-headers <- paste0("track type=broadPeak name=", names(fl))
+headers <- paste0("track type=bedGraph name=", names(peaks))
+headers
 
-# we are going to prepare the file names for a for loop to write them all out.
-
-
-new_filenames <- paste0("/scratch/Shares/rinnclass/CLASS_2022/<YOUR_FOLDER>/CLASS_2022/class_exeRcises/analysis/06_nf_core_first_chip_Seq/data/results/bwa/mergedLibrary/macs/broadPeak/broad_peak2/", names(fl), ".broadPeak")
-
-# new_filenames <- paste0("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/06_nf_core_first_chip_Seq/data/results/bwa/mergedLibrary/macs/broadPeak/broad_peak2/", names(fl), ".broadPeak")
-
+# creating a path to export after we add header in for loop below
+new_filenames <- paste0("analysis/00_consensus_peaks/ucsc_consensus_peaks/", names(peaks), ".bed")
+new_filenames
 ```
 
 Cool, now we have an object "new_filenames" that has 
@@ -279,43 +196,96 @@ for(i in 1:length(peaks)) {
 # note append=TRUE is very important otherwise when the peak data is imported it will overwrite header
 ```
 
+# let's take a look in UCSC !
+(1) file transfer a consensus peak to your comp
+(2) go to class UCSC account BCHM_5631
+(3) custome tracks and load consensus file.
+(4) load raw data for your protein 
+(5) compare consensus peaks with raw data!
+
+
+
+###########################
+ExeRcise: create function
+###########################
+
+Create a function and add to my_class_functions.R 
+to format peak files for ucsc.
+
+
+
+Solution
+
+
+```{r exeRcise solution}
+
+
+
+basepath <- "/scratch/Shares/rinnclass/CLASS_2023/<your_folder>"
+consensus_peak_path <- "CLASS_2023/CLASSES/05_R_analyses/analysis/00_consensus_peaks"
+
+# input into function
+consensusFilePath <- file.path(basepath, consensus_peak_path)
+
+# input into function
+exportpath <- "analysis/00_consensus_peaks/test"
 
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-# Intersect peaks function (version 1 )
-```{r creating intersect_peaks function}
-# note the dependence on peak_list which is the output of import_peaks.
-
-intersect_peaks <- function(peak_list) {
+ucsc_formating <- function(consensusFilePath = consensusFilePath, export_path = export_path) {
   
-  combined_peaks <- peak_list[[1]]
-  for(i in 2:length(peak_list)) {
-    suppressWarnings(pl_ov <- findOverlaps(combined_peaks, peak_list[[1]]))
-    pl1 <- combined_peaks[unique(pl_ov@from)]
-    pl2 <- peak_list[[i]][unique(pl_ov@to)]
-    suppressWarnings(combined_peaks <- GenomicRanges::reduce(union(pl1, pl2)))
-    
-  }
-  return(combined_peaks)
+consensus_file_list <- list.files(consensusFilePath, full.names = T, pattern = ".bed")
+
+dbps <- sapply(consensus_file_list, function(x) {
+y <- str_extract(x, "([^\\/]+$)")
+unlist(strsplit(y, "_"))[1]})
+
+peaks <- lapply(consensus_file_list, read.table, col.names = c("chr", "start", "end", "name", "score", "strand"))
+names(peaks) <- dbps
+print(length(peaks))
+canonical_chr <- c(paste0("chr", 1:22), "chrM", "chrX", "chrY")
+peaks <- lapply(peaks, function(x) x %>% filter(chr %in% canonical_chr))
+
+headers <- paste0("track type=bedGraph name=", names(peaks))
+new_filenames <- paste0("analysis/00_consensus_peaks/test/", names(peaks), ".bed")
+
+for(i in 1:length(peaks)) {
+  # Write the header line
+  writeLines(headers[[i]], new_filenames[[i]])
+  # Append the broadPeak table data
+  
+  write.table(peaks[[i]], new_filenames[[i]],
+              sep = "\t", col.names = FALSE, row.names = FALSE,
+              quote = FALSE, append = TRUE)
 }
-# Now that we have this function in this environment session we
-# could just run it like this:
-overlaps <- intersect_peaks(peak_list)
+  
+  return(c("done?"))
+}
+
+
+ucsc_formating(consensusFilePath = consensusFilePath, export_path = export_path)
+  
+
+
 ```
 
-# ***** Let's add this as a function in our util ******
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
