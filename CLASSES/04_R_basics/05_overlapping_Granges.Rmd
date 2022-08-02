@@ -381,6 +381,7 @@ names(consensus_list) <- dbps
 
 # determining then length of resulting consensus peaks
 sapply(consensus_list, length)
+sapply(peak_list, length)
 
 # now we can export each as .bed file
 for(i in 1:length(consensus_list)) {

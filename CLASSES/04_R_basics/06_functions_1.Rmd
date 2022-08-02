@@ -293,6 +293,9 @@ source("../../util/my_class_functions.R")
 
 my_peaks <- import_peaks(consensus_file_path = broadpeakfilepath)
 
+# let's see how many peaks are in each file with 1 line!
+
+num_peaks <- sapply(my_peaks, length) %>% as.data.frame()
 
 ```
 
