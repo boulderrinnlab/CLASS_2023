@@ -1,0 +1,325 @@
+---
+title: "01_peak_features"
+author: "JR"
+date: "8/3/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(GenomicRanges)
+source("/scratch/Shares/rinnclass/CLASS_2022/<your_folder>/CLASS_2022/util/intersect_functions.R")
+ # source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/intersect_functions.R")
+```
+
+# Exploring the genome features bound by DBPs
+Today we are going to explore where in the genome the 483(460) DBPs bind.
+
+From now on we will import all the data we made in "11_creating_consensus_peaks"
+Let's start importing all the files we need:
+
+
+```{R start point 3/11 class}
+
+library(tidyverse)
+library(GenomicRanges)
+source("/scratch/Shares/rinnclass/CLASS_2022/<your_folder>/CLASS_2022/util/intersect_functions.R")
+
+# first create a file list of filtered consensus peaks
+ filtered_consensus_peaks_files <- list.files("/scratch/Shares/rinnclass/CLASS_2022/data/filtered_consensus_peaks", 
+                                             pattern = "*.bed",
+                                             full.names = TRUE)
+
+
+# # lappy to import each file in file list 
+filtered_consensus_peaks <- lapply(filtered_consensus_peaks_files, rtracklayer::import)
+
+# adding names to rows
+names(filtered_consensus_peaks) <- gsub("/scratch/Shares/rinnclass/CLASS_2022/data/filtered_consensus_peaks/|_filtered_consensus_peaks.bed","", filtered_consensus_peaks_files)
+
+
+# Now gencode annotations
+gencode_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/genomes/gencode.v32.annotation.gtf")
+
+# Finally nump_eaks_df
+num_peaks_df <- read_csv("FILE_PATH_12/num_peaks_df.csv")
+
+# num_peaks_df <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/num_peaks_df.csv")
+
+```
+
+# importing genome feature files
+Now we will import the GRanges of genome annotations:
+```{R importing genome featgures}
+
+# lncRNA and mRNA promoters
+lncrna_mrna_promoters <- rtracklayer::import("file_path/lncRNA_mrna_promoters.gtf")
+
+lncrna_mrna_promoters <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncRNA_mrna_promoters.gtf")
+
+# lncRNA and mRNA gene bodies
+
+lncrna_mrna_genebody <- rtracklayer::import("file_path/lncrna_mrna_genebody.gtf")
+
+lncrna_mrna_genebody <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncrna_mrna_genebody.gtf")
+
+
+# Now  Let's also make a list of lncRNA gene_ids. Note the indexing.
+# Double note the how handy it is to index to subsect a file.
+lncrna_gene_ids <- lncrna_mrna_genebody$gene_id[lncrna_mrna_genebody$gene_type == "lncRNA"]
+
+# same for mRNAs
+mrna_gene_ids <- lncrna_mrna_genebody$gene_id[lncrna_mrna_genebody$gene_type == "protein_coding"]
+
+```
+
+
+# creating a data frame of peak overlaps.
+Now we are going to start to make a really useful data-frame (df).
+For each property/overlap we will make a new column. 
+
+```{r creating an overlap features data.frame}
+
+# Let's start with loading in the number of peaks each DBP has -- using length.
+
+num_peaks_df <- data.frame("dbp" = names(filtered_consensus_peaks),
+                           "num_peaks" = sapply(filtered_consensus_peaks, length))
+
+
+# Now let's get the total amount of the genome covered by all the peaks for a given DBP.
+
+num_peaks_df$total_peak_length <- sapply(filtered_consensus_peaks, function(x) sum(width(x)))
+
+# Let's take a look at what we have so far (which DBP, has most peaks? most genome coverage?)
+```
+
+# expanding our num_peaks_df information
+Great we are starting to build an informative DF to incorporate our results.
+Now let's start looking at how many peaks overlap the genome feature files we made.
+
+```{r adding more info into num_peaks_df}
+
+# First let's get a count for each DBP that overlaps any promoter.
+## This takes a minute to run :) Let's look count_peaks_per_feature function in meantime
+
+promoter_peak_counts <- count_peaks_per_feature(lncrna_mrna_promoters, filtered_consensus_peaks, type = "counts")
+
+# Take a look at "count_peaks_per_feature" maybe look at in debugging mode?
+
+```
+
+# extracting promoer_peak_counts data 
+Above we made the object "promoter_peak_counts" now we can extract information from it
+
+```{R xtracting promoer_peak_counts data }
+
+# First let's get a count of how many promoter overlapped each DBP.
+# we are making a new col and populating on the other side of assignment operator
+# NOTE THIS TAKES ~10-15 min
+num_peaks_df$peaks_overlapping_promoters <- rowSums(promoter_peak_counts)
+
+# Now let's break these promoters into two groups "lncrna" and "mrna"
+# We will use the gene_id objects we made above to index and separate them.
+
+num_peaks_df$peaks_overlapping_lncrna_promoters <- rowSums(promoter_peak_counts[,lncrna_gene_ids])
+
+# mrna promoter overlaps
+num_peaks_df$peaks_overlapping_mrna_promoters <- 
+  rowSums(promoter_peak_counts[,mrna_gene_ids])
+
+# Let's take a look.
+
+write_csv(num_peaks_df, "num_peaks_df.csv")
+
+```
+
+# extracting gene_body_peak_counts data 
+Now let's do the same thing for gene-bodies
+First we will make a gene-body object like we did for promoters above.
+
+```{r extracting genebody overlpas counts data }
+
+# Finding overlaps with gene_bodies (will take a few minutes again)
+# Note this takes 10-15 min
+genebody_peak_counts <- count_peaks_per_feature(lncrna_mrna_genebody, 
+                                                filtered_consensus_peaks, 
+                                                type = "counts")
+
+# Now let's extract the overlaps the same way we did for promoters above
+
+# All gene bodies
+num_peaks_df$peaks_overlapping_genebody <- 
+  rowSums(genebody_peak_counts)
+
+# lncRNA gene bodies 
+num_peaks_df$peaks_overlapping_lncrna_genebody <- rowSums(genebody_peak_counts[,lncrna_gene_ids])
+
+# mRNA gene bodies
+num_peaks_df$peaks_overlapping_mrna_genebody <- 
+  rowSums(genebody_peak_counts[,mrna_gene_ids])
+
+# let's take a look.
+
+# Now let's write it out to a file -- will load this moving forward in class
+# This is a time saver from having to regenerate the overlaps that took a bit ...
+
+# NOTE: SET WORKING DIRECTORY TO 12_
+
+# BE SURE YOU HAVE THE RIGHT FILE PATH to 12_
+write_csv(num_peaks_df, "num_peaks_df.csv")
+
+```
+
+# Downloading TF annotation data set
+We have a large group of different DBPs so let's import some annotaitons of which
+ones are transcription factors etc. A paper in Cell is one of the better annotations --
+however they are never perfect :)
+
+Human TF annotations:
+https://www.cell.com/cms/10.1016/j.cell.2018.01.029/attachment/ede37821-fd6f-41b7-9a0e-9d5410855ae6/mmc2.xlsx
+
+Let's download the file using R (we could also use curl/wget in BASH)
+```{r downloading TF annotation data}
+
+url <- "https://www.cell.com/cms/10.1016/j.cell.2018.01.029/attachment/ede37821-fd6f-41b7-9a0e-9d5410855ae6/mmc2.xlsx"
+
+destination_for_url <- "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/TF_annotations.xlsx"
+
+
+# to download we can use download.file
+
+download.file(url, destination_for_url)
+
+# The above is a handy bit of code for downloading data into R directly,but BASH works too
+
+# Download the file locally and let's look it over to see what we might want.
+```
+
+# reading in DBP annotations as transcription factor
+Now that we have the file we need to read it in. Since it's excel file we will use
+a new 'read' function (we have used 'read.table' & 'read.csv' etc).
+
+To this end we will use readX1 'read_excel' function.
+```{R merging in TF annotation data}
+
+human_tfs <- readxl::read_excel("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/TF_annotations.xlsx",
+                                sheet = 2, skip = 1)
+
+
+# let's rename the 4th column to indicate if it is a TF.
+names(human_tfs)[4] <- "is_tf"
+
+
+# now let's intersect gene names that are in our ChIP data and has TF identity.
+
+length(which(tolower(num_peaks_df$dbp) %in% tolower(human_tfs$Name)))
+```
+
+# merging annotation file to num_peaks_df
+Cool 437 are in there so let's merge the tables
+```{R merging annotation file to num_peaks_df}
+
+# first let's filter and grab the first 4 columns that match DBPs in num_peaks_df
+human_tfs <- human_tfs[tolower(human_tfs$Name) %in% tolower(num_peaks_df$dbp), 1:4]
+
+
+# adding new column names
+names(human_tfs) <- c("ensembl_id",
+                      "dbp",
+                      "dbd",
+                      "tf")
+
+# Now comes the actual merge. Let's look at it first
+# ?merge
+# num_peaks_df <- read_csv("num_peaks_df.csv")
+
+num_peaks_df <- merge(num_peaks_df, human_tfs, all.x = T)
+
+# Let's check how many NAs -- we should have some missing values.
+dim(num_peaks_df[is.na(num_peaks_df$tf),])
+
+# Ok looks good let's write it out:
+num_peaks_df <- num_peaks_df[,1:12]
+write_csv(num_peaks_df, "file_path/num_peaks_df.csv")
+
+# write_csv(num_peaks_df, "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/num_peaks_df.csv")
+```
+
+# Occurence matrix of overlaps
+Now let's also use our 'count_peaks_per_feature' function to use the 'occurence' parameter
+We will make a matrix that records all the overlaps with all promoters.
+
+```{r count_peaks_per_feature occurence matrix}
+
+# note similar as above but using type = occurnece
+
+promoter_peak_occurence <- count_peaks_per_feature(lncrna_mrna_promoters, filtered_consensus_peaks, 
+                                               type = "occurrence")
+
+# Let's double check that all lncrna & mrna genes are accounted for:
+
+stopifnot(all(colnames(promoter_peak_occurence) == lncrna_mrna_promoters$gene_id))
+
+# Great we will use this quite a bit moving forward so let's write it out! 
+# we are going to write it out a tab seperated values (tsv) file
+# moving forward we will use (?read.tsv) to read this in and save us all that run time :)
+# DON'T OPEN THIS FILE IN THE ENVIRONMENT -- VERY LARGE MATRIX
+
+write.table(promoter_peak_occurence, "/file_path/lncrna_mrna_promoter_peak_occurence_matrix.tsv")
+
+# write.table(promoter_peak_occurence, "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/lncrna_mrna_promoter_peak_occurence_matrix.tsv")
+
+```
+
+# Peak occurence as data.frame
+Now let's make the peak occurence matrix into a DF for easier access -- but not computation.
+```{R turnign peak_occurence matrix into data.frame}
+
+# reading back in to be sure all is good.
+# peak_occurence_df <- read.table("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/lncrna_mrna_promoter_peak_occurence_matrix.tsv")
+
+
+# First make sure promoter_peak_occurence and lncrna_mrna_promoters are in the same order
+stopifnot(all(colnames(promoter_peak_occurence) == lncrna_mrna_promoters$gene_id))
+# cool all is good here even if read in above with read.table
+
+
+
+# Now let's use the 'data.frame()' fucntion. Set up a bunch of colnames and populate them.
+
+peak_occurence_df <- data.frame("gene_id" = colnames(promoter_peak_occurence),
+                                "gene_name" = lncrna_mrna_promoters$gene_name,
+                                "gene_type" = lncrna_mrna_promoters$gene_type,
+                                "chr" = lncrna_mrna_promoters@seqnames,   
+                                "3kb_up_tss_start" = lncrna_mrna_promoters@ranges@start,
+                                "strand" = lncrna_mrna_promoters@strand,
+                                "number_of_dbp" = colSums(promoter_peak_occurence))
+
+# Go through each population index by highlighting and running
+
+
+# Let's write out this data frame -- all this code & run time is now encapsulated in one .csv :)
+
+write_csv(peak_occurence_df, "file_path/peak_occurence_dataframe.csv")
+
+looking <- read_csv("peak_occurence_dataframe.csv")
+
+# write_csv(peak_occurence_df, "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/peak_occurence_dataframe.csv")
+
+# Cool feel free to open this one -- even in excel :) 
+```
+
+#############
+ExeRcise
+#############
+
+Take a look at the peak_occurence_df and num_peaks_df -- find 3 things new that we haven't done yet. 
+
+Simple solutions:
+
+1) Which DBP has the most coverage of peaks in lncRNAs 
+2) Which non TF has the most peaks and genome coverage. How does it compare to those that are not TFs
+3) percentage of peaks that overlap promoters versus gene bodies
+
