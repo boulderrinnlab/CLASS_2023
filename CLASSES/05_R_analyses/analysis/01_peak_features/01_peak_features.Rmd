@@ -331,6 +331,19 @@ write_csv(peak_occurence_df, "results/peak_occurence_dataframe.csv")
 
 ```
 
+Since we will use many of these files again we can save 
+the key elements as .Rdata file to loaded in next time !
+```{r}
+
+save(exons, consensus_peaks, gencode_genes, num_peaks_df, peak_occurence_df, lncrna_mrna_promoters, file = "results/peak_features.RData")
+
+# awesome - now we never have to load in consensus peaks again :)
+# erase environment and reload!
+
+load("results/peak_features.RData", verbose = T)
+# WOW that is super handy !!
+
+```
 
 
 #############
@@ -341,19 +354,39 @@ ExeRcise
 -- then try adn add to num_peaks_df and save .csv
 
 
-(2) Take a look at the peak_occurence_df and num_peaks_df -- find 3 things new that we haven't done yet. 
-Simple solutions:
+(2) Take a look at the peak_occurence_df and num_peaks_df -- find 3 things new that we haven't done yet. :
 
-1) Which DBP has the most coverage of peaks in lncRNAs 
-2) Which non TF has the most peaks and genome coverage. How does it compare to those that are not TFs
-3) percentage of peaks that overlap promoters versus gene bodies
+a) Which DBP has the most coverage of peaks in lncRNAs 
+b) Which non TF has the most peaks and genome coverage. How does it compare to those that are not TFs
+c) make a new col of percentage of peaks that overlap promoters versus gene bodies
 
-```{r}
+```{r solution}
+promoter_peak_counts <- count_peaks_per_feature(lncrna_mrna_promoters, consensus_peaks, type = "counts")
 
+# getting exon features 
 exons <- gencode_gr[gencode_gr$type == "exon"]
-cds <- gencode_gr[gencode_gr$type == "cds"]
 
-exon_counts <- count_peaks_per_feature(exons, consensus_peaks, type = counts)
+# seeing how many in here:
+length(exons)
+# 1372308
+
+# using count_peaks_per_feature function to find overlaps
+exon_ov <- count_peaks_per_feature(exons, consensus_peaks, type = "counts")
+
+# merging into num_peak_df
+num_peaks_df$exon_ov <- 
+  rowSums(exon_ov)
+
+# solution 2:
+
+# percentage peaks overlapping promoters
+num_peaks_df <- num_peaks_df %>%
+  mutate(percent_promoter_overlap = peaks_overlapping_promoters/num_peaks )
+
+# percentage of peaks overlapping gene_bodies
+num_peaks_df <- num_peaks_df %>%
+  mutate(percent_geneBody_overlap = peaks_overlapping_genebody /num_peaks )
+
 
 ```
 
