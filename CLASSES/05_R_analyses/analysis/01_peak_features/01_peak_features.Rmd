@@ -3,47 +3,114 @@ title: "01_peak_features"
 author: "JR"
 date: "8/3/2022"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-
+options(stringsAsFactors = F)
 library(tidyverse)
 library(GenomicRanges)
-source("/scratch/Shares/rinnclass/CLASS_2022/<your_folder>/CLASS_2022/util/intersect_functions.R")
- # source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/intersect_functions.R")
+
+
+# filepath to import peaks
+basepath <- "/scratch/Shares/rinnclass/CLASS_2023/JR"
+peak_path <- "CLASS_2023/CLASSES/05_R_analyses/analysis/00_consensus_peaks"
+consensusPeakPath <- file.path(basepath, peak_path)
 ```
 
 # Exploring the genome features bound by DBPs
-Today we are going to explore where in the genome the 483(460) DBPs bind.
+Now that we have our consensus_peaks across replicates
+we can start to explore where they are bound in the genome.
+Do they bind at promoters? How much of the genome do they cover?
+And many more questions.
 
-From now on we will import all the data we made in "11_creating_consensus_peaks"
-Let's start importing all the files we need:
+# Let's make a new directory for these analyses. 
+This is the structure we will be using moving forward.
+-- Home base is /analysis
+-- inside there we will make a folder from 00 to 0X
+-- each folder will have the .Rmd file used to generate results
+-- a results dir in each 0X_ folder for files generated that will be used in future analyses
+-- a figure dir in each 0X_ folder 
+
+# set up working directory: 
+/analysis/01_peak_features/peak_features.Rmd
+/analysis/01_peak_features/results
+/analysis/01_peak_features/results
+set working directory to CLASS_2023/CLASSES/05_R_analyses/analysis/01_peak_features
 
 
-```{R start point 3/11 class}
+# Let's start importing all the files we need:
 
-library(tidyverse)
-library(GenomicRanges)
-source("/scratch/Shares/rinnclass/CLASS_2022/<your_folder>/CLASS_2022/util/intersect_functions.R")
+```{r importing files}
 
-# first create a file list of filtered consensus peaks
- filtered_consensus_peaks_files <- list.files("/scratch/Shares/rinnclass/CLASS_2022/data/filtered_consensus_peaks", 
+consensus_peaks_files <- list.files(consensusPeakPath, 
                                              pattern = "*.bed",
                                              full.names = TRUE)
 
+# lapply with import function to make a list of GRanges
+consensus_peaks <- lapply(consensus_peaks_files, rtracklayer::import)
 
-# # lappy to import each file in file list 
-filtered_consensus_peaks <- lapply(filtered_consensus_peaks_files, rtracklayer::import)
+# adding DBP name to each list of GRanges from the file name
+# note gsub requires no space around or argument ( | )
+names(consensus_peaks) <- gsub("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/05_R_analyses/analysis/00_consensus_peaks/|_consensus.bed","", consensus_peaks_files)
 
-# adding names to rows
-names(filtered_consensus_peaks) <- gsub("/scratch/Shares/rinnclass/CLASS_2022/data/filtered_consensus_peaks/|_filtered_consensus_peaks.bed","", filtered_consensus_peaks_files)
+```
+
+# Loading in Gencode annotation of genomic features
+We will make a file of lncRNA and mRNA promoters from 
+the larger list of GRanges in Gencode
+
+```{R loading gencode and making lncRNA and mRNA annotation files } 
+
+# let's start making lncRNA and mRNA annotation files that we will use moving forward 
+# good way to refamiliarize with GENCODE GRanges -- The whole genome is in there :)
+
+gencode_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2023/data/data/genomes/gencode.v32.annotation.gtf")
 
 
-# Now gencode annotations
-gencode_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/genomes/gencode.v32.annotation.gtf")
 
-# Finally nump_eaks_df
+# seeing how many genes there are (60,000 !)
+# lots of weird types of genes though
+gencode_genes <- gencode_gr[gencode_gr$type == "gene"] 
+
+# exporting all genes file
+rtracklayer::export(gencode_genes, "results/gene_annotations/gencode_genes.gtf")
+
+# mRNA genes (called "protein_coding") in this version of gencode changes sometimes !
+mrna_genes <- gencode_genes[gencode_genes$gene_type %in% "protein_coding"] 
+rtracklayer::export(mrna_genes, "results/gene_annotations/mrna_genes.gtf")
+
+# now doing a second index for lncRNA:
+lncrna_genes <- gencode_genes[gencode_genes$gene_type %in% "lncRNA"] 
+rtracklayer::export(lncrna_genes, "results/gene_annotations/lncrna_genes.gtf")
+
+# both mRNA and lncRNA annotations together.
+mrna_lncrna_genes <- gencode_genes[gencode_genes$gene_type %in% c("protein_coding","lncRNA")]
+rtracklayer::export(mrna_lncrna_genes, "results/gene_annotations/mrna_lncrna_genes.gtf")
+
+```
+
+We could do the above for thousands of annotations. But we should consider 
+how big gencode_gr is. A common solution is to make a data frame of the annotations of interest.
+
+The most common practice is to use the gencodge genes we made above.
+Then tunrning into a data.frame
+
+# let's see what this will be like moving forward !
+
+```{R GRanges Genes to DF} 
+
+
+gencode_gr <- rtracklayer::import("results/gene_annotations/gencode_genes.gtf")
+
+
+
+
+
+lncrna_mrna_promoters <- get_promoter_regions(gencode_gr, biotype = c("lncRNA", "protein_coding"))
+
 num_peaks_df <- read_csv("FILE_PATH_12/num_peaks_df.csv")
 
 # num_peaks_df <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/num_peaks_df.csv")
