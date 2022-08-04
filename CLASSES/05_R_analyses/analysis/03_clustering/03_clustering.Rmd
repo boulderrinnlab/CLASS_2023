@@ -354,6 +354,9 @@ nrow(XIST_promoter)
 ExeRcise
 ################
 
+hint:
+
+All you need to do is go into 01_peak_features and export lncrna_mrna_promoters with larger window
 
 Repeat all code with promoter windows of size +3kb / -3kb
 
