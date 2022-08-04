@@ -123,11 +123,14 @@ bin_hier$height[[4]]
 
 # print out figure
 #  !! CHECK WORKING DIRECTORY & structure !!
+# Note we can't use ggsave here :( but this is a great way to save
+# pdfs for all plots.
+
 pdf("figures/dbp_hclust_dendro.pdf", height = 12, width = 70)
 plot(bin_hier)
 dev.off()
 
-# TODO START HERE
+
 
 ```
 
@@ -165,7 +168,7 @@ Now let's use GGDENDRO (dendrogram) package that will plot the branch lengths th
      panel.border = element_blank()
    )
 
-# Nice let's save this using 'ggsave':
+# Nice let's save this using 'ggsave': since we used ggplot
 
 ggsave("figures/ggdendro_plot.pdf", height = 50, width = 12, limitsize = F)
 
@@ -182,18 +185,18 @@ Strategy: load annotations then index peak_occurrence for specific annotations
 # We first need to load the .GTF we made for lncRNAs and mRNAs.
 # loading lncRNA promoters
 
-lncrna_promoters <- rtracklayer::import("path/lncrna_promoters.gtf")
+lncrna_mrna_promoters <- rtracklayer::import("../01_peak_features/results/gene_annotations/lncrna_mrna_promoters.gtf")
 
-# lncrna_promoters <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/lncrna_promoters.gtf")
+# now we can split into lncRNA and mRNA
+lncrna_promoters <- lncrna_mrna_promoters[lncrna_mrna_promoters$gene_type == "lncRNA"]
 
-# loading mRNA promoters
-mrna_promoters <- rtracklayer::import("path/mrna_promoters.gtf")
+# mrna promoters
 
-# mrna_promoters <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/11_consensus_peaks/gene_annotation_files/mrna_promoters.gtf")
+mrna_promoters <- lncrna_mrna_promoters[lncrna_mrna_promoters$gene_type == "protein_coding"]
 
 # Now we will use indexing to separate peak_occurrence_matrix in lncRNA and mRNA.
 # note we are indexing and using indexing in indexing to get what we want.
-lncrna_peak_occurence <- peak_occurence_matrix[,lncrna_promoters$gene_id]
+lncrna_peak_occurence <- promoter_peak_occurence_matrix[,lncrna_promoters$gene_id]
 
 # we do the clutering the same as above or we can combine the dist and hclust:
 bin_hier_lncrna <- hclust(dist(lncrna_peak_occurence, method = "binary"))
@@ -203,7 +206,7 @@ ggdendro::ggdendrogram(bin_hier_lncrna, rotate = TRUE,  size = 3)
  
 # Now let's save this figure
 ggsave("figures/lncrna_hclust_binary_dist.pdf", height = 49, width = 6)
-# Cool we can see the Pol II S2 and S5 diff right away again!
+
 
 ```
 
@@ -214,7 +217,7 @@ Now for mRNA
 
 # same strategy used very often:
 # indexing into larger file and filtering to a file of stuff you want.
-mrna_peak_occurence <- peak_occurence_matrix[,mrna_promoters$gene_id]
+mrna_peak_occurence <- promoter_peak_occurence_matrix[,mrna_promoters$gene_id]
 
 # getting the distance matrix for only mRNA promoters  
 bin_hier_mrna <- hclust(dist(mrna_peak_occurence, method = "binary"))
@@ -234,99 +237,35 @@ ggsave("figures/mrna_hclust_binary_dist.pdf", height = 44, width = 6)
 # Characterizing and Clustering "high binder promoters"
 Let's make a heatmap of the promoters -- since it will take a long long time to plot we'll just plot the "super promoters"
 ```{r clustering high-binding promoters}
-
 # first we filter promoter_peak_occurrence to just those that have high numbers of dbps
-# let's, for now, pick 300 DBPs on a given promoter.
-# Note another example of indexing a 'master file'  now using a function: colSums
-high_binders <- promoter_peak_occurence_matrix[,colSums(promoter_peak_occurence_matrix) > 300]
-
-#TODO START HERE
-peak_occurence_matrix_test <- high_binders[rowSums(promoter_peak_occurence_matrix) > 250, ]
+# let's, find the promoters that bind to many of our dbps
+# a bit of trial and error but 5 of 7 dbps works for me.
+high_binders <- promoter_peak_occurence_matrix[,colSums(promoter_peak_occurence_matrix) > 5]
 
 # let's find out how many high binder promoters there are
 ncol(high_binders)
-# RESULT: 5,663 promoters have more than 300 DBPs bound
 
-# let's look at the rows (DBPs) what is the DBP that interacts the least with high-binder promoters
-min(rowSums(peak_occurence_matrix_test)) 
-# one DBP only binds 26 of the high binder promoters
-# which one?
-which.min(rowSums(high_binders))
-# RESULT : H3K4me2 binds the least to high binder
+# this is just a way to find those promoters where many proteins bind.
+# we will use this much more with the full dataset of 480 DBPs
+```
 
-# which DBP has the max overlap with high-binder promters
-max(rowSums(high_binders))
-# Wow there is one DBP that binds all the high binders
-# there could be more let's see:
-table(max(rowSums(high_binders)))
-# nope just one protein binds all high binding proteins.
+# Now let's make a heat map with pheatmap
 
-# Let's find out which one it is !!
-which.max(rowSums(high_binders))
-# RESULT: ARID4B binds to all high-binding promoters -- thus could be a nucleator???
+```{r heatmap}
 
-# let's see the diversity of contributions of each DBP to high_binder_promoters
-# this means that one DBP is only part of 26 of the 5,661 high binder promoters
-hist(rowSums(high_binders))
-
-# Now let's make a heat map with pheatmap, just to switch it up
-# also a bit faster -- complex heatmap even faster -- there are many options :)
 # library(pheatmap)
 ?pheatmap
 
 
 # We don't need to be able to read the promoter names and it takes a long time to plot those.
-pheatmap(high_binders, show_colnames = FALSE, clustering_distance_rows = "binary", clustering_distance_cols = "binary")
+pheatmap(promoter_peak_occurence_matrix, show_colnames = FALSE, clustering_distance_rows = "binary", clustering_distance_cols = "binary")
 
-ggdendro::ggdendrogram(high_binders, rotate = TRUE,  size = 3)
-# Nice let's save that heatmap 
+# TODO how to save heatmap
 
-ggsave("figures/high_binder_heatmap.pdf", height = 44, width = 6 )
-
-```
-
-# Clustering ZFN proteins only 
-Let's just cluster Zinc Finger proteins (most of unknown function)
-There is a theme of take one file and index it with another subset file of interest.
-
-```{R ZFN clustering}
-
-# If we want to just plot the zinc fingers for example, we can reference the num_peaks_df 
-# Let's read in num_peaks_df
-num_peaks_df <- read_csv("path/analysis/12_peak_features/num_peaks_df.csv")
-
-# num_peaks_df <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/num_peaks_df.csv")
-
-# now let's make a zinc_finger_dbd data frame
-zinc_finger_dbd <- num_peaks_df %>% 
- filter(dbd == "C2H2 ZF")
-   
-# znf <- table(num_peaks_df$dbd == "C2H2 ZF")
-
-# Now we will subset the high binder matrix we made with the
-# zinc_finger_dbd object we just made.
-
-zf_matrix <- high_binders[zinc_finger_dbd$dbp,] 
-
-# now the heatmap!
-pheatmap(zf_matrix, show_colnames = FALSE, clustering_distance_rows = "binary", clustering_distance_cols = "binary")
-
-#TODO 
-# saving this
-# ggsave("figures/ZFN_high_binder_heatmap.pdf", height = 44, width = 6 )
-
-
-# We can also check out the dendrogram for just this matrix.
-zf_hclust <- hclust(dist(zf_matrix, method = "binary"))
-plot(zf_hclust)
-
-# now let's save it as a PDF
-pdf("figures/zfn_clustering.pdf")
-zf_hclust <- hclust(dist(zf_matrix, method = "binary"))
-plot(zf_hclust)
-dev.off()
+ggsave("figures/heatmap.pdf", height = 44, width = 6 )
 
 ```
+
 
 # Adding to num_peaks_df 
 While we have all these objects in our environment
@@ -364,7 +303,7 @@ pivot_longer(2:ncol(.), names_to = "gene_id", values_to = "occurrence") %>%
 
 # let's write this out it's a very handy DF!
 # note saving in 12 where we read in this type of data
-write.csv(promoter_dbps, "path/12_peak_features/promoter_dbps.csv")
+write.csv(promoter_dbps, "../01_peak_features/results/dbps_on_a_promoter.csv")
 # This is a very large file but very useful you want to find which DBP is on which promoter
 
 # write.csv(promoter_dbps, "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/promoter_dbps.csv")
@@ -377,7 +316,7 @@ Cool now we can select any gene and see what DBPs are bound?
 ```{R DBPs on a given promoter}
 
 # In the future if we want to filter on genes we can just read this back in.
-promoter_dbps <- read.csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/promoter_dbps.csv")
+promoter_dbps <- read.csv("../01_peak_features/results/dbps_on_a_promoter.csv")
 
 # let's see what's on FIRRE
 firre_promoter <- promoter_dbps %>%
@@ -407,12 +346,16 @@ XIST_promoter
 nrow(XIST_promoter)
 
 # Interesting, intuition was correct considering
-# this is a male cell line :) but what is bound is interesting
-# RESULT: STAG1/CTCF is very interesting!
+# this is a male cell line :)
+
 ```
 
-Challenge: 
+################
+ExeRcise
+################
 
-Repeat all code with promoter windows of size +1kb / -1kb
+
+Repeat all code with promoter windows of size +3kb / -3kb
 
 How do the clustering results change?
+
