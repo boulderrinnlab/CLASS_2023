@@ -116,9 +116,9 @@ rtracklayer::export(lncrna_mrna_promoters, "results/gene_annotations/lncrna_mrna
 
 
 # last handy annotation will be lncRNA and mRNA gene IDs to subset
-lncrna_gene_ids <- lncrna_mrna_genebody$gene_id[lncrna_mrna_genebody$gene_type == "lncRNA"]
+lncrna_gene_ids <- mrna_lncrna_genes$gene_id[mrna_lncrna_genes$gene_type == "lncRNA"]
 # same for mRNAs
-mrna_gene_ids <- lncrna_mrna_genebody$gene_id[lncrna_mrna_genebody$gene_type == "protein_coding"]
+mrna_gene_ids <-mrna_lncrna_genes$gene_id[mrna_lncrna_genes$gene_type == "protein_coding"]
 
 # note we could have indexed into promoters too -- just getting gene_id
 ```
@@ -191,7 +191,7 @@ First we will make a gene-body object like we did for promoters above.
 
 # Finding overlaps with gene_bodies (will take a few minutes again)
 # Note this takes 10-15 min
-genebody_peak_counts <- count_peaks_per_feature(lncrna_mrna_genebody, 
+genebody_peak_counts <- count_peaks_per_feature(mrna_lncrna_genes, 
                                                 consensus_peaks, 
                                                 type = "counts")
 
@@ -333,9 +333,9 @@ write_csv(peak_occurence_df, "results/peak_occurence_dataframe.csv")
 
 Since we will use many of these files again we can save 
 the key elements as .Rdata file to loaded in next time !
-```{r}
+```{r saving key objects in environment to load next session}
 
-save(exons, consensus_peaks, gencode_genes, num_peaks_df, peak_occurence_df, lncrna_mrna_promoters, file = "results/peak_features.RData")
+save(consensus_peaks, gencode_genes, lncrna_gene_ids, mrna_gene_ids, num_peaks_df, peak_occurence_df, lncrna_mrna_promoters, mrna_lncrna_genes, file = "results/peak_features.RData")
 
 # awesome - now we never have to load in consensus peaks again :)
 # erase environment and reload!
