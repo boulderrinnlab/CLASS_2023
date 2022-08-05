@@ -68,4 +68,57 @@ return(dbp_consensus)
 
 
 
+#' PROFILE_TSS 
+#' This function takes a promoter window of your choosing
+#' Then it will take a peak file and find the overlaps of 
+#' all peaks in that window. It will provide a matrix of 
+#' 1 (overlapped window) or (0 for no overlap)
+#' each peak creates a single vector of the window length
+#' these are concatenated, summed and density provided at each pos.
+#' This function also takes into consideration of promoter orientation.
+#' 
+#' @param consensus_peaks can really be any peak file with start-stop - needs to be GRanges
+#' @param lncrna_mrna_promoters any promoter GRanges object
+#' @param upstream the length upstream of the TSS
+#' @param downstream the length downstream of TSS
+
+profile_tss <- function(consensus_peaks, 
+                        lncrna_mrna_promoters,
+                        upstream = 1e3,
+                        downstream = 1e3) {
+  
+   peak_coverage <- coverage(consensus_peaks)
+  coverage_length <- elementNROWS(peak_coverage)
+  coverage_gr <- GRanges(seqnames = names(coverage_length),
+                         IRanges(start = rep(1, length(coverage_length)), 
+                                 end = coverage_length))
+  
+  promoters_gr <- subsetByOverlaps(lncrna_mrna_promoters, 
+                                   coverage_gr, 
+                                   type="within", 
+                                   ignore.strand=TRUE)
+  
+  chromosomes <- intersect(names(peak_coverage), 
+                           unique(as.character(seqnames(promoters_gr))))
+  
+  peak_coverage <- peak_coverage[chromosomes]
+  promoters_ir <- as(promoters_gr, "IntegerRangesList")[chromosomes]
+  promoter_peak_view <- Views(peak_coverage, promoters_ir)
+  promoter_peak_view <- lapply(promoter_peak_view, function(x) t(viewApply(x, as.vector)))
+  promoter_peak_matrix <- do.call("rbind", promoter_peak_view)
+  minus_idx <- which(as.character(strand(promoters_gr)) == "-")
+  
+
+  promoter_peak_matrix[minus_idx,] <- promoter_peak_matrix[minus_idx, ncol(promoter_peak_matrix):1]
+  promoter_peak_matrix <- promoter_peak_matrix[rowSums(promoter_peak_matrix) > 1,]
+  peak_sums <- colSums(promoter_peak_matrix)
+  
+  peak_dens <- peak_sums/sum(peak_sums)
+  metaplot_df <- data.frame(x = -upstream:(downstream-1),
+                            dens = peak_dens)
+  
+  return(metaplot_df)
+}
+
+
 

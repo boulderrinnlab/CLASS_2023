@@ -133,6 +133,38 @@ peak_dens <- peak_sums/sum(peak_sums)
   return(metaplot_df)
 }
 ```
+# put this function in util/my_class_functions.R
+
+
+# we could generate each plot individually to save them
+```{r individual meta plots}
+
+# HEP300
+plot(profile_tss(consensus_peaks[["EP300"]], lncrna_mrna_promoters))
+
+# H3K27me3
+plot(profile_tss(consensus_peaks[["H3K27me3"]], lncrna_mrna_promoters))
+
+# H3K36me3
+plot(profile_tss(consensus_peaks[["H3K36me3"]], lncrna_mrna_promoters))
+
+# H3K4me3
+plot(profile_tss(consensus_peaks[["H3K4me3"]], lncrna_mrna_promoters))
+
+# HDAC2
+plot(profile_tss(consensus_peaks[["EP300"]], lncrna_mrna_promoters))
+
+# RCOR1
+plot(profile_tss(consensus_peaks[["RCOR1"]], lncrna_mrna_promoters))
+
+# REST
+plot(profile_tss(consensus_peaks[["REST"]], lncrna_mrna_promoters))
+
+
+```
+Cool that works but what if we had 480 DBPs as we will soon
+--> NO FUN
+However we can make a handy for loop to do this for us !
 
 # Running profile TSS function across consensus peaks
 NOTE THIS TAKES awhile to run !
@@ -146,8 +178,8 @@ When we move to all DBPs (480) it can take 4 hours !
 
 metaplot_df <- data.frame(x = integer(), dens = numeric(), dbp = character())
 
-
 # Writting a for loop to calculate promoter coverage for all consensus_peaks:
+
 for(i in 1:length(consensus_peaks)) {
   print(names(consensus_peaks)[[i]])
   tmp_df <- profile_tss(consensus_peaks[[i]], lncrna_mrna_promoters)
@@ -188,7 +220,6 @@ table(rowSums(is.na(metaplot_filtered_matrix)))
 
 # If there are any NAs Let's filter out those is.na
 # metaplot_filtered_matrix <- metaplot_filtered_matrix[rowSums(is.na(metaplot_filtered_matrix)) == 0,]
-
 
 # Z-Scale the rows for clustering (not needed for profile plots)
 mm_scaled <- t(scale(t(metaplot_filtered_matrix)))
@@ -240,34 +271,7 @@ par(cex = 1)
 
 ```
 
-# Looking at some example meta-plots
-Here is some fun code to pick your favorite DBP and check out the profile.
-I chose those DBPs that seemed to have the most different binding profiles.
 
-```{r meta-plots of most different binding profiles by clustering}
-# TODO start here
-# H3K4me1 H4K20me1 H3K36me3 MBD4:
-
-# H3K4me1: shows inverse pattern to most with depletion at TSS
-
-plot_tss_profile(metaplot_filtered_matrix, "H3K4me1", save_pdf = F)
-
-# H3K36me3: also depleted at TSS as expected marks genebodies 
-
-plot_tss_profile(metaplot_filtered_matrix, "H3K36me3", save_pdf = TRUE)
-
-
-# KAT2B, H3K9me3, NFIC cluster:
-# H3K9me3: seems to go into gene body
-plot_tss_profile(metaplot_filtered_matrix, "H3K9me3", save_pdf = TRUE)
-
-
-# EP300: shows a very wide profile.
-plot_tss_profile(metaplot_filtered_matrix, "EP300", save_pdf = TRUE)
-
-# saving metaplot_filtered_matrix
-write_rds(metaplot_filtered_matrix, "metaplot_filtered_matrix.rds")
-```
 There are lots of results here to compile into a knitted doc at the end of class !!!
 Please markdown things you want to include !!
 

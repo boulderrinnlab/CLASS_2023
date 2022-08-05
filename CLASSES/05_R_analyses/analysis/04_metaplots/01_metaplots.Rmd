@@ -292,3 +292,11 @@ exeRcise
 1) Make a metaplot for ecah protein
 2) Try and make a function for creating meta_plots!
 
+# solution
+```{r}
+
+
+
+```
+
+
