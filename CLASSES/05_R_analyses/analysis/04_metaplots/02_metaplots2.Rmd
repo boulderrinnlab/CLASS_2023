@@ -288,7 +288,6 @@ par(cex = 1)
 
 ```
 Result: RCOR1, REST, EP300, HDAC2, K4me3 all bind around TSS
-
 Result: H3K27me3 and H3K36 are more in gene bodies and depleted at TSS.
 
 
@@ -298,7 +297,7 @@ we will do this for each dbp indvidually.
 
 ```{r making seperate metaplots for lncRNAs and mRNAs}
 
-# creating promoters just in case (note indexing [ ]):
+# creating promoters just in case:
 lncrna_promoters <- lncrna_mrna_promoters[lncrna_mrna_promoters$gene_type == "lncRNA"]
 mrna_promoters <- lncrna_mrna_promoters[lncrna_mrna_promoters$gene_type == "protein_coding"]
 
@@ -332,29 +331,31 @@ ggplot(combined_metaplot_profile,
 
 # combinig on the same plot shows the difference in binding !
 ```
-
-Result: They look similar !
+Result: HDAC2 has similar binding patterns on mrna and lncrna promoters!
 
 
 # STRATEGY 2 : Metaplots seperated by lncRNA and mRNA promoters
-In this strategy we run profile TSS for lncrna and mrna separately.
+The above strategy works just fine, however we would have to make
+a lot of plots if there were 480dbps in our dataset -- which there will be :)
+So a second strategy is to:
+
+(1) run the for loop for lncrna and mrna separately
+(2) add a column that has lncrna or mrna for plotting seperate
+(3) merge them and then facet wrap the figure into each dbp 
+
+Let's try it !
 
 
 ```{r making seperate metaplots for lncRNAs and mRNAs}
-# creating lncrna promoters (note indexing [ ])
-lncrna_promoters <- lncrna_mrna_promoters[lncrna_mrna_promoters$gene_type == "lncRNA"]
 
-# mrna promoters (note indexing [ ])
+# making promoters (should already be loaded but just to be safe)
+lncrna_promoters <- lncrna_mrna_promoters[lncrna_mrna_promoters$gene_type == "lncRNA"]
 mrna_promoters <- lncrna_mrna_promoters[lncrna_mrna_promoters$gene_type == "protein_coding"]
 
-# Now we need to seperate lncRNA and mRNA promoters
-# starting with lncRNAs
-
-# TODO why doesn't this work?
-# TODO in the for loop make a new col of DBP name and facet wrap by it?
+#setting up lncrna DF.
 lncrna_metaplot_df <- data.frame(x = integer(), dens = numeric(), dbp = character())
 
-# Writting a for loop to calculate promoter coverage for all consensus_peaks:
+# for loop to populate DF with overlap density in lncrna promoters
 
 for(i in 1:length(consensus_peaks)) {
   print(names(consensus_peaks)[[i]])
@@ -365,10 +366,7 @@ for(i in 1:length(consensus_peaks)) {
 }
 
 # now for mRNAs 
-
 mrna_metaplot_df <- data.frame(x = integer(), dens = numeric(), dbp = character())
-
-# Writting a for loop to calculate promoter coverage for all consensus_peaks:
 
 for(i in 1:length(consensus_peaks)) {
   print(names(consensus_peaks)[[i]])
@@ -376,24 +374,14 @@ for(i in 1:length(consensus_peaks)) {
   tmp_df$dbp <- names(consensus_peaks)[[i]]
   mrna_metaplot_df <- bind_rows(mrna_metaplot_df, tmp_df)
   
-
 }
 
-
-
-
+# now adding the information of gene type
 mrna_metaplot_df$gene_type <- "mRNA"
 lncrna_metaplot_df$gene_type <- "lncRNA"
 combined_metaplot_profile <- bind_rows(mrna_metaplot_df, lncrna_metaplot_df)
 
-
-
-
-
-
-
-
-
+# plotting - NOTE facet wrap by dbp !
 ggplot(combined_metaplot_profile, 
        aes(x = x, y = dens, color = gene_type )) +
   geom_vline(xintercept = 0, lty = 2) + 
@@ -407,8 +395,14 @@ ggplot(combined_metaplot_profile,
  scale_color_manual(values = c("#424242","#a8404c"))
 
 ```
+Result: H3K27me3 looks almost inverse between lncrna and mrna
+Result: Most look similar on lncrna and mrna promoters - 
+despite different profiles for different dbps
 
-
+####################################
+No exeRcise for this class --
+Enjoy a well deserved break :)
+####################################
 
 
 
