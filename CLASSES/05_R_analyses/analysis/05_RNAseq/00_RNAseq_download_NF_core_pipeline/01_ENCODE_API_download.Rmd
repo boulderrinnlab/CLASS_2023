@@ -1,0 +1,699 @@
+---
+title: "00_ENCODE_API_RNAseq_download"
+author: "JR"
+date: "8/8/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(stringsAsFactors = FALSE)
+library(tidyverse)
+
+# install.packages("httr")
+library(httr)
+
+# install.packages("janitor")
+library(janitor)
+
+# install.packages("purrr")
+library(purrr)
+
+source("path/util/class_functions.R")
+
+# source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/encode_functions.R")
+```
+
+Goal: to downlaod a RNAseq data from HEPG2 that is fractionated by cellular compartment
+(nuc, cyto, total etc).
+
+Along the way we will want to make a well organized sample sheet to use later for DeSEQ.
+
+So we are going to combine our skills from 02_downloading data, 11_functions and now learning some API
+
+Here is a snap shot of the data to be downloaded -- 
+let's start by putting in browser and taking a look
+
+First let's go see what we can find for HEPG2 RNAseq
+
+https://www.encodeproject.org/search/?type=Experiment&control_type!=*&status=released&perturbed=false
+
+
+Here is a documented URL for the data retrival:
+
+[Encode Query]("https://www.encodeproject.org/search/?type=Experiment&status=released&assay_slims=Transcription&assay_slims=Transcription&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&biosample_ontology.classification=cell+line&files.read_length=50&limit=all&advancedQuery=date_released:%5B2009-01-01+TO+2021-12-31%5D&biosample_ontology.term_name=HepG2&assay_title=total+RNA-seq&biosample_ontology.classification=cell%20line")
+
+# MAKE A NEW WORKING DIRECTORY
+Nice, we can get all the data we need. First we need to think about where to put this :)
+Please move to the 17_ directory and make a fastq folder. Then run the following in that directory
+
+
+```{bash downloading file list and sample sheet}
+
+# We need two things:
+# a samples file with information on samples
+# a files file that has the path to fastq files on encode portal
+
+# open terminal (in working dir) and paste this in
+wget -O samples.txt "https://www.encodeproject.org/report.tsv?type=Experiment&status=released&assay_slims=Transcription&assay_slims=Transcription&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&biosample_ontology.term_name=HepG2&biosample_ontology.classification=cell+line&assay_title=total+RNA-seq&files.read_length=50&limit=all&advancedQuery=date_released:[2009-01-01%20TO%202021-12-31]"
+
+# This will give us a text file of the file names. We will use this to download the files.
+# open terminal (in working dir) and paste this in
+
+wget -O files.txt "https://www.encodeproject.org/batch_download/?type=Experiment&status=released&assay_slims=Transcription&assay_slims=Transcription&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&biosample_ontology.term_name=HepG2&biosample_ontology.classification=cell+line&assay_title=total+RNA-seq&files.read_length=50&limit=all&advancedQuery=date_released:[2009-01-01%20TO%202021-12-31]"
+
+
+# Now we need to copy files.txt into a new dir (inside 17_) called fastq
+mkdir fastq
+
+# now copy files.txt to fastq
+cp files.txt fastq
+
+# MAKE SURE YOUR TERMINAL IS IN THE RIGHT WORKING DIR.
+pwd 
+/17_/fastq/
+
+# To download the fastq files for RNAseq we run this below:
+xargs -L 1 curl -O -J -L < files.txt
+
+# Cool we have all the data we need for the NF_CORE RNAseq pipeline in 18_
+
+```
+
+
+# Using ENCODE API
+ ---- Introduction to APIs (Application Programming Interface) ----
+ 
+In order to exchange information between someone's database and your computer you use an API 
+Application Programming Interface.
+
+Basically a highly specified language for interacting and retrieving the data you need.
+
+The ENCODE API provides extensive documentation as to what data you can request and how to format that data to make your request. You can browse the possible requests in an interactive way using their interactive documentation:
+
+https://app.swaggerhub.com/apis-docs/encodeproject/api/basic_search
+
+Now, we will use ENCODE's API to retrieve additional file information from their server.
+```{r examining encode API}
+
+# ENCODE base url: https://www.encodeproject.org/report.tsv?
+
+base_url <- "https://www.encodeproject.org/report.tsv?"
+
+# Let's look at an example request for this experiment accession: ENCSR541TIG
+request_url <- "https://www.encodeproject.org/report.tsv?type=File&status=released&file_format=fastq&dataset=%2Fexperiments%2FENCSR541TIG%2F&field=accession&field=read_count&field=md5sum&field=controlled_by&field=paired_end&field=paired_with&field=replicate&field=target"
+
+# the field parameter is where we tell it which columns or which pieces of data we want to get.
+# this retrieves read_count, md5sum, controlled_by, paired_end, paired_with, replicate, and target
+
+# NOTE API language use :
+
+# file_format=fastq&dataset=%2Fexperiments%2FENCSR541TIG%2F&field=accession&
+# dataset=%2F
+# Experiments%2F .....
+
+# We will use this API logic to make a custom inquiry with everything we need !
+
+
+```
+# writting custom function to retreive specific data from encode
+
+We've written some custom helper functions specific to the ENCODE API to request exactly the information we want, since we'll make these requests multiple times -- for each experiment accession.
+
+
+We will make two functions:
+1) construct_query
+
+function that will make a URL we can then wget this url and get all the data downloaded.
+However we will still be missing file information we need (e.g., md5sum)
+
+
+2) encode file info
+
+This will get us all the information associated with the files in URL above.
+
+# FUNCTION 1: construct_query
+```{r construct query function}
+
+## This will generate a request URL in the format that ENCODE requires to retrieve each of the columns listed in the field default parameter (accession, read_count, md5sum, etc.)
+
+# first let's set up the function and it's parameters
+contstruct_query <- function(experiment_accession,
+                             base_url = "https://www.encodeproject.org/report.tsv?",
+                             file_format = "fastq",
+                             type = "File",
+                             status = "released",
+                             fields = c("accession", "read_count", "md5sum",
+                                        "controlled_by", "paired_end",
+                                        "paired_with", "replicate", "target")) {
+  
+  # Now we will populate this structure above, note experiment_accession is only
+  # parameter we need to populate
+  # We are copying the terminology used in REQUEST_URL or communicate with API
+  query <- paste(list(paste0("type=", type),
+                      paste0("status=", status),
+                      paste0("file_format=", file_format),
+                      
+                      # We are using same language as Encode API that has %2F as separator
+                      paste0("dataset=%2Fexperiments%2F", experiment_accession, "%2F"),
+                      
+                      # map is a way of transforming input and applying a function
+                      # in this case we are just using "paste0" as the function
+                      # map_chr is to make sure it stays as a character value
+                      map_chr(fields, ~paste0("field=", .))) %>%
+                   flatten(),
+                 collapse = "&")
+  url <- paste0(base_url, query)
+  return(url)
+}
+# essentially we just recreated the base URL with addition information 
+# in fact using the logic we got Md5 values and they are not accessible on web!
+
+```
+
+
+# FUNCTION 2: encode_file_info
+This function actually makes the request and returns the data only 
+(without the response headers) in a data.frame format.
+
+```{R encode_file_info function}
+
+# setting up the function and parameters
+# this function will go get the data from the URL we made above
+encode_file_info <- function(experiment_accession,
+                             base_url = "https://www.encodeproject.org/report.tsv?",
+                             file_format = "fastq",
+                             type = "File",
+                             status = "released",
+                             fields = c("accession", "read_count", "md5sum",
+                                        "controlled_by", "paired_end",
+                                        "paired_with", "replicate", "target")) {
+  
+  # Now we are creating a url that encode will understand
+  path <- "report.tsv?"
+  base_url <- modify_url("https://www.encodeproject.org/", path = path)
+  url <- contstruct_query(experiment_accession,
+                          base_url = base_url,
+                          file_format,
+                          type,
+                          status,
+                          fields)
+  # this is now retrieving the data with GET function in httr
+  resp <- GET(url)
+  if (http_error(resp)) {
+    error_message <- content(resp, type = "text/html", encoding = "UTF-8") %>%
+      xml_find_all("//p") %>%
+      xml_text() %>%
+      first()
+    stop(
+      sprintf(
+        "ENCODE API request failed [%s]\n%s",
+        status_code(resp),
+        error_message
+      ),
+      call. = FALSE
+    )
+  }
+  
+  if (http_type(resp) != "text/tsv") {
+    stop("API did not return text/tsv", call. = FALSE)
+  }
+  body <- read_tsv(content(resp, "text"), skip = 1) %>%
+    clean_names()
+  return(body)
+}
+
+```
+
+We can now test that this function delivers what we want it to using the same accession we used previously.
+
+
+Note that since all of the parameters except the accession number have default values.
+If we want the defaults, we only need to provide the ENCODE accession of the experiment we want.
+
+
+# running encode_file_info example
+
+```{r encode_file_info function example}
+
+# One of the experiments we wnat to download is : ENCSR541TIG
+# Let's look up in encode portal and then use function to retrieve 
+
+dat <- encode_file_info("ENCSR541TIG")
+
+# Nice we just retrieved all the information we wanted for this experiment accession!
+```
+
+## Introduction to map
+
+There is one other function we need to learn about before we make the queries to the ENCODE API.
+Specifically the map function from the purrr package.
+This allows us to query each experiment accession and load the data we retrieve into the same data.frame that contains the sample info.
+
+It's very similar to sapply or lapply, but is more consistent with tidyverse syntax and allows us to do lapply inside a data.frame.
+
+One other way to think about map is the information we just got from:
+dat <- encode_file_info("ENCSR541TIG")
+is places on "cell" of an excel file. So each cell contains an excel sheet in the cell.
+
+# Using MAP
+```{r MAP example}
+
+# In this example we'll take the digits 1 through 10 and "map" each to the rnorm function. 
+map_example <- 1:10 %>%
+  map(rnorm, n = 1000) 
+
+# It returns a nested list, let's look:
+summary(map_example)
+
+# Let's look with table
+table(summary(map_example))
+
+# let's index and look
+map_example[[1]]
+
+hist(map_example[[1]])
+
+# another one
+map_example[[2]]
+
+# indexing to the first component of map vector
+map_example[[1]][[1]]
+
+```
+
+# reading in sample sheet
+
+We can use map to call this encode_file_info function for each experiment accession and return each data.frame into a new column in our samples data.frame.
+
+First let's read in the samples we downloaded from ENCODE.
+
+
+```{r reading in sample sheet}
+
+# We'll also rename this Accession column to clarify between experiment_accession and file_accession.
+samples <- read.table("samples.txt",
+                      sep = "\t", skip = 1, header = T) %>%
+  dplyr::rename(experiment_accession = Accession) 
+
+# It's seems mundane but starting here is the best way to make a "reproducible" sample sheet.
+# Bottom line: the download to code to analysis is the way to reproducibility (this worked a year later :)
+```
+
+# Mapping each experiment to the experiment_accession
+
+Each experiment accession has multiple files associated with the accession
+Let's use map to map each experiment to it's experiment accession and clean up sample sheet
+
+```{r MAP to experiment_accession}
+
+?mutate
+?map
+
+# We are making a new column in samples called file_info. This is created
+# by mapping experiment_accession and putting the variable through encode_file_info function.
+# This will map the information (8 fields) retrieved by encode_file_info function by 
+# experiment_accession in a column called file_info.
+
+samples <- samples %>%
+  # note function inside a function being called.
+  mutate(file_info = map(experiment_accession, ~ encode_file_info(.x)))
+
+# Thus for each accession in experiment_accession mutate will use the function MAP
+# to map each experimental file to the "file_info" column and keep the data there.
+
+```
+
+# Unnesting the data from MAP
+This is a bit hard to read in this format, so we can unnest the data.frames in the file_info column using the unnest command.
+This will duplicate the remaining columns to match the number of lines in the nested data.frame.
+
+```{r unnesting MAP}
+
+?unnest
+# This function will extract the mapped info and make new cols and rows
+# We also need to tell it which column we want to unnest.
+
+# note samples is currently 5 rows
+samples <- samples %>%
+  unnest(cols = file_info)
+# Now samples is 20 rows from unnesting the 5 previous rows.
+# This is because each experimental accession had 4 files for 5 exp accession = 20 rows
+
+```
+
+# cleaning up sample sheet
+Now we have all the information we neeed in this data.frame and we just need to clean it up.
+
+```{r sample sheet curration: adding replicate number for each RNAseq experiment}
+# Let's number our replicates and create a new column called sample id 
+# where we join the experiment accesion and the rep number
+
+samples <- samples %>%
+  group_by(experiment_accession) %>%
+  mutate(rep_number = as.numeric(factor(replicate))) %>%
+  unite(sample_id, experiment_accession, rep_number, sep = "_rep", remove = F)
+
+ # unite will make a new column in samples (piped in) called sample_id
+  # here we will combine experiment accession and rep number with _rep in between
+  # This is a handy handle for the data to access later
+```
+
+# getting rid of non essential data
+Now let's get rid of all that data we don't need! 
+
+```{r removing data from sample sheet}
+
+# We're just selecting a subset of columns from samples with dplyr::select
+samples <- samples %>%
+   dplyr::select(accession, sample_id, experiment_accession, Assay.title,
+                Biosample.summary, md5sum, paired_end_identifier) %>%
+  
+  # here we are going to start to build the fastq file name for NF_core input
+  unite(fastq_file, sample_id, paired_end_identifier, sep = "_read", remove = F)
+
+# Now we have a new col fastq_file with the information for each fastq file
+# We will keep adding to this until we get to the final NF_Core input file name.
+```
+
+# Setting up filename for NF_CORE rnaseq pipeline
+Now let's make the full filename for the fastq files. 
+For the nf-core/rnaseq pipeline, the paired-end reads need to be named 
+with the read number in the filename. 
+
+```{r filename for NF_CORE rnaseq pipeline: adding .fastq.gz to fastq_file}
+
+# We are now making a new column with .fastq.gz extension and then unite to make fastq file name.
+
+samples <- samples %>%
+  mutate(fq_extension = ".fastq.gz") %>%
+  unite(fastq_file, fastq_file, fq_extension, sep = "", remove = F) %>%
+  
+  # This original file column will be used along with the new name column to rename the fastq files.
+  unite(original_file, accession, fq_extension, sep = "")
+
+# nice we see a fastq file column and can be used as input into NF_CORE
+```
+
+# all code above compiled in one chunk :)
+
+We broke this down into parts, so you can understand what is happening, 
+but just note that you can write all of this in one block and read it like a sentence.
+
+```{r compiled code to get samplesheet -- all code above compiled into 1 chunk}
+
+# This is simply all the code above in one chunk.
+
+# CAN SKIP IF TIME IS LOW.
+
+# samples <- read.table("samples.txt",
+#                       sep = "\t", skip = 1, header = T) %>%
+#   dplyr::rename(experiment_accession = Accession) %>%
+#   mutate(file_info = map(experiment_accession, ~ encode_file_info(.x))) %>%
+#   unnest(file_info) %>% 
+#   group_by(experiment_accession) %>%
+#   mutate(rep_number = as.numeric(factor(replicate))) %>%
+#   unite(sample_id, experiment_accession, rep_number, sep = "_rep") %>%
+#   dplyr::select(sample_id, accession, Assay.title,
+#                 Biosample.summary, md5sum, paired_end_identifier) %>%
+#   unite(fastq_file, sample_id, paired_end_identifier, sep = "_read", remove = F) %>%
+#   mutate(fq_extension = ".fastq.gz") %>%
+#   unite(fastq_file, fastq_file, fq_extension, sep = "", remove = F) %>%
+#   unite(original_file, accession, fq_extension, sep = "")
+
+
+```
+
+# renaming fastq files to fit sample sheet
+This cleaned up version of the samplesheet is good to go!
+Now we want to rename the fastq files to the fastq name we just made.
+
+```{r rename fastq files to samplesheet id}
+# Rename the fastq files so that they contain the sample ID.
+rename_script <- samples %>%
+  # removes grouping in samples
+  ungroup() %>%
+  dplyr::select(fastq_file, original_file) %>%
+  mutate(command = "mv") %>%
+  unite(command, command, original_file, fastq_file, sep = " ")
+# The result of this is that each row is a bash command.
+
+# We can write this out as a bash script with ?write_lines 
+# We include a shebang header line so that the script is interpreted by bash.
+?write_lines
+
+write_lines(c("#!/bin/bash", rename_script$command), "rename.sh")
+
+# Now cd fastq and "chmod u+x rename.sh
+# then ./rename.sh
+
+# >>> voila all the files are renamed
+```
+
+# md5sum check on file downloads
+Additionally from all of this information we've gathered we can create a text file to run the md5sum check.
+
+```{r md5sum of fastq}
+# Let's create an md5.txt to run the checksums
+# We will use the same approach for the mv script.
+
+md5 <- samples %>% 
+  ungroup() %>%
+  dplyr::select(md5sum, fastq_file) %>%
+  # note double space for md5 requirements 
+  unite(line, md5sum, fastq_file, sep = "  ")
+
+# writting out md5$line col that has the command in it from above.
+write_lines(md5$line, "md5.txt")
+
+# Now let's run it from R to BASH with "system()" function
+ md5_results <- system("cd fastq; md5sum -c md5.txt")
+ 
+# md5 -c md5.txt > md5_check.txt
+ 
+ #TODO here is a solution to run system and get object:
+ # To output the md5_check as an R vector, add the "intern = TRUE" argument to the system() function:
+
+# md5_results <- system("cd 17/fastq; md5sum -c md5.txt", intern = TRUE)
+
+ #TODO check on system runs populating variables
+# Nice they all look correct -- but let's save this result
+# write.csv(md5_results, "md5_check.csv")
+```
+
+# finalizing sample sheet for NF_CORE
+Finally, we can write out a nicely formatted sample sheet 
+that we will use downstream for further analysis of the read counts in R.
+
+```{r Reorganizing to make a sample sheet for DEseq2}
+# Let's create the sample sheet that we will use later
+# to do the RNA-seq analysis in R.
+
+samples <- samples %>%
+  dplyr::rename(fastq = fastq_file,
+                seq_type = Assay.title,
+                sample_name = Biosample.summary) %>%
+  # The minus sign will remove this column -- which we no longer need.
+  dplyr::select(-original_file) 
+
+```
+
+# final organization of sample sheet
+
+Now that we have it cleaned up, let's create one line for each replicate
+where the fastq read 1 and read 2 are in the same row.
+```{R organizing samplesheet }
+
+
+# For this we will use the pivot wider function
+# We need to tell the pivot_wider function which unique column combinations will specify each new row. 
+
+# PIVOT WIDER by "paired_end_identifier" 
+samplesheet <- samples %>%
+  #id_cols is a parameter in pivot wider to select the cols
+  # the paired end identifier becomes the "marienette" string of the data-frame.
+  # There are two values and thus all the current cols will be split into 2 (one for each pe-id)
+  pivot_wider(id_cols = c("sample_id", "seq_type", "sample_name"),
+              names_from = paired_end_identifier,
+              values_from = c("fastq", "md5sum"))
+
+
+# Cleaning up sample sheet (removing spaces - re-arrange etc)
+samplesheet <- samplesheet %>%
+  
+# cleaning up column "sample_name" that has spaces in it to replace with underscore
+mutate(condition = gsub(" ", "_", sample_name) %>% tolower()) %>%
+  
+# splitting up "sample_id" to extract replicate number (by "_" )
+separate(sample_id, into = c("experiment_accession", "replicate"), 
+           remove = FALSE, sep = "_") %>%
+  
+# replicate col values came from sample id and are currently rep1 or rep2
+# we want to remove the "rep" with gsub to "R" and iterative using mutate
+mutate(replicate = gsub("rep", "R", replicate)) %>%
+  
+# we are writting over the sample_name col and uniting condition and replicate info 
+# into the previous sample_name col. syntax: (data frame - implied from tidy, new_col_name, what to unite)
+unite(sample_name, condition, replicate, sep = "_", remove = FALSE)
+
+# here we are just changing the hepg2 total name to hepg2_total
+#TODO leaving out and could fix matching condition but not needed
+# samplesheet$condition[samplesheet$condition == "hepg2"] <- "hepg2_total"
+
+
+# FINAL cleanup of col names etc.
+samplesheet <- samplesheet %>%
+  
+  mutate(cell_type = "hepg2",
+         condition = gsub("hepg2_", "", condition)) %>%
+  
+  dplyr::select(sample_id, sample_name, replicate, condition,
+                cell_type, seq_type, fastq_1, fastq_2, md5sum_1,
+                md5sum_2)
+
+# that was a lot of work so let's save for future use :) 
+# Writting this out to 17_ test_2
+write_csv(samplesheet, "samplesheet.csv")
+```
+
+# design file
+We will eventually need a design file for RNA-seq (DEseq2)
+We are really close with samples sheet so let's finalize that.
+
+# Future RNAseq NF_Core runs require design file
+Newwer versions of NF_Core require a design file the version we are running does not.
+
+The design file needs to be in a specific format (as we saw with nf-core/chipseq)
+It needs the following columns:
+
+# sample,fastq_1,fastq_2,strandedness
+
+Let's create a sample column using mutate -- and we'll clean up the names
+
+```{r creating design file}
+
+base_path <- "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/17_API_RNASEQ/fastq/"
+
+# base_path <- paste0("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/17_API_RNASEQ/fastq/")
+
+# There's spaces in the names currently and we need to get rid of those.
+design <- samplesheet %>%
+  
+# we will modify 4 cols adding "sample" and "strandedness"
+# We will also add a file path to "fastq_1" and _2 cols
+# first changing "sample_name" and adding strandedness col
+mutate(sample = gsub(" ", "_", sample_name) %>% tolower(),
+         strandedness = "unstranded",
+       
+# now pasting file path into fastq_1 and _2 cols
+#TODO MAKE SURE YOU HAVE THE RIGHT FILE PATH TO YOUR FASTQ FILES
+
+# base_path <- "/path to your fastq" e.g. "/scratch/Shares/rinnclass/CLASS_2022 ....."
+         fastq_1 = paste0(base_path, fastq_1),
+         fastq_2 = paste0(base_path, fastq_2)) %>%
+  
+  
+  # We aim to retrieve replicate number for sample_id and make it just a number 1 or 2 
+  separate(sample_id, into = c("experiment_accession", "replicate"), sep = "_", remove = FALSE) %>%
+  
+  # getting rid of the rep in front of rep1 and rep2
+  mutate(replicate = gsub("rep", "", replicate)) %>%
+  
+  # Now we gather just the columns we need
+  dplyr::select(sample, fastq_1, fastq_2, strandedness)
+
+
+# getting rid of _r1 and _r2 from sample col
+# note we know which replicate is which from fastq col
+design <- design %>%
+  mutate(sample = gsub("_r1", "", sample),
+         sample = gsub("_r2", "", sample))
+
+# let's test that the path to fastq works:
+all(sapply(design$fastq_1, file.exists))
+all(sapply(design$fastq_2, file.exists))
+
+# Now we can write this out for input into nextflow
+
+# Writting out to 17_ test_2
+write_csv(design, "design.csv")
+
+write_csv(samples, "samples.csv")
+
+write_csv(samplesheet, "samplesheet.csv")
+```
+
+
+Now we have the raw files downloaded and the samplesheet needed for downstream analyses (ex, differential expression). So the next step is to run nf-core/rnaseq on these samples.
+We'll do this in the RNAseq II.
+
+
+# Storing encode function just in case since mine went bad :
+
+```{r encode functions}
+
+## This will generate a request URL in the format that ENCODE requires to retrieve each of the columns listed in the field default parameter (accession, read_count, md5sum, etc.)
+contstruct_query <- function(experiment_accession,
+                             base_url = "https://www.encodeproject.org/report.tsv?",
+                             file_format = "fastq",
+                             type = "File",
+                             status = "released",
+                             fields = c("accession", "read_count", "md5sum",
+                                        "controlled_by", "paired_end",
+                                        "paired_with", "replicate", "target")) {
+  query <- paste(list(paste0("type=", type),
+                      paste0("status=", status),
+                      paste0("file_format=", file_format),
+                      paste0("dataset=%2Fexperiments%2F", experiment_accession, "%2F"),
+                      map_chr(fields, ~paste0("field=", .))) %>%
+                   flatten(),
+                 collapse = "&")
+  url <- paste0(base_url, query)
+  return(url)
+}
+
+# This function actually makes the request and returns the data only (without the response headers) in a data.frame format.
+encode_file_info <- function(experiment_accession,
+                             base_url = "https://www.encodeproject.org/report.tsv?",
+                             file_format = "fastq",
+                             type = "File",
+                             status = "released",
+                             fields = c("accession", "read_count", "md5sum",
+                                        "controlled_by", "paired_end",
+                                        "paired_with", "replicate", "target")) {
+  path <- "report.tsv?"
+  base_url <- modify_url("https://www.encodeproject.org/", path = path)
+  url <- contstruct_query(experiment_accession,
+                          base_url = base_url,
+                          file_format,
+                          type,
+                          status,
+                          fields)
+  resp <- GET(url)
+  if (http_error(resp)) {
+    error_message <- content(resp, type = "text/html", encoding = "UTF-8") %>%
+      xml_find_all("//p") %>%
+      xml_text() %>%
+      first()
+    stop(
+      sprintf(
+        "ENCODE API request failed [%s]\n%s",
+        status_code(resp),
+        error_message
+      ),
+      call. = FALSE
+    )
+  }
+  
+  if (http_type(resp) != "text/tsv") {
+    stop("API did not return text/tsv", call. = FALSE)
+  }
+  body <- read_tsv(content(resp, "text"), skip = 1) %>%
+    clean_names()
+  return(body)
+}
+
+
+```
+
+

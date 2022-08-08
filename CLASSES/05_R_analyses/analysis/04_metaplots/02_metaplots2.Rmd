@@ -286,7 +286,6 @@ Heatmap(mm_scaled[clusters == 1,], cluster_columns = FALSE, col = col_fun, borde
         column_gap = unit(0, "mm"),row_names_gp = gpar(fontsize = 7))
 par(cex = 1)
 
-
 ```
 Result: RCOR1, REST, EP300, HDAC2, K4me3 all bind around TSS
 
