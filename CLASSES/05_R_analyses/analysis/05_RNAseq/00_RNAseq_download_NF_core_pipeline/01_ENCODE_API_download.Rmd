@@ -283,7 +283,11 @@ Thus this funciton should be pretty handy in the future !
 
 
 
+######################
+ExeRcise
+######################
 
+Create a for loop to use encoe_file_info on a list of experimental_accessions.
 
 
 
@@ -351,7 +355,6 @@ encode_file_info <- function(experiment_accession,
     clean_names()
   return(body)
 }
-
 
 ```
 
