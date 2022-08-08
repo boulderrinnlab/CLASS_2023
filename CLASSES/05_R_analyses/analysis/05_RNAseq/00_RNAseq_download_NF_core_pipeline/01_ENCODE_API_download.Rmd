@@ -21,7 +21,7 @@ library(janitor)
 # install.packages("purrr")
 library(purrr)
 
-source("path/util/class_functions.R")
+source("../../../../../util/class_functions.R")
 
 # source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/encode_functions.R")
 ```
@@ -287,74 +287,27 @@ Thus this funciton should be pretty handy in the future !
 ExeRcise
 ######################
 
-Create a for loop to use encoe_file_info on a list of experimental_accessions.
+Create a for loop to use encode_file_info on a list of experimental_accessions.
 
 
+SOLUTION
+```{r}
 
-# Storing encode function just in case since mine went bad :
 
-```{r encode functions}
+# create a list of acessions
+encode_experiment_accession_list <- c("ENCSR061SFU", "ENCSR813BDU", "ENCSR887ZSY", "ENCSR862HPO", "ENCSR181ZGR" )
 
-## This will generate a request URL in the format that ENCODE requires to retrieve each of the columns listed in the field default parameter (accession, read_count, md5sum, etc.)
-contstruct_query <- function(experiment_accession,
-                             base_url = "https://www.encodeproject.org/report.tsv?",
-                             file_format = "fastq",
-                             type = "File",
-                             status = "released",
-                             fields = c("accession", "read_count", "md5sum",
-                                        "controlled_by", "paired_end",
-                                        "paired_with", "replicate", "target")) {
-  query <- paste(list(paste0("type=", type),
-                      paste0("status=", status),
-                      paste0("file_format=", file_format),
-                      paste0("dataset=%2Fexperiments%2F", experiment_accession, "%2F"),
-                      map_chr(fields, ~paste0("field=", .))) %>%
-                   flatten(),
-                 collapse = "&")
-  url <- paste0(base_url, query)
-  return(url)
-}
+# set up generic data frame
+encode_info_df <- data.frame( )
 
-# This function actually makes the request and returns the data only (without the response headers) in a data.frame format.
-encode_file_info <- function(experiment_accession,
-                             base_url = "https://www.encodeproject.org/report.tsv?",
-                             file_format = "fastq",
-                             type = "File",
-                             status = "released",
-                             fields = c("accession", "read_count", "md5sum",
-                                        "controlled_by", "paired_end",
-                                        "paired_with", "replicate", "target")) {
-  path <- "report.tsv?"
-  base_url <- modify_url("https://www.encodeproject.org/", path = path)
-  url <- contstruct_query(experiment_accession,
-                          base_url = base_url,
-                          file_format,
-                          type,
-                          status,
-                          fields)
-  resp <- GET(url)
-  if (http_error(resp)) {
-    error_message <- content(resp, type = "text/html", encoding = "UTF-8") %>%
-      xml_find_all("//p") %>%
-      xml_text() %>%
-      first()
-    stop(
-      sprintf(
-        "ENCODE API request failed [%s]\n%s",
-        status_code(resp),
-        error_message
-      ),
-      call. = FALSE
-    )
-  }
+for(i in 1:length(encode_experiment_accession_list)) {
+  print(names(encode_experiment_accession_list)[[i]])
+  tmp_df <- encode_file_info(encode_experiment_accession_list[[i]])
+  tmp_df$exp_acession <- names(encode_experiment_accession_list)[[i]]
+  encode_info_df <- bind_rows(encode_info_df, tmp_df)
   
-  if (http_type(resp) != "text/tsv") {
-    stop("API did not return text/tsv", call. = FALSE)
-  }
-  body <- read_tsv(content(resp, "text"), skip = 1) %>%
-    clean_names()
-  return(body)
 }
+
 
 ```
 

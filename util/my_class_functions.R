@@ -69,7 +69,7 @@ return(dbp_consensus)
 
 
 #' PROFILE_TSS 
-#' This function takes a promoter window of your choosing
+#' @description This function takes a promoter window of your choosing
 #' Then it will take a peak file and find the overlaps of 
 #' all peaks in that window. It will provide a matrix of 
 #' 1 (overlapped window) or (0 for no overlap)
@@ -121,4 +121,78 @@ profile_tss <- function(consensus_peaks,
 }
 
 
+#' CONSTRUCT_QUERY
+#' @description This function is a "HELPER FUNCTION" for "ENCODE_FILE_INFO"
+#' It sets up several columns for information we need on each experiment file
+#' @param experiment_accession this is the experiment accession of interest from ENCODE
+#' @param base_url the base url used by encode to generate experiment information file
+#' @param fields all set for information needed in this class can be further customized.
 
+contstruct_query <- function(experiment_accession,
+base_url = "https://www.encodeproject.org/report.tsv?",
+file_format = "fastq",
+type = "File",
+status = "released",
+fields = c("accession", "read_count", "md5sum",
+           "controlled_by", "paired_end",
+           "paired_with", "replicate", "target")) {
+             query <- paste(list(paste0("type=", type),
+                                 paste0("status=", status),
+                                 paste0("file_format=", file_format),
+                                 paste0("dataset=%2Fexperiments%2F", experiment_accession, "%2F"),
+                                 map_chr(fields, ~paste0("field=", .))) %>%
+                              flatten(),
+                            collapse = "&")
+             url <- paste0(base_url, query)
+             return(url)
+           }
+
+#' ENCODE_FILE_INFO
+#' @description this function will use httr package to 
+#' communicate with encode API and read the requested 
+#' information into the R environment - usually to make
+#' design file for NF_CORE pipeline. So using this function
+#' allows 100% reproducible design files.
+#' @param experiment_acession the experiment accession(s) of interest
+#' @param base_url the base url used by encode to generate experiment information file
+#' @param fields all set for information needed in this class can be further customized.
+
+encode_file_info <- function(experiment_accession,
+base_url = "https://www.encodeproject.org/report.tsv?",
+file_format = "fastq",
+type = "File",
+status = "released",
+fields = c("accession", "read_count", "md5sum",
+           "controlled_by", "paired_end",
+           "paired_with", "replicate", "target")) {
+             path <- "report.tsv?"
+             base_url <- modify_url("https://www.encodeproject.org/", path = path)
+             url <- contstruct_query(experiment_accession,
+                                     base_url = base_url,
+                                     file_format,
+                                     type,
+                                     status,
+                                     fields)
+             resp <- GET(url)
+             if (http_error(resp)) {
+               error_message <- content(resp, type = "text/html", encoding = "UTF-8") %>%
+                 xml_find_all("//p") %>%
+                 xml_text() %>%
+                 first()
+               stop(
+                 sprintf(
+                   "ENCODE API request failed [%s]\n%s",
+                   status_code(resp),
+                   error_message
+                 ),
+                 call. = FALSE
+               )
+             }
+             
+             if (http_type(resp) != "text/tsv") {
+               stop("API did not return text/tsv", call. = FALSE)
+             }
+             body <- read_tsv(content(resp, "text"), skip = 1) %>%
+               clean_names()
+             return(body)
+           }

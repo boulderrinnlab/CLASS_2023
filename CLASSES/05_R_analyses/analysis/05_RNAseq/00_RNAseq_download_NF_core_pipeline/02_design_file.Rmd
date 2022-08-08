@@ -67,12 +67,14 @@ map_example[[1]][[1]]
 
 ```
 
-# reading in sample sheet
+# MAP encode_file_info function output
 
-We can use map to call this encode_file_info function for each experiment accession and return each data.frame into a new column in our samples data.frame.
+We can use map to call this encode_file_info function for each experiment accession
+and return each experimental_accession as an entry in a data.frame 
+Specifically one row associated with experiment acession (ENCSR) will have all the encode files (ENCFF)
+So one row will have many files in it -- similar to have a bunch of files in a single excel "cell"
 
-First let's read in the samples we downloaded from ENCODE.
-
+First let's read in the RNAseq samples we downloaded from ENCODE.
 
 ```{r reading in sample sheet}
 
@@ -102,6 +104,9 @@ Let's use map to map each experiment to it's experiment accession and clean up s
 
 samples <- samples %>%
   # note function inside a function being called.
+  # the "experiment_acession" col will be read into encode_file_info function
+  # ~ means pass the experiment_accession value into encode_file_info
+  # (.x) is a generic symbol meaning pass what is in memory == experiment_acession
   mutate(file_info = map(experiment_accession, ~ encode_file_info(.x)))
 
 # Thus for each accession in experiment_accession mutate will use the function MAP
