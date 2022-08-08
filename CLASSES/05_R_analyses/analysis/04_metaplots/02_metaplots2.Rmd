@@ -337,7 +337,7 @@ Result: They look similar !
 
 
 # STRATEGY 2 : Metaplots seperated by lncRNA and mRNA promoters
-In this strategy we run profile TSS for lncrnas and mrna seperately.
+In this strategy we run profile TSS for lncrna and mrna separately.
 
 
 ```{r making seperate metaplots for lncRNAs and mRNAs}
@@ -358,9 +358,9 @@ lncrna_metaplot_df <- data.frame(x = integer(), dens = numeric(), dbp = characte
 
 for(i in 1:length(consensus_peaks)) {
   print(names(consensus_peaks)[[i]])
-  tmp_df <- profile_tss(consensus_peaks[[i]], lncrna_promoters)
+  tmp_df <- profile_tss(consensus_peaks[[i]], lncrna_mrna_promoters = lncrna_promoters)
   tmp_df$dbp <- names(consensus_peaks)[[i]]
-  metaplot_df <- bind_rows(lncrna_metaplot_df, tmp_df)
+  lncrna_metaplot_df <- bind_rows(lncrna_metaplot_df, tmp_df)
   
 }
 
@@ -372,12 +372,40 @@ mrna_metaplot_df <- data.frame(x = integer(), dens = numeric(), dbp = character(
 
 for(i in 1:length(consensus_peaks)) {
   print(names(consensus_peaks)[[i]])
-  tmp_df <- profile_tss(consensus_peaks[[i]], mrna_promoters)
+  tmp_df <- profile_tss(consensus_peaks[[i]], lncrna_mrna_promoters = mrna_promoters)
   tmp_df$dbp <- names(consensus_peaks)[[i]]
-  metaplot_df <- bind_rows(mrna_metaplot_df, tmp_df)
+  mrna_metaplot_df <- bind_rows(mrna_metaplot_df, tmp_df)
   
 
 }
+
+
+
+
+mrna_metaplot_df$gene_type <- "mRNA"
+lncrna_metaplot_df$gene_type <- "lncRNA"
+combined_metaplot_profile <- bind_rows(mrna_metaplot_df, lncrna_metaplot_df)
+
+
+
+
+
+
+
+
+
+ggplot(combined_metaplot_profile, 
+       aes(x = x, y = dens, color = gene_type )) +
+  geom_vline(xintercept = 0, lty = 2) + 
+  geom_line(size = 1.5) + 
+  facet_wrap(dbp ~ ., scales = "free_y") +
+  ggtitle("HDAC2 Promoter Metaplot") + 
+  scale_x_continuous(breaks = c(-1000, 0, 1000),
+                     labels = c("-1kb", "TSS", "+1kb"),
+                     name = "") + 
+  ylab("Peak frequency") +
+ scale_color_manual(values = c("#424242","#a8404c"))
+
 ```
 
 
