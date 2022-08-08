@@ -3,6 +3,8 @@ title: "02_design_file"
 author: "JR"
 date: "8/8/2022"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -19,22 +21,25 @@ library(janitor)
 # install.packages("purrr")
 library(purrr)
 
-source("path/util/class_functions.R")
+source("path/util/my_class_functions.R")
 
-# source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/encode_functions.R")
 ```
 
-## Introduction to map
+In the previous class we created a function that can go and get data from encode and 
+make it an object in our environment "encode_file_info". What we would ideally like to do
+is provide a list of experimenta_accessions from ENCODE and have encode info give us the data.
 
-There is one other function we need to learn about before we make the queries to the ENCODE API.
-Specifically the map function from the purrr package.
-This allows us to query each experiment accession and load the data we retrieve into the same data.frame that contains the sample info.
+NOTE: using this approach we can make the design file from encode_file_info funciton. 
+Thus making the design file for NF_CORE 100% reproducible in code !
 
-It's very similar to sapply or lapply, but is more consistent with tidyverse syntax and allows us to do lapply inside a data.frame.
+FIRST, we need to learn a really awesome and powerful function called "MAP" in the "PURR" package.
 
-One other way to think about map is the information we just got from:
-dat <- encode_file_info("ENCSR541TIG")
-is places on "cell" of an excel file. So each cell contains an excel sheet in the cell.
+# Introduction to map
+Since one encode experimental accession has multiple files we can "MAP" 
+all the files to a single entry for each experiment accession. This would 
+be similar to putting a bunch of file paths in one excel "cell" 
+
+Let's start with the basics.
 
 # Using MAP
 ```{r MAP example}
@@ -72,7 +77,7 @@ First let's read in the samples we downloaded from ENCODE.
 ```{r reading in sample sheet}
 
 # We'll also rename this Accession column to clarify between experiment_accession and file_accession.
-samples <- read.table("samples.txt",
+samples <- read.table("data/samples.txt",
                       sep = "\t", skip = 1, header = T) %>%
   dplyr::rename(experiment_accession = Accession) 
 
