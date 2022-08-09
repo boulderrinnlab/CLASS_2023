@@ -28,30 +28,53 @@ library(DESeq2)
 
 ```
 
-Today we will performing differential expression on HEPG2 RNAseq data. We will focus on comparing nuclear versus cytoplasmic RNAs. We can use this data to find genes that are nuclear or cytoplasmic enriched. We can use this data to determine if the high-binding promoters are biased for nuclear or cytoplasmic RNAs. Meaning the number of binding events indicates if the RNA product is sent to the cytoplasm (typically) or the nucleus. We can also use this data to determine if lncRNAs or mRNAs have similar or different nuclear/cytoplasmic localizations.
+Today we will performing differential expression on HEPG2 RNAseq data using the DESEQ2 package. 
+We will cover how to set control and comparison samples to determine differentially expressed genes
+across different samples. We will cover all the necessary basics for input and output of DESEQ2.
 
-# We will need our samplesheet form 17_.Rmd
-# First Let's make a /analysis/19_ directory and set to working directory.
+As a first example we will compare nuclear versus cytoplasmic expression. We will identify those 
+genes that are enriched in either the nucleus or cytoplasmic RNA samples. 
 
-```{r import sample sheet}
+# FIRST, we need copy our samplesheet and design file into our 01_differential_expression dir.
+USe the terminal to "cp" the folder to the current working directory:
+<your_folder>/CLASS_2023/CLASSES/05_R_analyses/analysis/05_RNAseq/01_differential_expression
 
-# First let's read in th sample sheet we made in 17
+# cp samplesheet.csv ../../01_differential_expression/results
+# cp design.csv ../../01_differential_expression/results
 
-samplesheet <- read_csv("/your_path/CLASS_2022/class_exeRcises/analysis/17_API_RNASEQ/samplesheet.csv")
+It is always good to look at the raw data (bigWig in IGV etc)
+# We discovered ENCODE swapped the labels on two samples !!
+This was discovered two differnet ways that are good starting points:
 
-samplesheet <- read_csv("samplesheet.csv")
-# ENCODE swapped labels on one sample !! 
+(1) NF_core multiQC showed that two different experiment types were 
+more similar than their replicates. Most samples cluster by experimental_accession.
+For example: 
 
-# We of course need to swap the labels for total and insoluble cytoplasmic
-# From looking in the browser at genes that should be nuclear: NEAT1 for ex.
-# We have concluded that 
+ENCSR813BDU_rep1 (insoluble_cytoplasmic_fraction) & ENCSR181ZGR_rep1 (homo_sapiens_hepg2) 
+so did:
+ENCSR813BDU_rep2 (insoluble_cytoplasmic_fraction) & ENCSR181ZGR_rep2 (homo_sapiens_hepg2)
+This is suspicious as we would expect the same experimental type to cluster together.
+
+(2) By looking in the browser at the raw data.
+We focused on a well known nuclear RNA : NEAT1. This gene should
+not be expressed in "insolube_cytoplasmic" and was. Thus, one of the
+insoluble fractions was total (homo_spaiens_hepg2) and the other insoluble_cytoplasmic.
+
+
+We have concluded that:
+
 # hepg2_R2 -- is whole cell / total
 # hepg2_insoluble_cytoplasmic_fraction_R2 -- is whole cell / total
 # hepg2_R1 -- is insoluble_cytoplasmic
 # hepg2_insoluble_cytoplasmic_fraction_R1 -- is insoluble_cytoplasmic
 
-# changing the condition column to insoluble 
-# note operation assignment comes last to just change text.
+
+Let's start by fixing our sample_sheet!
+
+```{r import sample sheet}
+
+# First let's read in th sample sheet we made in 00_NF_core_pipeline
+samplesheet <- read_csv("results/samplesheet.csv")
 
 # First changing the total sample to homo_sapiens_insoluble_fraction
 samplesheet[which(samplesheet$sample_name == "homo_sapiens_hepg2"), "condition"] <- "homo_sapiens_insoluble_cytoplasmic_fraction"
@@ -60,7 +83,7 @@ samplesheet[which(samplesheet$sample_name == "homo_sapiens_hepg2"), "condition"]
 samplesheet[which(samplesheet$sample_name == "hepg2_insoluble_cytoplasmic_fraction"), "condition"] <- "homo_sapiens_hepg2"
 
 # saving this to sample_sheets folder
-write.csv(samplesheet, "corrected_samplesheet.csv")
+write.csv(samplesheet, "results/corrected_samplesheet.csv")
 
 # A FACTOR LEVEL is critical for DEseq2 to know which samples is which
 # We will take the condition from sample sheet to compare for differential expression
@@ -69,65 +92,54 @@ samplesheet$condition <- as.factor(samplesheet$condition)
 
 # Now that the samplesheet is ready to used in DESeq2, 
 # we'll write it out for future use.
-write_rds(samplesheet, "final_samplesheet.rds")
+write_rds(samplesheet, "results/final_samplesheet.rds")
 
-samplesheet <- read_rds("final_samplesheet.rds")
 ```
 
-# Loading in Gencode annotations
-# also making gene_id to gene_symbol object 
+# Loading in Gencode annotations & making gene_id to gene_symbol object 
 Now let's read in the genome features also in our data folder
 While we are at it, let's also print these out to make this go quicker in the future.
 ```{r import genome features and make gene_id and symbol file}
 
-# Importing genome annotations
-# ANIKA I apologize that we should have done this earlier to avoid loading Gencode again :()
-gencode_gtf <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2022/data/gencode.v32.annotation.gtf")
+# Importing genome annotations (we will export what we need in .Rdata format to avoid this step moving forward)
+gencode_gtf <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2023/data/data/genomes/gencode.v32.annotation.gtf")
 
-# that took awhile let's make genome annotation files that can be quickly read in the future
+# making genocde_genes GRanges to save in .Rdata session.
+gencode_genes <- gencode_gtf[gencode_gtf$type == "gene"]
 
-# Let's reduce this big GRanges list to just genes
-genes <- gencode_gtf[gencode_gtf$type == "gene"]
-
-# let's make an object of gene_id and names
-# we just saw above we can get both gene_id and name from 'genes'
-# We can convert to DF for readability.
-
-g2s <- genes %>% as.data.frame() %>%
+# It is really handy to convert gene_id (long number) to gene_name (more intuitive). 
+# We are making G2S file that we can use in future to convert between the two.
+g2s <- gencode_genes %>% as.data.frame() %>%
   dplyr::select(gene_id, gene_name)
 
 # writingn this out to avoid loading Gencode in the future
-write.csv(g2s, "g2s.csv")
+write.csv(g2s, "results/g2s.csv")
 
-# test read in to see if we saved correct (this is pretty simple so should be fine)
-g2s <- read_csv("g2s.csv")
-
-# Nice now we have a handy conversion table of gene_id & gene_name
 ```
 
-# reading in salmon merged gene counts.
-Ok, next step is to read in GENE COUNTS (not TPM) This was exported from the NF_CORE RNAseq pipeline in the salmon folder. We want "salmon_merged_gene_counts.csv
 
-This is in our results folder from 18_.Rmd
+Ok, next step is to read in GENE COUNTS (not TPM) -- raw counts over gene features.
+This was generated in the NF_CORE RNAseq pipeline in the salmon folder. 
 
-# More on salmon transcript quants, this is a basic outline of how Salmon works 
-# Especially if you wanted to use it outside NF_CORE pipeline for RNAseq
+
+More on salmon transcript quants, this is a basic outline of how Salmon works 
+Especially if you wanted to use it outside NF_CORE pipeline for RNAseq
 https://combine-lab.github.io/salmon/getting_started/
 
-# Here is more on output files
+Here is more on output files
 https://salmon.readthedocs.io/en/latest/file_formats.html
+
+# reading in salmon merged gene counts.
+# We want "salmon_merged_gene_counts.csv
 
 ```{r reading in salmon counts convert to matrix}
 
 # DEseq requires a matrix of raw counts so the following
-# will turn this from a data.frame to matrix 
-# NOTE: now common practice always think about adding "names" after import.
-
+# will turn this from a data.frame to matrix for input into DEseq.
 ## NOTE ## NEVER USE TPM or any other normalized counts with DeSeq!!
 
-counts <- read_csv("/your_path/CLASS_2022/class_exeRcises/analysis/18_running_RNAseq_NF_CORE/NF_CORE_RUN/results/salmon/salmon_merged_gene_counts.csv")
-
-# counts <- read_csv("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/18_running_RNAseq_NF_CORE/preclass_NF_core_RUN/results/salmon/salmon_merged_gene_counts.csv")
+# reading in salmon counts:
+counts <- read_csv("../00_RNAseq_download_NF_core_pipeline/00_NF_CORE_RNAseq_Pipeline_run/results/salmon/salmon_merged_gene_counts.csv")
 
 # adding rownames and converting to a matrix
 counts <- column_to_rownames(counts, "gene_id") %>%
@@ -138,8 +150,11 @@ as.matrix()
 ```
 
 # Connecting samplesheet to counts
+Setting up counts object to be used as input into DEseq
+to create "Rlog_Counts". Rlog_counts are very important in comparing 
+samples. They are normalized by expression quantile to prevent low abundance
+transcripts from inflating data. 
 
-Making an rlog counts matrix for all samples -- can read in to start in future
 ```{R sub-selecting counts_matrix to data only in samplesheet }
 
 # First let's put the counts columns in the same order as the samplesheet
@@ -166,28 +181,26 @@ DeSeq needs things like:
 ```{R Getting counts organized for DeSeq }
 
 # Deseq wants round numbers so we are going to round them here:
-
 counts <- round(counts)
 
 # now we want to get rid of all genes with 0 across all samples.
-
 counts_filtered <- counts[rowSums(counts) > 1,]
 
 # In order to cache this and read it in later we'll
 # save it as an RDS
-write_rds(counts_filtered, "counts_matrix.rds")
+write_rds(counts_filtered, "results_counts_matrix.rds")
 
 ```
 
 # Running DeSeq to create rlog normalzied counts!
-
-Although a lot of normalization has already occured from
+Although a lot of normalization has already occurred from
 Salmon (where we got the counts) we now need to determine the 
 distribution of expression values and normalize again to prevent
-low abundance genes from contributing to highly significant differential 
-expression. 
+low abundance genes inflating significant differential expression. 
 
-Let's officially run DeSeq2!
+ !
+# goal: to get rlog normalized counts 
+Let's officially run DeSeq2
 ```{R essential set up to running DeSeq}
 
 # Next we want to normalize these counts 
@@ -225,6 +238,29 @@ rlog_counts_matrix <- read_rds("rlog_counts_all.rds")
 # rlog_counts_matrix <- read_rds("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/19_rnaseq/RNA_seq_results/rlog_count_normalized_data/rlog_counts_all.rds")
 
 ```
+
+
+
+
+
+
+# Saving key files for faster loading in the future
+## START POINT ##
+```{r}
+
+save(consensus_peaks, gencode_genes, lncrna_gene_ids, mrna_gene_ids, num_peaks_df, peak_occurence_df, lncrna_mrna_promoters, mrna_lncrna_genes, file = "results/peak_features.RData")
+# awesome - now we never have to load in consensus peaks again :)
+# erase environment and reload!
+load("results/peak_features.RData", verbose = T)
+# WOW that is super handy !!
+
+
+```
+
+
+
+
+
 
 # Differential Expression (nuclear versus cytoplasmic)
 Above we got to normalized counts that are ready to compared across
