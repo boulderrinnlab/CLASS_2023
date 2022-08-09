@@ -1,5 +1,5 @@
 ---
-title: "01_differential_expression"
+title: "01_DESEQ_counts"
 author: "JR"
 date: "8/9/2022"
 output: html_document
@@ -28,12 +28,12 @@ library(DESeq2)
 
 ```
 
-Today we will performing differential expression on HEPG2 RNAseq data using the DESEQ2 package. 
-We will cover how to set control and comparison samples to determine differentially expressed genes
-across different samples. We will cover all the necessary basics for input and output of DESEQ2.
+Today we will be exploring the results of our NF_CORE rnaseq pipeline run.
+We noted a mistake in encode labeling :) so we will fix that and create a final 
+samplesheet for differential expression analyses by DESEQ in the next class.
 
-As a first example we will compare nuclear versus cytoplasmic expression. We will identify those 
-genes that are enriched in either the nucleus or cytoplasmic RNA samples. 
+GOAL: to understand how to convert the output counts from Salmon to rlog normalized counts.
+We will also generate all the needed files we need to do differnetial expression analyses with DESEQ.
 
 # FIRST, we need copy our samplesheet and design file into our 01_differential_expression dir.
 USe the terminal to "cp" the folder to the current working directory:
