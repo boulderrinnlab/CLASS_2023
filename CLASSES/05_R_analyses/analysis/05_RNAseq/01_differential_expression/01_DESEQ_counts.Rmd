@@ -1,0 +1,737 @@
+---
+title: "01_differential_expression"
+author: "JR"
+date: "8/9/2022"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(stringsAsFactors = FALSE)
+library(tidyverse)
+# library(tximport)
+# library(ggrepel)
+library(pheatmap)
+source("../../../../../util/plotting_functions.R")
+source("../../../../../util/_setup.R")
+
+# DEseq2 needs a specific package of 'locfit' that has to be installed first
+install.packages("https://cran.r-project.org/src/contrib/Archive/locfit/locfit_1.5-9.4.tar.gz", repos=NULL, type="source")
+
+# Now we can install DEseq2
+BiocManager::install("DESeq2")
+
+# now load the package
+library(DESeq2)
+
+```
+
+Today we will performing differential expression on HEPG2 RNAseq data using the DESEQ2 package. 
+We will cover how to set control and comparison samples to determine differentially expressed genes
+across different samples. We will cover all the necessary basics for input and output of DESEQ2.
+
+As a first example we will compare nuclear versus cytoplasmic expression. We will identify those 
+genes that are enriched in either the nucleus or cytoplasmic RNA samples. 
+
+# FIRST, we need copy our samplesheet and design file into our 01_differential_expression dir.
+USe the terminal to "cp" the folder to the current working directory:
+<your_folder>/CLASS_2023/CLASSES/05_R_analyses/analysis/05_RNAseq/01_differential_expression
+
+# cp samplesheet.csv ../../01_differential_expression/results
+# cp design.csv ../../01_differential_expression/results
+
+It is always good to look at the raw data (bigWig in IGV etc)
+# We discovered ENCODE swapped the labels on two samples !!
+This was discovered two differnet ways that are good starting points:
+
+(1) NF_core multiQC showed that two different experiment types were 
+more similar than their replicates. Most samples cluster by experimental_accession.
+For example: 
+
+ENCSR813BDU_rep1 (insoluble_cytoplasmic_fraction) & ENCSR181ZGR_rep1 (homo_sapiens_hepg2) 
+so did:
+ENCSR813BDU_rep2 (insoluble_cytoplasmic_fraction) & ENCSR181ZGR_rep2 (homo_sapiens_hepg2)
+This is suspicious as we would expect the same experimental type to cluster together.
+
+(2) By looking in the browser at the raw data.
+We focused on a well known nuclear RNA : NEAT1. This gene should
+not be expressed in "insolube_cytoplasmic" and was. Thus, one of the
+insoluble fractions was total (homo_spaiens_hepg2) and the other insoluble_cytoplasmic.
+
+
+We have concluded that:
+
+# hepg2_R2 -- is whole cell / total
+# hepg2_insoluble_cytoplasmic_fraction_R2 -- is whole cell / total
+# hepg2_R1 -- is insoluble_cytoplasmic
+# hepg2_insoluble_cytoplasmic_fraction_R1 -- is insoluble_cytoplasmic
+
+
+Let's start by fixing our sample_sheet!
+
+```{r import sample sheet}
+
+# First let's read in th sample sheet we made in 00_NF_core_pipeline
+samplesheet <- read_csv("results/samplesheet.csv")
+
+# First changing the total sample to homo_sapiens_insoluble_fraction
+samplesheet[which(samplesheet$sample_name == "homo_sapiens_hepg2"), "condition"] <- "homo_sapiens_insoluble_cytoplasmic_fraction"
+
+# same for changing insoluble_cytoplasmic_fraction condition to homo_sapiens_hepg2
+samplesheet[which(samplesheet$sample_name == "hepg2_insoluble_cytoplasmic_fraction"), "condition"] <- "homo_sapiens_hepg2"
+
+# saving this to sample_sheets folder
+write.csv(samplesheet, "results/corrected_samplesheet.csv")
+
+# A FACTOR LEVEL is critical for DEseq2 to know which samples is which
+# We will take the condition from sample sheet to compare for differential expression
+# In this case it doesn't matter which comes first the "control"
+samplesheet$condition <- as.factor(samplesheet$condition)
+
+# Now that the samplesheet is ready to used in DESeq2, 
+# we'll write it out for future use.
+write_rds(samplesheet, "results/final_samplesheet.rds")
+
+```
+
+# Loading in Gencode annotations & making gene_id to gene_symbol object 
+Now let's read in the genome features also in our data folder
+While we are at it, let's also print these out to make this go quicker in the future.
+```{r import genome features and make gene_id and symbol file}
+
+# Importing genome annotations (we will export what we need in .Rdata format to avoid this step moving forward)
+gencode_gtf <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2023/data/data/genomes/gencode.v32.annotation.gtf")
+
+# making genocde_genes GRanges to save in .Rdata session.
+gencode_genes <- gencode_gtf[gencode_gtf$type == "gene"]
+
+# It is really handy to convert gene_id (long number) to gene_name (more intuitive). 
+# We are making G2S file that we can use in future to convert between the two.
+g2s <- gencode_genes %>% as.data.frame() %>%
+  dplyr::select(gene_id, gene_name)
+
+# writingn this out to avoid loading Gencode in the future
+write.csv(g2s, "results/g2s.csv")
+
+```
+
+
+Ok, next step is to read in GENE COUNTS (not TPM) -- raw counts over gene features.
+This was generated in the NF_CORE RNAseq pipeline in the salmon folder. 
+
+
+More on salmon transcript quants, this is a basic outline of how Salmon works 
+Especially if you wanted to use it outside NF_CORE pipeline for RNAseq
+https://combine-lab.github.io/salmon/getting_started/
+
+Here is more on output files
+https://salmon.readthedocs.io/en/latest/file_formats.html
+
+# reading in salmon merged gene counts.
+# We want "salmon_merged_gene_counts.csv
+
+```{r reading in salmon counts convert to matrix}
+
+# DEseq requires a matrix of raw counts so the following
+# will turn this from a data.frame to matrix for input into DEseq.
+## NOTE ## NEVER USE TPM or any other normalized counts with DeSeq!!
+
+# reading in salmon counts:
+counts <- read_csv("../00_RNAseq_download_NF_core_pipeline/00_NF_CORE_RNAseq_Pipeline_run/results/salmon/salmon_merged_gene_counts.csv")
+
+# adding rownames and converting to a matrix
+counts <- column_to_rownames(counts, "gene_id") %>%
+as.matrix()
+  
+# Nice now we have a matrix we need to import to DeSeq
+# However it has all the samples so we need to organize a bit.
+```
+
+# Connecting samplesheet to counts
+Setting up counts object to be used as input into DEseq
+to create "Rlog_Counts". Rlog_counts are very important in comparing 
+samples. They are normalized by expression quantile to prevent low abundance
+transcripts from inflating data. 
+
+```{R sub-selecting counts_matrix to data only in samplesheet }
+
+# First let's put the counts columns in the same order as the samplesheet
+# If they are not then we would essentially be randomizing our data later!!
+counts <- counts[,samplesheet$sample_id]
+
+# This is a handy check point to make sure the labels in 
+# sample sheet and counts are similar
+all(colnames(counts) == samplesheet$sample_id)
+
+# Now we know they're in the same order, and we can change the names
+# It is nicer to have more descriptive names.
+colnames(counts) <- samplesheet$sample_name
+
+```
+
+# creating and exporting normalized counts
+
+DeSeq needs things like:
+1) numbers to be rounded to an integer 
+2) Add "factor" levels to conditions being compared
+3) filter out any genes that don't have any counts
+
+```{R Getting counts organized for DeSeq }
+
+# Deseq wants round numbers so we are going to round them here:
+counts <- round(counts)
+
+# now we want to get rid of all genes with 0 across all samples.
+counts_filtered <- counts[rowSums(counts) > 1,]
+
+# In order to cache this and read it in later we'll
+# save it as an RDS
+write_rds(counts_filtered, "results_counts_matrix.rds")
+
+```
+
+# Running DeSeq to create rlog normalzied counts!
+Although a lot of normalization has already occurred from
+Salmon (where we got the counts) we now need to determine the 
+distribution of expression values and normalize again to prevent
+low abundance genes inflating significant differential expression. 
+
+ !
+# goal: to get rlog normalized counts 
+Let's officially run DeSeq2
+```{R essential set up to running DeSeq}
+
+# Next we want to normalize these counts 
+# mostly to account for low abundance and noisy genes
+# We need to do this in four steps:
+
+# (1) first run DESeq2 by creating a dds object.
+# We use the function "DESeqDataSetFromMatrix"
+# With parameters of countData, colData, design
+
+dds <- DESeqDataSetFromMatrix(countData = counts_filtered,
+                              # this is our counts data we read in
+                              colData = samplesheet,
+                              # telling DeSeq what env variable to use for sample sheet
+                              design = ~ condition)
+                              # perhaps most important is condition is a factor in samplesheet 
+
+# (2) run DESeq2 function on dds object
+dds <- DESeq(dds)
+
+# (3) Normalize counts (rlog)
+# This basically is rank counts normalized to std error in replicates.
+rlog_counts <- rlog(dds, blind = TRUE)
+
+# (4) now we retrieve the values using the "assay" function that converts to rlog_counts)
+rlog_counts_matrix <- assay(rlog_counts)
+
+# Now we can write this out and START from here in the future.
+# create new folder 'rlog_count_matrices'
+write_rds(rlog_counts_matrix, "rlog_counts_all.rds")
+
+# reading back in to be sure we can start here in the future.
+rlog_counts_matrix <- read_rds("rlog_counts_all.rds")
+
+# rlog_counts_matrix <- read_rds("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/19_rnaseq/RNA_seq_results/rlog_count_normalized_data/rlog_counts_all.rds")
+
+```
+
+
+
+
+
+
+# Saving key files for faster loading in the future
+## START POINT ##
+```{r}
+
+save(consensus_peaks, gencode_genes, lncrna_gene_ids, mrna_gene_ids, num_peaks_df, peak_occurence_df, lncrna_mrna_promoters, mrna_lncrna_genes, file = "results/peak_features.RData")
+# awesome - now we never have to load in consensus peaks again :)
+# erase environment and reload!
+load("results/peak_features.RData", verbose = T)
+# WOW that is super handy !!
+
+
+```
+
+
+
+
+
+
+# Differential Expression (nuclear versus cytoplasmic)
+Above we got to normalized counts that are ready to compared across
+conditions. Note we "factored" the sample sheet so each fraction has
+a 'factor' value. So we can now factor nuclear and compare to cytoplasmic.
+
+Let's specialize sample sheet we can use to compare nuc/cyto samples.
+
+```{R nuclear and cytoplasmic samplesheet}
+
+# Now we will filter the sample sheet to just nuclear and cytoplasmic
+samplesheet_nuc_cyto <- samplesheet %>%
+  filter(condition %in% c("homo_sapiens_cytosolic_fraction", "homo_sapiens_nuclear_fraction"))
+# Nice now we have a reduced sample sheet that is well organized.
+
+# Next, let's triple check that the counts data
+# contains the counts for the samples in the reduced sample sheet 
+samplesheet_nuc_cyto$sample_name %in% colnames(counts)
+# Cool, the 4 samples in filtered are same as counts
+
+# Again we need to think about "rownames"
+# Note the rownames are numbers -- this is 'meta' information we need.
+# To make rownames we will turn into data.frame and add rownames
+samplesheet_nuc_cyto <- samplesheet_nuc_cyto %>%
+  as.data.frame()
+
+# IMPORTANT: adding rownames from nuc_cyto_samplesheet by indexing
+rownames(samplesheet_nuc_cyto) <- samplesheet_nuc_cyto$sample_name
+# Now if we look at this object we see rownames as sample_name - nice.
+
+# NOTE: DeSeq wants the control as a factor (fct), currently (chr)
+# The first factor level is the "control" and all the other levels
+# will be compared back to it.
+
+# Let's make the condition a factor:
+samplesheet_nuc_cyto$condition <- factor(samplesheet_nuc_cyto$condition, 
+                                         levels = c("homo_sapiens_nuclear_fraction",
+                                                    "homo_sapiens_cytosolic_fraction"))
+
+
+# let's write out this samplesheet for future use
+write_rds(samplesheet_nuc_cyto, "samplesheet_nuc_cyto.rds")
+
+```
+
+# START POINT
+All the work we have done above can be skipped by 
+reading in the following files.
+
+# To learn more about DeSeq and other variations not used here:
+https://physiology.med.cornell.edu/faculty/skrabanek/lab/angsd/lecture_notes/08_practical.pdf
+
+```{r START POINT}
+
+# Read in the raw counts matrix
+counts <- read_rds("counts_matrix.rds")
+
+# Read in rlog normalized counts 
+rlog_counts_matrix <- read_rds("rlog_counts_all.rds")
+
+# full sample_sheet
+samplesheet <- read_rds("final_samplesheet.rds")
+
+# nuc/cyto sample sheet
+samplesheet_nuc_cyto <- read_rds("samplesheet_nuc_cyto.rds")
+
+# finally a gene_id and gene_names object
+g2s <- read.csv("g2s.csv")
+
+```
+
+# Heatmap of all samples
+First let's cluster all the data to see how the samples relate.
+```{r heatmap of all data}
+
+# Now we can make a heatmap of all the different fractions
+# First let's look at the rlogCounts
+hist(rlog_counts_matrix, breaks = 100, xlim = c(0,20))
+
+# First we will filter to genes that are variable across data.
+# rowVars gives us the variance across samples
+hist(rowVars(rlog_counts_matrix), breaks = 100, xlim = c(0,4))
+
+# let's look at this as an object
+x <- rowVars(rlog_counts_matrix)
+
+
+# Filterting out genes that don't have variance of more than 2
+rlog_var_genes_all <- rlog_counts_matrix[rowVars(rlog_counts_matrix) > 2,]
+
+# row center the counts -- we need to flip the matrix
+# we can only scale cols so we need to transmute (t)
+# then turn it back with (t)
+scaled_counts <- t(scale(t(rlog_var_genes_all))) %>%
+  as.matrix()
+
+# make heat map
+pheatmap(scaled_counts, show_rownames = FALSE)
+
+# saving
+pdf("figures/all_vs_total_genes_heatmap.pdf")
+pheatmap(scaled_counts, show_rownames = FALSE)
+dev.off()
+```
+
+# Principal component analysis
+Now let's use Principle Component Analysis to determine sample similarity
+
+```{r PCA analysis}
+
+# The first thing that we'll want to do is make a PCA plot.
+# 'prcomp()' is the principle component analysis function.
+
+?prcomp
+
+# let's calculate the values associated with 'prcomp'
+# install.packages("ggrepel") to move text so it doesn't overlap
+
+# First we need to flip the counts matrix as PCA needs to be across rows (samples)
+rld_pca <- prcomp(t(rlog_counts_matrix))
+
+# setting up a data frame with column x 
+rld_prcomps <- rld_pca$x %>% as.data.frame() %>%
+  
+  # note that x is in rld_pca as the PCA values
+  rownames_to_column("sample_name") %>%
+  # selecting data we want to merge with samplesheet
+  select(sample_name, PC1, PC2)
+  # merging PC1 and PC2 with sample sheet via sample name
+rld_prcomps <- merge(samplesheet, rld_prcomps)
+
+
+
+# install.packages("ggrepel")
+
+
+# Let's make a PCA plot
+ggplot(rld_prcomps, aes(x = PC1, y = PC2, color = condition, label = replicate)) +
+geom_point() +
+geom_text_repel()
+# RESULT: PCA plot looks like replicates are more similar than fraction type!
+
+# Let's print this out
+ggsave("figures/PCA_plot.pdf")
+
+```
+
+# Nuclear versus cytoplasmic differential expression
+Next we will reduce out counts_matrix to just the values of nuc/cyto
+
+```{r nuc/cyto  counts}
+
+# first reduce the counts matrix to just nuc and cyto samples.
+counts_nuc_cyto <- counts[, samplesheet_nuc_cyto$sample_name]
+
+# This is a good way to triple check everything is in order.
+
+rownames(samplesheet_nuc_cyto) == colnames(counts_nuc_cyto)
+# Great this evaluated to true and thus moved on -- we would get an error message otherwise.
+
+# or the other way we have been doing this:
+rownames(samplesheet_nuc_cyto) == colnames(counts_nuc_cyto)
+
+```
+
+# Finalinzing samplesheet for nuc vs cyto DEseq2
+We are almost ready, last things to check:
+
+1) DeSeq2 requires integer data 
+
+2) Deseq2 needs the condition being compared to as a "factor" 
+-- this is critical --
+
+```{R organizing nuc/cyto counts and samplesheet for deseq}
+
+# Ok now we need to turn the counts into integer data (int)
+
+# The first step would be to round the counts, but we have already done that.
+# But good to remember to round before setting chr to int.
+# counts_nuc_cyto <- round(counts_nuc_cyto)
+
+# mode can convert chr to int, let's change everything from chr to int
+mode(counts_nuc_cyto) <- "integer"
+
+# Let's fileter to genes that have at least one count across cols.
+nuc_cyto_counts_filtered <- counts_nuc_cyto[rowSums(counts_nuc_cyto) > 1,]
+
+```
+
+# Differential expression of nuc -vs- cyto DEseq2
+Now let's look deeper into the results held in dds object
+
+```{r DEseq2 nuc versus cyto}
+
+# IMPORTANT: always double check organization of input files to DESeq!
+# If this is not true the results will be a mix of wrong samples!
+# We did this above but double checking here
+colnames(nuc_cyto_counts_filtered) == rownames(samplesheet_nuc_cyto)
+
+# looks good, now let's make the required DEseq raw counts
+dds <- DESeqDataSetFromMatrix(countData = nuc_cyto_counts_filtered,
+                              colData = samplesheet_nuc_cyto,
+                              design = ~ condition)
+
+
+dds <- DESeq(dds)
+
+# IMPORTANT : we need the results name for exporting results to data.frame
+# We can see that DeSeq makes it's own names so "resultNames" is the way to get that info
+resultsNames(dds)
+
+# We don't want the intercept data
+# but we need to extract the results from dds:
+# let's remove intercept:
+
+res <- results(dds, name = "condition_homo_sapiens_cytosolic_fraction_vs_homo_sapiens_nuclear_fraction")
+
+# It's easier to view it as a data.frame so we'll convert it.
+# While we are at it we merge in gene_symbols (g2s)
+
+res_df <- res %>% as.data.frame() %>%
+  # moving the row values to a "meta" column
+  rownames_to_column("gene_id") %>%
+  # merging in gene_name with gene_id
+  merge(g2s)
+
+# Nice now we have a DF with a lot of good info for each gene.
+# Let's write it out.
+
+write_rds(res_df, "results/nuclear_cyto_results_df.rds")
+
+
+```
+
+QC plot: Volcano 
+```{r valono, MA and other plots}
+
+# Test is CYTO/Nuclear
+# so larger values are cyto and smaller nuclear
+
+# A first check is a "volcano" plot:
+# x-axis = log fold change
+# y-axis = pval
+
+# Plotting volcano plot of nuclear vs cytoplasmic
+
+ggplot(res_df, aes(x = log2FoldChange, y = -log10(padj), color = -log10(res_df$padj) > 90)) + 
+  geom_point()
+
+# saving volcano plot
+ggsave("figures/nuc_cyto_volcano.pdf")
+
+
+# Note there was a gene log2 -30 fold down meaning very nuclear
+nuclear_gene <- res_df$gene_name[which.min(res_df$log2FoldChange)]
+# Nice U2 is very nuclear and good control
+
+# we can find most cytoplasmic here too
+cyto_gene <- res_df$gene_name[which.max(res_df$log2FoldChange)]
+# 7SK -- a lncRNA ...
+
+
+# Making a list of nuclear genes at certain threshold
+nuclear_genes <- res_df %>% 
+  filter(log2FoldChange < -1, padj < 0.05) %>%
+  as.data.frame()
+
+write_csv(nuclear_genes, "nuclear_genes.csv")
+
+# Cytoplasmic genes:
+cyto_genes <- res_df %>%
+  filter(log2FoldChange > 1, padj < 0.05)
+
+write_csv(cyto_genes, "cyto_genes.csv")
+
+
+```
+
+# MA-PLOTS are one of the common first plots to make.
+# This plot informs you of low abundance biases in fold-change
+
+```{R MA PLOT}
+
+# The 'MA plot' shows how low abundance affects can be an issue.
+# x-axis = log(expression level)
+# y-axis = log fold change
+
+ggplot(res_df, aes(x = log10(baseMean), y = log2FoldChange)) + 
+  geom_point()
+
+# This is a good QC plot and shows the fold changes
+# are not biased to low "base-mean" levels
+
+# saving MA PLOT
+
+ggsave("figures/MA_plot_nuc_cyto.pdf")
+
+
+# Now let's look at nuclear MA plot seperate:
+ggplot(nuclear_genes, aes(x = baseMean , y = log2FoldChange)) + 
+  xlim(0, 50000) +
+  geom_point()
+
+```
+
+let's see the range of pvalues in nuc-vs-cyto:
+```{R pvalues nuc-vs-cyto / FDR example}
+
+# let's look at the distribution of pvalues
+
+hist(res_df$padj)
+
+# we could apply a false discovery as we see a tail of distributed pvalues
+```
+
+# DESeq with all subcellular fractions
+
+```{r organizing sample sheet for comparison to total RNA for each fraction}
+
+# We will use total RNA (whole cell) condition to compare everything back to.
+
+# we will want to set the factor levels with "total" first
+samplesheet$condition <- factor(samplesheet$condition, levels = c("homo_sapiens_hepg2", "homo_sapiens_membrane_fraction", "homo_sapiens_insoluble_cytoplasmic_fraction", "homo_sapiens_cytosolic_fraction", "homo_sapiens_nuclear_fraction"))
+
+
+# creating dds based on the factors above
+dds <- DESeqDataSetFromMatrix(countData = counts,
+                              colData = samplesheet,
+                              design = ~ condition)
+
+
+# Run the DESeq stats
+dds <- DESeq(dds)
+
+```
+
+# What is in DDS
+Let's look a little deeper into the dds results from total vs all
+```{r looking at results from dds }
+
+# We now have a bunch more results embedded in the dds object
+resultsNames(dds)
+
+# let's take this name to return one set of the results from DeSeq
+# all comparisions are in our dds so we can select one at a time.
+
+# Let's just look at one of the results
+res <- results(dds, name = "condition_homo_sapiens_membrane_fraction_vs_homo_sapiens_hepg2")
+
+# We can further index the information for just this sample:
+res_df <- res %>% as.data.frame() %>%
+  rownames_to_column("gene_id") %>%
+  merge(g2s) %>%
+  mutate(result_name = "condition_membrane_fraction_vs_total")
+
+# Looking to see log2 fold change range
+summary(res_df$log2FoldChange)
+
+```
+
+
+Ok that was a lot of RNAseq !!
+Let's save the results:
+```{r compiling all the results}
+
+# A good starting point would be to use a for loop to make a data.frame 
+# with all the results
+results_names <- resultsNames(dds)
+
+# let's look
+results_names
+
+# We don't care about the intercept, so we can leave that out
+results_names <- results_names[-1]
+
+
+#TODO ? How does the for loop fill this data frame? 
+# First we set up a data frame for logFC results.
+res_df <- data.frame("gene_id" = character(), 
+                     "baseMean" = numeric(), 
+                     "log2FoldChange" = numeric(), 
+                     "lfcSE" = numeric(),
+                     "stat" = numeric(),
+                     "pvalue" = numeric(),
+                     "padj" = numeric(),
+                     "gene_name" = character(),
+                     "result_name" = character())
+
+# in parallel we can make the same results with "shrunken"
+# logFC this normalizes low expressed genes to be less significant.
+
+res_shrunken_df <- data.frame("gene_id" = character(), 
+                              "baseMean" = numeric(), 
+                              "log2FoldChange" = numeric(), 
+                              "lfcSE" = numeric(),
+                              "stat" = numeric(),
+                              "pvalue" = numeric(),
+                              "padj" = numeric(),
+                              "gene_name" = character(),
+                              "result_name" = character())
+
+# Now we will make a forloop to populate these data.frames with each DeSeq result !
+# We will also apply a shrunken log fold change 
+
+for(i in 1:length(results_names)) {
+  # grabbing the name of the result file i
+  results_name <- results_names[i]
+  # populating the res_df with results(dds)
+  # x <- results(dds, name = results_name)
+  res <- results(dds, name = results_name)
+  # populating res shrunken lfc with flcShrink
+  # Y <- lfcShrink(dds, coef = results_name,  res = res)
+  res_shrunken <- lfcShrink(dds, coef = results_name,  res = res)
+  
+  # populating data.frame 1 : temp_res_df
+  tmp_res_df <- res %>% as.data.frame() %>%
+    rownames_to_column("gene_id") %>%
+    merge(g2s) %>%
+    mutate(result_name = results_name)
+  
+  # populating data.frame 1 : temp_res_shrunken
+  tmp_res_shrunken_df <- res_shrunken %>% as.data.frame() %>%
+    rownames_to_column("gene_id") %>%
+    merge(g2s) %>%
+    mutate(result_name = results_name)
+  
+  # Append to full data.frame
+  res_df <- bind_rows(res_df, tmp_res_df)
+  res_shrunken_df <- bind_rows(res_shrunken_df, tmp_res_shrunken_df)
+}
+
+# Let's save these res_df
+write_rds(res_df, "results/deseq_results_df.rds")
+
+# shrunken log fold change results
+write_rds(res_shrunken_df, "results/deseq_results_shrunken_lfc_df.rds")
+
+```
+
+Cool now we have two great data frames to move forward with.
+Normally we would just move forward with shrunken logFC.
+Let's add a couple more fun colums to this res_shrunken_df
+
+# START POINT Nuclear cytoplasmic comparison
+
+```{r signigicant nuclear and cyto}
+
+# reading in nuc_cyto results df
+nuc_cyto_res_df <- read_rds("results/nuclear_cyto_results_df.rds")
+
+# Let's make list of all SIG gnees with  P <0.01 and FC > 2 in nuc-vs-cyto
+nuc_cyto_sig_genes <- nuc_cyto_res_df %>%
+  filter(padj < 0.001, abs(log2FoldChange) >1)
+
+# Now we filter res_shrunken for gene_id column and subcellular fraction column 
+nuc_cyto_genes_to_plot <- res_shrunken_df %>%
+  filter(gene_id %in% nuc_cyto_sig_genes$gene_id, result_name %in% c("condition_homo_sapiens_nuclear_fraction_vs_homo_sapiens_hepg2", "condition_homo_sapiens_cytosolic_fraction_vs_homo_sapiens_hepg2"))
+  
+# We need a matrix for heatmap and converting nuc_cyto_genes/values from lines above to matrix
+lfc_matrix <- nuc_cyto_genes_to_plot %>% 
+  dplyr::select(gene_id, log2FoldChange, result_name) %>% 
+  pivot_wider(names_from = "result_name", values_from = "log2FoldChange") %>%
+  column_to_rownames("gene_id") %>%
+  as.matrix()
+
+# Let's plot it with pheatmap
+pheatmap::pheatmap(lfc_matrix, show_rownames = FALSE, breaks = seq(-3, 3, length.out = 100))
+
+# saving
+pdf("figures/nuc_vs_cyto_genes_heatmap.pdf")
+pheatmap::pheatmap(lfc_matrix, show_rownames = FALSE, breaks = seq(-3, 3, length.out = 100))
+dev.off()
+
+```
