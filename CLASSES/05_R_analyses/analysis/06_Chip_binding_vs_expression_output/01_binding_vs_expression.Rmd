@@ -16,8 +16,6 @@ source("../../../util/_setup.R")
 library(ggpubr)
 
 
-
-
 ```
 
 # Reading in sample sheet
