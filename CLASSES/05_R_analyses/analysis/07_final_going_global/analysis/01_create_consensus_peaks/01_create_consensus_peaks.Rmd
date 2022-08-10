@@ -7,5 +7,51 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+options(stringsAsFactors = F)
+library(tidyverse)
+library(GenomicRanges)
+source("../../util/my_class_functions.R")
+
+# filepath to import peaks
+basepath <- "/scratch/Shares/rinnclass/CLASS_2023/<your_folder>"
+peak_path <- "CLASS_2023/CLASSES/05_R_analyses/analysis/00_consensus_peaks"
+broadpeakfilepath <- "/scratch/Shares/rinnclass/CLASS_2023/data/data/peaks"
+```
+
+# Loading in all .broadPeak files for all dbps and their replicates
+
+```{r load .broadPeak files}
+
+# using import peaks to import .broadPeak files (~10min)
+peak_list <- import_peaks(consensus_file_path = broadpeakfilepath)
+
+```
+
+# creating consensus peaks
+Using consensus_from_reduced function that requires peak list
+and dbp object. This will be done in 2 steps
+(1) created dbp object of unique names for dbp
+(2) run consensus_from_reduced
+
+
+```{r create consensus peaks}
+
+  # Creating unique DBP object for create_consensus_peaks_from_reduced
+dbp <- unique(sapply(names(peak_list), function(x) {
+   unlist(strsplit(x, "_"))[1]
+}))
+
+# now run our function consensus_from_reduced
+consensus_list <- lapply(dbp, consensus_from_reduced, peak_list)
+
+# adding names to the GRange list
+names(consensus_list) <- dbp
+
+
+```
+
+
+```{r}
+
 ```
 
