@@ -1,0 +1,11 @@
+---
+title: "01_create_consensus_peaks"
+author: "JR"
+date: "8/10/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
