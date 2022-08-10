@@ -1,0 +1,23 @@
+---
+title: "00_your_mission"
+author: "JR"
+date: "8/10/2022"
+output: html_document
+---
+
+# Your mission should you choose to accept it 
+
+There is an enormous amount of data in ENCODE that 
+needs to be analyzed. This includes 480 unique DBP
+ChIPseq datasets. To facilitate your mission we provide you
+1,066 peak files that have been run through the NF_CORE chipseq
+pipeline. 
+
+You will find all the .broadPeak peak files here:
+/scratch/Shares/rinnclass/CLASS_2023/data/data/peaks
+
+
+Use what you have learned in class to uncover
+new results from this daunting data set. 
+
+# Good luck the genome depends on you!
