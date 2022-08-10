@@ -143,7 +143,7 @@ num_peaks_df$total_peak_length <- sapply(filtered_consensus_list, function(x) su
 # creating number of promoter overlaps entry
 promoter_peak_counts <- count_peaks_per_feature(lncrna_mrna_promoters, filtered_consensus_list, type = "counts")
 
-#TODO start here
+
 # summing rows to get total number of promoter overlaps
 num_peaks_df$peaks_overlapping_promoters <- rowSums(promoter_peak_counts)
 
@@ -156,17 +156,130 @@ num_peaks_df$peaks_overlapping_mrna_promoters <- rowSums(promoter_peak_counts[,m
 # Finding overlaps with gene_bodies (will take a few minutes again)
 # Note this takes several minutes
 genebody_peak_counts <- count_peaks_per_feature(mrna_lncrna_genes, 
-                                                consensus_peaks, 
+                                                filtered_consensus_list, 
                                                 type = "counts")
 
+# All gene bodies overlaps
+num_peaks_df$peaks_overlapping_genebody <- rowSums(genebody_peak_counts)
 
+# lncRNA gene bodies 
+num_peaks_df$peaks_overlapping_lncrna_genebody <- rowSums(genebody_peak_counts[,lncrna_gene_ids])
+
+# mRNA gene bodies
+num_peaks_df$peaks_overlapping_mrna_genebody <- rowSums(genebody_peak_counts[,mrna_gene_ids])
+
+
+```
+
+# adding TF type annotations for DBPs
+```{r adding TF features to num_peaks_df}
+
+# download TF annotations to results
+url <- "https://www.cell.com/cms/10.1016/j.cell.2018.01.029/attachment/ede37821-fd6f-41b7-9a0e-9d5410855ae6/mmc2.xlsx"
+destination_for_url <- "results/TF_annotations.xlsx"
+
+# to download we can use download.file
+download.file(url, destination_for_url)
+
+# reading in TF annotations 
+human_tfs <- readxl::read_excel("results/TF_annotations.xlsx",
+                                sheet = 2, skip = 1)
+
+# let's rename the 4th column to indicate if it is a TF.
+names(human_tfs)[4] <- "is_tf"
+
+# now let's intersect gene names that are in our ChIP data and has TF identity.
+length(which(tolower(num_peaks_df$dbp) %in% tolower(human_tfs$dbp)))
+# 407 of the 430 have matching gene_names - not bad
+
+human_tfs <- human_tfs[tolower(human_tfs$Name) %in% tolower(num_peaks_df$dbp), 1:4]
+# adding new column names
+names(human_tfs) <- c("ensembl_id",
+                      "dbp",
+                      "dbd",
+                      "tf")
+
+# merging into num_peaks_df
+num_peaks_df <- merge(num_peaks_df, human_tfs, all.x = T)
 
 
 ```
 
 
+# creating promoter peak occurence matrix
+This will make a matrix where promoters are cols (30K)
+Each will have 1 if overlapped by a given dbp : 0 if no overlaps
+
+```{r promoter peak occurence matrix}
+
+# running count_peaks_per_feature
+promoter_peak_occurence <- count_peaks_per_feature(lncrna_mrna_promoters, filtered_consensus_list, 
+                                               type = "occurrence")
+
+# Let's double check that all lncrna & mrna genes are accounted for:
+stopifnot(all(colnames(promoter_peak_occurence) == lncrna_mrna_promoters$gene_id))
+
+# saving
+write.table(promoter_peak_occurence, "results/lncrna_mrna_promoter_peak_occurence_matrix.tsv")
+
+# Now let's use the 'data.frame()' fucntion. Set up a bunch of colnames and populate them.
+peak_occurence_df <- data.frame("gene_id" = colnames(promoter_peak_occurence),
+                                "gene_name" = lncrna_mrna_promoters$gene_name,
+                                "gene_type" = lncrna_mrna_promoters$gene_type,
+                                "chr" = lncrna_mrna_promoters@seqnames,   
+                                "1kb_up_tss_start" = lncrna_mrna_promoters@ranges@start,
+                                "strand" = lncrna_mrna_promoters@strand,
+                                "number_of_dbp" = colSums(promoter_peak_occurence))
+
+# saving
+write_csv(peak_occurence_df, "results/peak_occurence_dataframe.csv")
 
 
+```
+
+# now make a promoter data_frame that tells which dbps are bound
+```{r dbp centric promoter occurence}
+
+# dbps on promoters object
+DBPs_on_promoter <- lncrna_mrna_promoters %>%
+                    as.data.frame() %>%
+  dplyr::select(gene_id, gene_name)
+
+# creating promoter dbps by pivot longer of promoter_peak_occurence_matrix
+promoter_dbps <- promoter_peak_occurence %>%
+  as.data.frame() %>%
+  rownames_to_column("dbp") %>%
+pivot_longer(2:ncol(.), names_to = "gene_id", values_to = "occurrence") %>%
+  filter(occurrence == 1) %>%
+  dplyr::select(-occurrence) %>%
+  left_join(DBPs_on_promoter)
+
+# checking Firre promoter
+firre_promoter <- promoter_dbps %>%
+  filter(gene_name == "FIRRE")
+
+# XIST promoter (should be off since male cells)
+XIST_promoter <- promoter_dbps %>%
+  filter(gene_name == "XIST")
+
+# GAPDH
+GAPDH_promoter <- promoter_dbps %>%
+  filter(gene_name == "GAPDH")
+
+
+#TODO pivot longer to make a handy data frame
+promoter_dbps_df <- promoter_dbps %>% as.data.frame()
+write.csv(promoter_dbps, "results/promoter_dbps.csv")
+
+```
+
+# saving key env objects
+```{r saving key objects in environment to load next session}
+
+save(filtered_consensus_list, gencode_genes, lncrna_gene_ids, mrna_gene_ids, num_peaks_df, peak_occurence_df, lncrna_mrna_promoters, mrna_lncrna_genes, file = "results/peak_features.RData")
+# awesome - now we never have to load in consensus peaks again :)
+
+```
 
 
 
