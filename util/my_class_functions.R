@@ -196,4 +196,55 @@ fields = c("accession", "read_count", "md5sum",
              body <- read_tsv(content(resp, "text"), skip = 1) %>%
                clean_names()
              return(body)
-           }
+}
+
+
+
+#' function to summarize the number of events in features on each individual promoter. 
+#' 
+#' @description 
+#' Take a gencode gtf to subset the biotype of promoters we want as a set of GRanges
+#' 
+#' @param features
+#' set of genomic features as a GRanges object
+#'  
+#' @param peak_list
+#' #list of peaks of dna binding proteins that will be intersected
+#' 
+#' @param type
+#' Return either a matrix of counts over features or a binary occurrence matrix
+
+count_peaks_per_feature <- function(features, peak_list, type = "counts") {
+  
+  if(!(type %in% c("counts", "occurrence"))) {
+    stop("Type must be either occurrence or counts.")
+  }
+  
+  peak_count <- matrix(numeric(), ncol = length(features), nrow = 0)
+  
+  for(j in 1:length(peak_list)) {
+    suppressWarnings(ov <- countOverlaps(features, peak_list[[j]]))
+    peak_count <- rbind(peak_count, ov)
+    rownames(peak_count)[nrow(peak_count)] <- names(peak_list)[j]
+    colnames(peak_count) <- features$gene_id
+  }
+  
+  peak_matrix <- peak_count
+  
+  if(type == "occurrence") {
+    peak_occurrence <- matrix(as.numeric(peak_count > 0), 
+                              nrow = dim(peak_count)[1],
+                              ncol = dim(peak_count)[2])
+    rownames(peak_occurrence) <- rownames(peak_count)
+    colnames(peak_occurrence) <- colnames(peak_count)
+    peak_matrix <- peak_occurrence
+  }
+  
+  return(peak_matrix)
+  
+}
+
+
+
+
+
