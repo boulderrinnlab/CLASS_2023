@@ -1,0 +1,314 @@
+---
+title: "00_ENCODE_API_RNAseq_download"
+author: "JR"
+date: "8/8/2022"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(stringsAsFactors = FALSE)
+library(tidyverse)
+
+# install.packages("httr")
+library(httr)
+
+# install.packages("janitor")
+library(janitor)
+
+# install.packages("purrr")
+library(purrr)
+
+source("../../../../../util/class_functions.R")
+
+# source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/encode_functions.R")
+```
+
+Goal: to downlaod a RNAseq data from HEPG2 that is fractionated by cellular compartment
+(nuc, cyto, total etc). We can then we can integrate our ChIPseq data and look at how 
+DNA binding affects RNA expression.
+
+Let's go check out what is available from ENCODE:
+https://www.encodeproject.org/matrix/?type=Experiment&control_type!=*&status=released&perturbed=false
+
+
+Here is a documented URL for the data retrival:
+
+[Encode Query]("https://www.encodeproject.org/search/?type=Experiment&status=released&assay_slims=Transcription&assay_slims=Transcription&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&biosample_ontology.classification=cell+line&files.read_length=50&limit=all&advancedQuery=date_released:%5B2009-01-01+TO+2021-12-31%5D&biosample_ontology.term_name=HepG2&assay_title=total+RNA-seq&biosample_ontology.classification=cell%20line")
+
+# MAKE A NEW WORKING DIRECTORY
+Nice, we can get all the data we need. First we need to think about where to put this :)
+we are now moving into "05_RNAseq" in the class directory. So let's make a sub directory 
+for our downloaded files and NF_core RNAseq pipeline run.
+
+Let's first download the fastq files into DATA:
+"CLASS_2023/CLASSES/05_R_analyses/analysis/05_RNAseq/00_RNAseq_download_NF_core_pipeline/data"
+
+
+# Downloading RNAseq fastq files from ENCODE portal
+We need two things:
+(1) experimental_report.tsv from encode. a samples file with information on samples.
+we can get this on encode portal by clicking "Experimental report" tab on top and "download TSV"
+
+(2) a path to download the fastq files. This is on the "experimental list" tab
+click the "download" button and you will get a file called "files.txt"
+
+You can download these files directly and file transfer - or right click and wget (as below)
+
+
+```{bash}
+
+# open terminal here:
+# <your_folder>/CLASS_2023/CLASSES/05_R_analyses/analysis/05_RNAseq/00_RNAseq_download_NF_core_pipeline/data
+
+wget -O samples.txt "https://www.encodeproject.org/report.tsv?type=Experiment&status=released&assay_slims=Transcription&assay_slims=Transcription&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&biosample_ontology.term_name=HepG2&biosample_ontology.classification=cell+line&assay_title=total+RNA-seq&files.read_length=50&limit=all&advancedQuery=date_released:[2009-01-01%20TO%202021-12-31]"
+
+# This will give us a text file of the file names. We will use this to download the files.
+# open terminal (in working dir) and paste this in
+
+wget -O files.txt "https://www.encodeproject.org/batch_download/?type=Experiment&status=released&assay_slims=Transcription&assay_slims=Transcription&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&biosample_ontology.term_name=HepG2&biosample_ontology.classification=cell+line&assay_title=total+RNA-seq&files.read_length=50&limit=all&advancedQuery=date_released:[2009-01-01%20TO%202021-12-31]"
+
+# Now we need to copy files.txt into a new dir called "fastq"
+mkdir fastq
+
+# now copy files.txt to fastq and change dir to fastq
+cp files.txt fastq
+cd fastq
+
+# To download the fastq files for RNAseq we run this below (screen session recommended):
+xargs -L 1 curl -O -J -L < files.txt
+
+# Cool we have all the data we need for the NF_CORE RNAseq pipeline !
+
+```
+
+# Introduction to APIs (Application Programming Interface) 
+ 
+In order to exchange information between someone's database and your computer you use an API 
+Application Programming Interface. Basically a highly specified language for interacting
+and retrieving the data you need.
+
+The ENCODE API provides extensive documentation as to what data you can request and how to format that data 
+to make your request. You can browse the possible requests in an 
+interactive way using their interactive documentation:
+
+https://app.swaggerhub.com/apis-docs/encodeproject/api/basic_search
+
+Now, we will use ENCODE's API to retrieve additional file information from their server.
+The main reason we need to do this is to retrieve md5sum values for files -- 
+these are essential, but currently unavailable from the web based version of downloading :( 
+
+```{r examining encode API}
+
+# ENCODE base url: https://www.encodeproject.org/report.tsv?
+
+base_url <- "https://www.encodeproject.org/report.tsv?"
+
+# Let's look at an example request for this experiment accession: ENCSR541TIG
+request_url <- "https://www.encodeproject.org/report.tsv?type=File&status=released&file_format=fastq&dataset=%2Fexperiments%2FENCSR541TIG%2F&field=accession&field=read_count&field=md5sum&field=controlled_by&field=paired_end&field=paired_with&field=replicate&field=target"
+
+# the field parameter is where we tell it which columns or which pieces of data we want to get.
+# this retrieves read_count, md5sum, controlled_by, paired_end, paired_with, replicate, and target
+
+
+# NOTE API language use :
+#   (1) file_format=fastq&dataset=%2Fexperiments%2FENCSR541TIG%2F&field=accession&
+#   (2) dataset=%2F
+#  (3) experiments%2 "experimental_accession .....
+
+# So we could change this by changing the experimental accession to "ENCSR061SFU" for example 
+
+request_url <- "https://www.encodeproject.org/report.tsv?type=File&status=released&file_format=fastq&dataset=%2Fexperiments%2FENCSR061SFU%2F&field=accession&field=read_count&field=md5sum&field=controlled_by&field=paired_end&field=paired_with&field=replicate&field=target"
+
+
+# Thus now this one URL can download any encode experiment acession -- and provide md5sum :)
+
+
+```
+
+ We will use this API logic to make a custom inquiry with everything we need !
+
+# writting custom function to retreive specific data from encode
+
+We've written some custom helper functions specific to the ENCODE API to request exactly the information we want, 
+since we'll make these requests multiple times -- for each experiment accession. We will make two functions:
+
+(1) construct_query
+function that will make a URL we can then wget this url and get all the data downloaded.
+However we will still be missing file information we need (e.g., md5sum)
+
+(2) encode file info 
+This will get us all the information associated with the files in URL above.
+
+# FUNCTION 1: construct_query
+This will generate a request URL in the format that ENCODE requires to retrieve
+each of the columns listed in the field default parameter (accession, read_count, md5sum, etc.).
+Thus we will have an object in our environment for the needed info for each experimental acession number.
+
+We can use this function in a for loop or lapply to retrieve the information for a list of experiment acessions.
+And get those precious md5sum values !
+
+```{r construct query function}
+# first let's set up the function and it's parameters
+# the "fields" were derived from looking at a report.tsv file from encode
+construct_query <- function(experiment_accession,
+                             base_url = "https://www.encodeproject.org/report.tsv?",
+                             file_format = "fastq",
+                             type = "File",
+                             status = "released",
+                             fields = c("accession", "read_count", "md5sum",
+                                        "controlled_by", "paired_end",
+                                        "paired_with", "replicate", "target")) {
+  
+  
+  # Now we will populate this structure above, 
+  # NOTE experiment_accession is the only parameter we need to populate
+  # In sum, we are copying the terminology used in REQUEST_URL or communicate with API
+  
+  query <- paste(list(paste0("type=", type),
+                      paste0("status=", status),
+                      paste0("file_format=", file_format),
+                      
+                      # We are using same language as Encode API that has %2F as separator
+                      paste0("dataset=%2Fexperiments%2F", experiment_accession, "%2F"),
+                      
+                      # map is a way of transforming input and applying a function
+                      # in this case we are just using "paste0" as the function
+                      # map_chr is to make sure it stays as a character value (we will discuss map soon!)
+                      map_chr(fields, ~paste0("field=", .))) %>%
+                   flatten(),
+                 collapse = "&")
+  url <- paste0(base_url, query)
+  return(url)
+}
+# essentially we just recreated the base URL with addition information 
+# in fact using the logic we got Md5 values and they are not accessible on web!
+```
+
+# Goto UTIL and make this a function to source in "my_class_functions.R"
+We now have a function we can run - paste in result and get experiment!
+```{r construct query function}
+
+# testing out construct_query
+test <- construct_query(experiment_accession = "ENCSR061SFU")
+test
+```
+
+
+
+# FUNCTION 2: encode_file_info
+This function actually makes the request and returns the data only 
+(without the response headers) in a data.frame format.
+We are using HTTR package to "talk to encode" via html.
+NOTE: we call "construct_query" as a subfunction in "encode_file_info"
+
+```{R encode_file_info function}
+
+# setting up the function and parameters
+# this function will go get the data from the URL we made above
+encode_file_info <- function(experiment_accession,
+                             base_url = "https://www.encodeproject.org/report.tsv?",
+                             file_format = "fastq",
+                             type = "File",
+                             status = "released",
+                             fields = c("accession", "read_count", "md5sum",
+                                        "controlled_by", "paired_end",
+                                        "paired_with", "replicate", "target")) {
+  
+  # Now we are creating a url that encode will understand
+  path <- "report.tsv?"
+  base_url <- modify_url("https://www.encodeproject.org/", path = path)
+  url <- contstruct_query(experiment_accession,
+                          base_url = base_url,
+                          file_format,
+                          type,
+                          status,
+                          fields)
+  
+  # this is now retrieving the data with GET function in httr and any error messages
+  resp <- GET(url)
+  if (http_error(resp)) {
+    # error out message
+    error_message <- content(resp, type = "text/html", encoding = "UTF-8") %>%
+      xml_find_all("//p") %>%
+      xml_text() %>%
+      first()
+    stop(
+      # error out message
+      sprintf(
+        "ENCODE API request failed [%s]\n%s",
+        status_code(resp),
+        error_message
+      ),
+      call. = FALSE
+    )
+  }
+  # another error out message
+  if (http_type(resp) != "text/tsv") {
+    stop("API did not return text/tsv", call. = FALSE)
+  }
+  body <- read_tsv(content(resp, "text"), skip = 1) %>%
+    clean_names()
+  return(body)
+}
+
+```
+Goto UTIL and make this a function to source in "my_class_functions.R"
+
+
+# running encode_file_info example
+Note that since all of the parameters except the accession number have default values.
+If we want the defaults, we only need to provide the ENCODE accession of the experiment we want.
+Or you could add more fields and customize to your needs.
+
+We can now test that this function delivers 
+what we want it to using the same accession we used previously.
+Let's give it a go !
+
+```{r encode_file_info function example}
+
+# One of the experiments we wnat to download is : ENCSR541TIG
+# Let's look up in encode portal and then use function to retrieve 
+
+dat <- encode_file_info("ENCSR541TIG")
+
+# Nice we just retrieved all the information we wanted for this experiment accession!
+```
+
+Moving forward we can use this function to download over 400 experimental acessions !
+We will do this later in calss but would be way to cumbersome to do on the web.
+Thus this funciton should be pretty handy in the future !
+
+
+
+######################
+ExeRcise
+######################
+
+Create a for loop to use encode_file_info on a list of experimental_accessions.
+
+
+SOLUTION
+```{r}
+
+
+# create a list of acessions
+encode_experiment_accession_list <- c("ENCSR061SFU", "ENCSR813BDU", "ENCSR887ZSY", "ENCSR862HPO", "ENCSR181ZGR" )
+
+# set up generic data frame
+encode_info_df <- data.frame( )
+
+for(i in 1:length(encode_experiment_accession_list)) {
+  print(names(encode_experiment_accession_list)[[i]])
+  tmp_df <- encode_file_info(encode_experiment_accession_list[[i]])
+  tmp_df$exp_acession <- names(encode_experiment_accession_list)[[i]]
+  encode_info_df <- bind_rows(encode_info_df, tmp_df)
+  
+}
+
+
+```
+
+

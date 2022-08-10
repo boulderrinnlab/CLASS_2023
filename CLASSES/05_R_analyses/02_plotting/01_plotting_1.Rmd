@@ -1,0 +1,548 @@
+---
+title: "02_plotting_1"
+author: "JR"
+date: "8/3/2022"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+options(stringsAsFactors = F)
+
+library(ggplot2)
+# install.packages("ggplot2")
+# install.packages("broom")
+library(ggpubr)
+library(tidyverse)
+
+source("../../../../util/plotting_functions.R")
+source("../../../../util/_setup.R")
+
+# source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/plotting_functions.R")
+# source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/_setup.R")
+
+```
+
+One of the best parts of R is the plotting abilities. You are, by analogy designing your own figures with code. You can run many stastical analyses and plot the outputs in the code to make a figure. Here we will focus on GGPLOT(GGPLOT2). The GG says it all:
+
+"Grammar of Graphics" -- it truly is a very pure and flexible way of plotting data for figures!
+
+There are 8 possible layers of information -- each building on the data layer that you are importing. This looks really confusing but we will slowly build up from the basics (mapping, stats, geom)
+
+Plotting layers of R:
+
+1) Data -- data being plotted from object indexes etc.
+
+2) MAPPING -- mapping data (aes)
+
+3) Statistics -- statical analyses on mapped data
+
+4) scales -- how big small you want things
+
+5) GEOMETRIES -- what type of plots you are making (geom)
+
+6) Facets -- making multiple representations of plots
+
+7) Coordinates -- specifing placement of image aspects
+
+8) THEME -- a set version of colors, background. Mostly so you don't have to add many of the layers above everytime!
+
+Ok let's walk through some simple examples to more difficult figures using these layers!
+
+Layer 1 : DATA (data types matter so good to label object accrodingly)
+
+# loading in num_peaks_df
+
+```{r loading in num_peaks_df}
+# before we get started let's import that data we are going to plot from num_peaks_df. 
+num_peaks_df <- read_csv('../01_peak_features/results/num_peaks_df.csv')
+
+# this maybe a bit boring so we can try reading in the bigger dataset we will have at end of class
+big_num_peaks_df <- read_csv("/scratch/Shares/rinnclass/CLASS_2023/data/data/2022_num_peaks_df.csv")
+
+# num_peaks_df <- read_csv('/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/num_peaks_df.csv')
+# num_peaks_df <- num_peaks_df[1:12]
+# write_csv(num_peaks_df, "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/num_peaks_df.csv")
+
+```
+
+# GGPLOT AES Layer and Geom : basic example
+Now let's start plotting in GGplot!
+
+
+```{r ggplot basics}
+
+?ggplot
+# ggplot first wants the data parameter, then an 'aesthetics' layer (aes)
+# aes() layer needs everything you want to do with the data. The + adds the next layer.
+
+
+# let's make this simple plot first: number of peaks -vs- total peak length
+ggplot(big_num_peaks_df, aes(x = num_peaks, 
+                         y = total_peak_length)) +
+  geom_point() 
+# We have a result! The more peaks the more genome space is covered.
+# Let's make a folder in "analysis" 14_ to put our figures in.
+
+
+# Same as :
+
+big_num_peaks_df %>%
+ggplot(aes(x = num_peaks,
+           y = total_peak_length)) +
+  geom_point()
+
+
+```
+
+# changing shapes in plot
+Now let's change the shape of the points outside the aes() layer and in the geom() layer
+```{R changing shapes in plot}
+             
+ggplot(big_num_peaks_df, aes(x = num_peaks, 
+                 y = total_peak_length)) +
+         
+           geom_point(shape = 'square',
+             color = 'purple')
+
+
+# Here are some good resources for other shapes and color vignettes:
+# http://www.sthda.com/english/wiki/ggplot2-point-shapes
+
+```
+
+# coloring by data in aes() layer
+We colored the plot above in the geom layer, but what if we wanted to color by "is_tf"?
+Since that depends on the data we need to do that in the aes() layer!
+We can even index and run functions in aes()
+```{R # coloring by data in aes() layer}
+# Let's plot the num_peaks -vs- coverage for Zinc finger proteins (C2H2 ZF)
+
+ggplot(big_num_peaks_df, aes(x = num_peaks, 
+                 y = total_peak_length,
+                 color = dbd == "C2H2 ZF")) +
+  geom_point()
+
+```
+
+```{R adding function in aes() layer}
+#simple function in the aes()
+ggplot(big_num_peaks_df, aes(x = log2(num_peaks/1e3), 
+                 y = total_peak_length/1e6,
+                 color = dbd == "C2H2 ZF")) +
+  geom_point()
+
+# Wow that sure looks differnt :) of note the inflection point
+# indicates at a certain point the trend is not as linear as we saw before.
+
+```
+
+# facet in ggplot by TF annotation
+We can also plot each type of data in a column by using the 'facet' function.
+Let's plot three plots for if DBP is a TF, is not or NA.
+
+```{R facet by TF annotation}
+
+ggplot(big_num_peaks_df, aes(x = num_peaks, 
+                 y = total_peak_length
+                )) +
+  facet_wrap(tf ~ .) +
+  geom_point() 
+
+# nice we see three plots, one for each category.
+# We have a result: All categories have linear relationship
+  
+```
+
+# Geom layer : histogram
+Now let's take a look at other types of plots in the geom layer.
+geom_histogram() is very useful in a lot of analyses. Let's start there.
+
+```{r Geom_histogram}
+
+# frequencty of peak numbers across DBPs
+
+ggplot(big_num_peaks_df, aes(x = num_peaks)) +
+  geom_histogram()
+
+?geom_histogram()
+# Result: peak number is represented by right gaussian.
+# let's add more bins
+
+ggplot(big_num_peaks_df, aes(x = num_peaks)) +
+  geom_histogram(bins = 30)
+
+# Let's chage the color of the bars in histogram by number of peaks.
+# again we need to do this inside aes() since the data needs to read.
+
+ggplot(big_num_peaks_df, aes(x = num_peaks, fill = tf)) +
+  geom_histogram(bins = 30)
+
+# this is hard to see the two distributions.
+# let's fix this by adding a 'position' parameter in the geom layer.
+
+ggplot(big_num_peaks_df, aes(x = num_peaks, fill = tf)) +
+   geom_histogram(bins = 30, position = "dodge")
+
+# so now we can see the individual data points separated!
+
+```
+
+# Geom layer : density plot
+DENISTY Plots are also very useful to see where the density of data arises.
+```{R geom_density()}
+
+ggplot(big_num_peaks_df, aes(x = num_peaks, fill = tf)) +
+   geom_density()
+
+# but again its hard to see let's fix that with shading or alpha in
+# geom layer
+
+ggplot(big_num_peaks_df, aes(x = num_peaks, fill = tf)) +
+   geom_density(alpha = 0.1)
+
+# let's change color of the line now (inside aes())
+
+ggplot(big_num_peaks_df, aes(x = num_peaks, fill = tf, color = tf)) +
+   geom_density(alpha = 0.3)
+
+# so now line and fill are same color -- let's see:
+
+ggplot(big_num_peaks_df, aes(x = num_peaks, fill = tf, color = tf)) +
+   geom_density(alpha = 0.0)
+
+# Result TF and other DBPs have similar peak properties
+
+```
+
+# Multiple Geom layers 
+The geom layer has a lot of options AND you can layer them!
+Let's take out x,y plots above and map them into a 2D density plot
+```{R geom_point() & geom_density_2d}
+
+ggplot(big_num_peaks_df, aes(x = num_peaks, 
+                 y = total_peak_length)) +
+  geom_point()+
+  geom_density_2d() 
+
+# This is helpful as it shows us most of the data is in bottom left
+
+# what would happen if we change the order?
+
+ggplot(big_num_peaks_df, aes(x = num_peaks, 
+                 y = total_peak_length)) +
+   geom_density_2d()+
+    geom_point()
+
+# it's hard to see but in this case the contour is on top
+# of points and points are below -- subtle but important
+
+```
+
+# trend lines
+Let's add even more geom_*() layers -- starting with a 'trend line'
+```{r geom_smooth, geome_abline}
+
+?geom_abline
+# This will make a line with a given slope and intercept
+
+?geom_smooth
+# This shows variance and deviations of the trend lines
+
+# let's add them both !
+
+ggplot(big_num_peaks_df, aes(x = num_peaks, 
+                 y = total_peak_length)) +
+  geom_point() +
+  geom_abline(slope = 1000, intercept = 0) +
+  geom_smooth(method = "lm")
+
+
+?geom_smooth
+
+```
+
+# Bar plots
+Let's take a quick look at bar plots 
+we provide the x-axis and ggplot counts for Y.
+We will also use this opportunity to look at level 3) STAT layer
+```{r geom_bar()}
+
+# let's plot the number of each type of DBD in our set of DBPs 
+
+ggplot(big_num_peaks_df, aes(x = dbd)) + 
+  geom_bar()
+
+
+# If the we want to provide the Y-axis for a specific DBP
+# we need to apply stat = identitiy in the geom_bar()
+
+ggplot(big_num_peaks_df, aes(
+      x = dbp,
+      y = num_peaks)) +
+        geom_bar(stat = "identity")
+
+# basically this allows you to command the y-axis 
+# but is very messy in this case
+
+
+# let's look at a more realistic example when there is categorical data
+
+ggplot(big_num_peaks_df, aes(x = tf, 
+                 y = total_peak_length
+                )) +
+  geom_point() +
+  stat_summary(fun = "mean",
+               color = "red",
+               shape = 2,
+               size = 2)
+
+?stat_summary
+# We can use a linear model to find the best trend-line
+
+ggplot(big_num_peaks_df, aes(x = num_peaks, y = total_peak_length)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+
+# We can get the slope and intercept from making a lm variable:
+
+lm_fit <- lm(big_num_peaks_df$total_peak_length ~ big_num_peaks_df$num_peaks)
+summary(lm_fit)
+# slope = 1,000 
+# ORDER MATTERS: if reversed the slope is 8 e -3!
+lm_fit <- lm(big_num_peaks_df$num_peaks ~ big_num_peaks_df$total_peak_length)
+summary(lm_fit)
+
+
+# let's convert the lm_fit data to a data_frame using tidy()
+# it's in the library broom:
+library(broom)
+
+lm_df <- tidy(lm_fit)
+lm_df
+# so much easier to read than summary :)
+
+# plotting with the actual lm fit:
+#TODO geom_abline doesn't work
+ggplot(big_num_peaks_df, aes(x = num_peaks, y = total_peak_length)) +
+  geom_point() +
+  geom_abline(slope = lm_df$estimate[[2]], intercept = lm_df$estimate[[1]])
+
+# See how this changes if order is changed
+
+```
+
+# Summary of where we are at
+Now we have gone through these layers:
+
+1) Data -- data being plotted from object indexes etc.
+
+2) MAPPING -- mapping data (aes)
+
+3) Statistics -- statical analyses on mapped data
+
+5) Geom
+
+Now let's look at the scales layer
+
+4) scales -- how big small you want things
+Scales is important for outputting specific factors as colors that are "scaled"
+alos other outputs need to be scaled such as scale values to the "mean" etc.
+
+
+# scale layer
+?scale
+
+```{r scale layer}
+
+# Let's see how we can use the scales layer to change axes.
+
+ggplot(big_num_peaks_df, aes(x = log10(num_peaks), y =log10(total_peak_length), color = tf)) +
+  geom_point()+
+  scale_x_continuous(breaks = c(1, 2, 3, 4)) +
+  scale_color_brewer(palette = 3) 
+
+# scale_x_continious (same for y) is calling the scale layer specifically
+# We are giving it where to put values on X-axis      
+
+
+```
+
+# changes axes limits
+What if we want to set the limits of the axes? 
+We can use 'xlim' & 'ylim' in scale layer.
+
+```{R xlim and ylim}
+
+ggplot(big_num_peaks_df, aes(x = num_peaks, y = total_peak_length, color = tf)) +
+  geom_point() +
+  xlim(1e3, 1e5) +
+  ylim(5e5, 6e7) +
+  scale_color_brewer(palette =  2) 
+
+# coool so we zoomed in!
+
+```
+
+# FACETS
+This will allow us to make multiple plots in the same plot frame or facet
+One limitation is that it can only make the same plots from different data
+
+Be careful in the facet layer that you don't make too many plots. 
+Essentially we make as many figures as there are entries.
+
+FACET_GRID & FACET_WRAP
+```{r facet_grid(), facet_wrap()}
+
+# First let's take a look at the top three represented DBDs?
+table(big_num_peaks_df$dbd)[order(table(big_num_peaks_df$dbd))]
+
+# Now let's set dbds to these three DBDs.
+dbds <- c("C2H2 ZF", "Homeodomain", "bZIP")
+
+# Now the plotting beings and good example of running functions in aes()
+ggplot(big_num_peaks_df %>% filter(dbd %in% dbds),
+       aes(x = num_peaks, y = total_peak_length )) +
+  facet_grid(dbd ~ .) + 
+  geom_point()
+
+# here we call facet grid. The parameters are rows and columns separated by ~
+# so we said take the DBDs and plot them as rows.
+```
+
+We can also facet grid another parameter -- let's say tf
+
+```{R two facets}
+
+ggplot(big_num_peaks_df %>% filter(dbd %in% dbds),
+       aes(x = num_peaks, y = total_peak_length )) +
+  facet_grid(dbd ~ tf) + 
+  geom_point()
+
+
+
+# Here we said plot DBD as rows and tf status as columns -- 
+# We can easily flip this too:
+
+
+ggplot(big_num_peaks_df %>% filter(dbd %in% dbds),
+       aes(x = num_peaks, y = total_peak_length )) +
+  facet_grid(tf ~ dbd) + 
+  geom_point()
+
+# Thus the ~ is telling which rows and columns are plotted
+
+```
+
+# facet wrap
+We just used facet_grid, but we can also use facet_wrap
+```{R facet_wrap()}
+
+ggplot(big_num_peaks_df %>% filter(dbd %in% dbds), 
+       aes(x = num_peaks, y = total_peak_length )) +
+  facet_wrap(dbd ~ tf) + 
+  geom_point()
+
+# difference all combos of each factor. Same as before but facet wrap
+# doesn't mind if all the values are in one category. 
+# Overall the same plots as facet_grid()
+```
+
+# DEEPER INTO FACET: we can add some parameters to order the plots
+```{R deeper into facets}
+
+ggplot(big_num_peaks_df, aes(x = num_peaks, y = total_peak_length )) +
+  facet_wrap(tf ~ ., nrow = 3, ncol = 1) + 
+  geom_point()
+
+# or 
+
+ggplot(big_num_peaks_df, aes(x = num_peaks, y = total_peak_length )) +
+  facet_wrap(tf ~ ., nrow = 2) + 
+  geom_point()
+
+# Note the axis don't scale here -- let's use 'scales = free' parameter
+
+ggplot(big_num_peaks_df, aes(x = num_peaks, y = total_peak_length )) +
+  facet_wrap(tf ~ ., scales = "free", ncol = 1) + 
+  geom_point()
+
+```
+
+# Coordinate layer
+How to represent X and Y coordinates in different coordinate systems.
+This is unlikely to really be used in biological data but an important layer!
+
+
+R has a bunch of built in "coordinate" systems. We have been using Cartesian 
+and it is the most common "coordinate" system.
+But you can also plot data in "polar" and other coordinate systems.
+We can just add it in the "Coordinates layer"
+
+```{r coordinate layer}
+
+# let's make the coordinates polar instead of cartesian
+ggplot(big_num_peaks_df, aes(x = dbd)) +
+  geom_bar() +
+  coord_polar()
+
+# the values eminate from the center and are a "bar_plot" from the center.
+# we can easily see as we did above C2H2 ZF most represented in our data.
+
+# We can play around in the coordinate space too. 
+# For example to tell what is  the "theta" or circular dimension. 
+
+ggplot(big_num_peaks_df) +
+  geom_bar(aes(x = dbd)) +
+  coord_polar(theta = 'y')
+
+```
+
+# Theme layer
+This is a great way to package all the features you want, colors,
+backgrounds, grid lines etc. We tend to use paper white as a defualt theme.
+
+We made a defualt theme that we can source at the begining of the
+document call _setup.R. Once loaded a "paper white" theme will be available.
+
+Here is an example of a 'theme' is called in ggPlot
+
+```{r themes}
+
+ggplot(big_num_peaks_df, aes(x = num_peaks)) +
+  geom_density(alpha = 0.2, color = "#424242", fill = "#424242") +
+  theme_paperwhite() +
+  xlab(expression("Number of peaks")) +
+  ylab(expression("Density")) +
+  ggtitle("Promoter binding events",
+          subtitle = "mRNA and lncRNA genes")
+
+# Note this example build everything from labels to data presentation!
+
+# Let's take a look at _setup.R
+# Nice, it basically calls a "function" in ggplot
+# You can change this as you please by going through each line (hint: google)
+```
+
+# more themes
+There are a number of built-in themes in addition to 
+the one we've provided. You can see them by typing theme_ 
+then autocomplete and check a few out! Here is cleavland :
+
+```{r more themes}
+
+ggplot(big_num_peaks_df, aes(x = num_peaks)) +
+  geom_density() +
+  theme_cleveland()
+
+# we can load our custom theme paper_white
+ggplot(big_num_peaks_df, aes(x = num_peaks)) +
+  geom_density() +
+  theme_paperwhite()
+
+
+```

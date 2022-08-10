@@ -1,0 +1,302 @@
+---
+title: "04_metaplots"
+author: "JR"
+date: "8/5/2022"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+options(stringsAsFactors = FALSE)
+knitr::opts_chunk$set(echo = TRUE)
+library(GenomicRanges)
+library(rtracklayer)
+library(tidyverse)
+
+#ComplexHeatmap is BioConducter thus needing 
+BiocManager::install("ComplexHeatmap")
+library(ComplexHeatmap)
+
+# BiocManager::install("circlize")
+library(circlize)
+
+source("../../../../util/plotting_functions.R")
+source("../../../../util/intersect_functions.R")
+source("../../../../util/_setup.R")
+```
+
+Today our goal is to make "meta plots" of promoter binding profiles.
+In simpler terms: we are going to determine the average binding of:
+(A) a given DBP across our promoter windows.
+
+Please see slides on this process here:
+https://www.dropbox.com/s/v02r8eiu0a8nyg5/TSS%20Metaplot.key?dl=0
+
+
+We'll be using the consensus peaks we generated previously (MACS peak calls filtered to those that are overlapping across replicates) and the Gencode gene annotations. This is STEP 0 : loading in required files.
+
+# Loading in data created in the environmnet of 01_peak_features. 
+```{r import genome features & file list}
+
+# loading in needed files from 01_peak_features
+load("../01_peak_features/results/peak_features.RData", verbose = T)
+
+# Again so handy and we just saved a lot of time running code !
+
+```
+
+Overall our goal is to define a "promoter" window of a certain distance
+upstream and downstream of a transcription start site (TSS). This will result
+in a Xkb (to start 1Kb upstream and downstream) vector representing each base
+of the promoter. Thus each row of the vector will by 2,000 enteries of a 1 or 0
+if an overlap occurs with that DBP and where in this window (all sites with overlap get 1)
+rWe will then be able to use this matrix to plot if a peak overlaps
+with a given base and do the same for all peaks of a given DBP. 
+
+In the end we will have a versatile matrix to plot data across promoters. Also we can
+use this code to plot other aspects (expression etc) over similar windows. Finally, we can 
+use this code to make windows around other features of the geneome (e.g., transposons).
+
+We can accomplish all this in the following 6 steps:
+
+
+# Step 1: Create promoter windows
+
+Here we're going to create a GRanges object that contains 2kb promoter windows for each gene in the Gencode annotation. First we'll need to filter the Gencode GRanges object to just the genes and then we can use the promoter function from GRanges that will allow us to specify how big of a window we want upstream and downstream of the TSS (you can have asymmetrical windows).
+
+We already loaded in these promoters created in 01_peak_features as :: lncrna_mrna_promoters.
+
+# Step 2: Transform chip-peaks into a coverage object over the 6Kb promooter window
+In order to calculate what the peak coverage across each promoter is we'll convert the peaks GRanges object which currently holds a range for each peak into a run-length encoded list where 0 represents the genomic coordinates where there is no peak present and 1 represents the locations where a peak is present. The reason for run length encoding is that storing this vector without this compression means that we would be storing a numeric value for each of the 3.2 billion base pairs. This would mean allocating a vector in memory that's ~180 GB -- instead with run-length encoding we're in the ~100 KB range. 
+
+```{r transforming promoter windows into a coverage matrix}
+
+# We will use the coverage function to interpret if there is an overlap 
+# at given entry of ,000 entries for each base of the 'promoter window
+?coverage
+
+# random but there needs to be spaces before and after gene_id ??
+peak_coverage <- coverage(consensus_peaks[["HDAC2"]]) 
+# ok now we have a 2,000 length vector with 1 for overlap or 0
+
+View(peak_coverage)
+# note each chromosome is a seperate list of ranges of overlaps or non-overlaps
+# this is also recorded in "run length encoding" commonly referred to "RLE"
+
+```
+
+### Step 2.1: Some housekeeping to keep our chromosomes straight
+
+This step will accomplish two things: filter out promoters that fall outside the bounds of our coverage vectors and filter out chromosomes that are not in common between the promoters object and the peak coverage object. The reason we need to do this is because the peaks may not extend to the end of each chromosome and therefore there is likely to be promoters that fall outside of the peak coverage vectors -- since we know that there are no peaks on those promoters and therefore they don't give us any extra information about where peaks are relative to promoters we'll filter them out. Also, it creates problems for the Views command that we'll use to subset the coverage vectors to just the promoter windows.
+
+```{r peak_coverage of all promoter windows : from GRanges to Iranges}
+
+# This is the length of each run-length encoded vector in the peak_coverage object
+?elementNROWS
+# elementNROWs can calculate coverage in RLE
+# interpolates the number of zero's between two "1s" 
+coverage_length <- elementNROWS(peak_coverage)
+
+# we just basically defined the length of each chromosome
+# named integer here are the components:
+names(coverage_length)
+# chromosome names
+
+length(coverage_length)
+# 24 chromosomes
+
+# we can use the coverage length ranges to 
+# filter the promoters falling outside of these boundaries:
+# basically turning coverage_lenth to GRanges
+coverage_gr <- GRanges(seqnames = names(coverage_length),
+                       IRanges(start = rep(1, length(coverage_length)), 
+                               end = coverage_length))
+
+# Okay, now we're all ready to filter out those promoters that fall beyond the bounds of the 
+# coverage vector. 
+
+# to do this we will use:
+?subsetByOverlaps
+# subsetByOverlaps function will find all the promoter ranges within the coverage ranges
+# If we didn't do this an error would occur if a chromosome wasn't represented
+
+all_promoters_gr <- subsetByOverlaps(lncrna_mrna_promoters, 
+                                  coverage_gr, 
+                                  type="within", 
+                                  ignore.strand=TRUE)
+
+# this is what we are intersecting:
+names(peak_coverage)
+# with
+seqnames(all_promoters_gr)
+# note we would have lossed the mitochondrial chromosome!
+chromosomes <- intersect(names(peak_coverage), unique(as.character(seqnames(all_promoters_gr))))
+
+# We can also ensure they're in the same order and contain the same chromosomes
+# by indexing with this vector
+peak_coverage <- peak_coverage[chromosomes]
+
+
+# In order to match the list format of the peak_coverage object
+# we'll also coerce the GRanges object into an IntegerRangesList.
+# If you recall, one of the main features of GRanges object is capturing
+# the chromosome information -- when converting to an IRanges list, 
+# each chromosome will be represented by a named element in the list.
+?IntegerRangesList
+
+# using base R here with 'as' a coercing function. 
+all_promoters_ir <- as(all_promoters_gr, "IntegerRangesList")[chromosomes]
+
+# nice now we have all the promoter windows as an Iranges object
+```
+
+## Step 3: Subset the peak coverage vector to just the promoter windows
+
+Here we'll use the Views function to mask the peak coverage object everywhere but in the windows of the promoters.
+
+```{r reducing data to jsut Iranges of promters and peak coverage }
+
+# let's look at views
+?Views
+# ok so Views can store and access all the promoter vectors
+# We will end up with an index of all 'promoter windows'
+
+# indexing all the promter window vectors (6Kb)
+promoter_peak_view <- Views(peak_coverage, all_promoters_ir)
+
+#let's look at what we got
+promoter_peak_view
+# Note that these are still in run-length encoding format.
+
+```
+
+## Step 4: Contstruct a matrix of the coverage values of each promoter region
+
+We'll not just convert the run-length encoding vectors to actual vectors -- note how much larger the object becomes when represented as vectors (use object.size function). Then we'll row bind the vectors into one matrix.
+
+```{r converting RLE to large matrix extracting views to 1 and 0}
+
+# we will use viewApply to extract if there was a 1 or 0 in the RLE vector for an overlap.
+# This essentially will convert the RLE to 6000 length vecotrs of promoter windows -- with
+# a 1 for binding event and 0 if not.
+
+?viewApply
+# This performs functions on each of the vectors in view list.
+# kind of like mutate in vector space (note the matrix are ncol and 2,000 rows)
+# the t is for transmute that turns rows into cols
+
+promoter_peak_view <- lapply(promoter_peak_view, function(x) t(viewApply(x, as.vector)))
+# this is still a list of matrices by chromosome.
+# Let's look (note rows turned into cols)
+promoter_peak_view
+
+# We are now going to convert promoter_peak_view to a matrix
+# we will do this by rowbinding the Irange list that viewApply
+# turned into a vector.
+
+# Base R do.call to call "rbind" function
+promoter_peak_matrix <- do.call("rbind", promoter_peak_view)
+# good to note in a matrix sometimes to use do.call and "rbind"
+
+dim(promoter_peak_matrix)
+# now we have a matrix of nrow_promoters by 6,000 cols
+
+```
+
+## Step 5: Align the positive and negative strand promoters
+
+Since the genes that are transcribed from the minus strand will have their upstream and downstream values flipped relative to the plus strand promoters, we need to reverse those vectors so that upstream and downstream values are consistent.
+
+```{r setting all promoters to the same direction}
+
+# We're just going to flip one strand because we want to get them in the same orientation
+# It really wouldn't matter for a sysmetric window size but good to keep in mind the strand
+# could matter.
+
+minus_idx <- which(as.character(strand(all_promoters_gr)) == "-")
+# taking only minus strand rows
+
+# we want to flip so instead of 1:ncol we will do ncol:1 (currenlty 2,000 - 1)
+# we want position 1 - 2000
+
+promoter_peak_matrix[minus_idx,] <- promoter_peak_matrix[minus_idx, ncol(promoter_peak_matrix):1]
+
+# Now we can get rid of the rows that have no peaks.
+promoter_peak_matrix <- promoter_peak_matrix[rowSums(promoter_peak_matrix) > 0,]
+
+# now we have a matrix of only promoter windows with at least 1 base overlap with
+# a promoter region for a given DBP. 
+
+```
+
+## Step 6: Sum the columns, normalize, and plot
+
+To summarize this matrix, we'll sum up the number of binding events at each position in this 6kb window. This vector represents the overall peak coverage of each posistion, for the purpose of visualizing this, we'll normalize by the total coverage so that the area under the curve in the plot sums to one. 
+
+```{r peak coverage for a given DBP over all promoter windows}
+
+# First, calculating the number of peak overlaps at each base of promoter window.
+
+# columns = 6,000 each a base in promoter window.
+# rows = all promoter windows.
+# sum of cols (colSums) = how many peak overlaps there were at each base (cols).
+
+peak_sums <- colSums(promoter_peak_matrix)
+
+# normalization of binding events to 1 across promoter window
+peak_dens <- peak_sums/sum(peak_sums)
+
+# Create a data frame in order to plot this. 
+metaplot_df <- data.frame(x = -1e3:(1e3-1), dens = peak_dens)
+
+# now we have a data frame of cols as base in promoter window
+# rows as each promoter window. Normalize by percentage of total binding events.
+```
+
+# Plot HDAC or YFP metaplot
+Plotting POLR2A binding coverage across all bound promoters
+```{R POLR2A binding coverage across all bound promoters}
+
+# plotting the data in the metaplot_df
+ggplot(metaplot_df, aes(x = x, y = dens)) + 
+  geom_line(size = 1.5)
+
+# Nice, POL2RA has normal distribution of binding events
+# around the center of the promtoer window (TSS).
+
+# We have now done this for one DBP and can write the above as a function
+# to run across all DBPs later. More soon on that front!
+```
+
+# fancy HDAC2 metaplot
+This plot is pretty basic, so let's add some more meangingful legends and a title.
+```{r Better POLR2A meta plot}
+
+# Plot it with ggplot geom_line
+ggplot(metaplot_df, aes(x = x, y = dens)) + 
+  geom_vline(xintercept = 0, lty = 2) + 
+  geom_line(size = 1.5) + 
+  ggtitle("HDAC2 Promoter Metaplot") + 
+  scale_x_continuous(breaks = c(-3000, 0, 3000),
+                     labels = c("-3kb", "TSS", "+3kb"),
+                     name = "") + 
+  ylab("Peak frequency")
+ggsave("figures/HDAC2_promoter_metaplot.pdf")
+```
+
+###############################
+exeRcise 
+###############################
+
+1) Make a metaplot for ecah protein
+2) Try and make a function for creating meta_plots!
+
+# solution
+```{r}
+
+
+
+```
+
+

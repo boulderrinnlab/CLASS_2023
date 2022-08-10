@@ -1,0 +1,408 @@
+---
+title: "02_metaplots2"
+author: "JR"
+date: "8/5/2022"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+options(stringsAsFactors = FALSE)
+knitr::opts_chunk$set(echo = TRUE)
+library(GenomicRanges)
+library(rtracklayer)
+library(tidyverse)
+library(ComplexHeatmap)
+library(circlize)
+source("../../../../util/plotting_functions.R")
+source("../../../../util/intersect_functions.R")
+source("../../../../util/_setup.R")
+```
+
+Goal: to create a function that makes metaplots 
+from a list of peak files (consensus or .broadPeak etc).
+
+Once we make this function and put in our util we will
+run it on peak files and make some plots comparing lncRNA
+and mRNA promoter binding profiles.
+
+# Loading in data created in the environmnet of 01_peak_features. 
+```{r import genome features & file list}
+
+# loading in needed files from 01_peak_features
+load("../01_peak_features/results/peak_features.RData", verbose = T)
+
+# Never get's old -- let's roll onto the function !
+
+```
+
+
+# setting up profile_tss function
+
+Let's review all of this again as it is the
+first time we have worked in RLE space and is 
+needed often in genomic data.
+
+```{r establishing the profile_tss function}
+
+# setting the parameters
+# Peaks = consensus peak file (i)
+# promoters = made from GRanges "promoters" function
+profile_tss <- function(consensus_peaks, 
+                       lncrna_mrna_promoters,
+                        upstream = 1e3,
+                        downstream = 1e3) {
+  
+# performing coverage function
+# this converts each chromosome to RLE
+# where 0 is no peak and 1 is a peak
+# NOTE: chrm end will be at end of last peak.
+  
+# for class purposes let's index into 1 
+# can't run over a list of consensus peaks
+# peak_coverage <- coverage(consensus_peaks [[1]])
+peak_coverage <- coverage(consensus_peaks)
+
+# elementNROWs will find the end of the last peak.
+# this will result in the "effective length" of the chr
+coverage_length <- elementNROWS(peak_coverage)
+
+# Defining a GRanges using the effective length of chr
+# from "coverage_length" above.
+coverage_gr <- GRanges(seqnames = names(coverage_length),
+                         # make IRanges for each chromosome
+                         IRanges(start = rep(1, length(coverage_length)), 
+                                 end = coverage_length))
+  
+# defining the promoters using using subsetByOverlaps (GRanges)
+# This will map the promoters to our new chromosome GRanges (coverage_gr)
+promoters_gr <- subsetByOverlaps(lncrna_mrna_promoters, 
+                                       coverage_gr, 
+                                       type="within", 
+                                       ignore.strand=TRUE)
+
+# making sure the chromosomes represented are used
+# An error would occur if a chromosome was indexed but had no peaks
+chromosomes <- intersect(names(peak_coverage), 
+                           unique(as.character(seqnames(promoters_gr))))
+
+# Reducing peak_coverage (RLE of peaks and genome)
+# to only chromosomes represented by peaks
+peak_coverage <- peak_coverage[chromosomes]
+
+# converting to InterRangesList. This will allow us to use "views" function.
+# Our "peak_coverage" is in RLE. So we will make our promoters in a way that 
+# can be mapped to RLE and convert back to 1 and 0 in a given promoter window.
+promoters_ir <- as(promoters_gr, "IntegerRangesList")[chromosomes]
+
+# Views function allows us to take promoters integerRangesList and 
+# "view" the peak coverage (RLE) as 1 and 0 using View apply
+# so just matching promoter_ir and peak_coverage for now
+promoter_peak_view <- Views(peak_coverage, promoters_ir)
+
+# We use viewApply function to convert RLE in peak_coverage to a vector of 1 and 0
+# we use lapply to do this over each chromosomes 
+promoter_peak_view <- lapply(promoter_peak_view, function(x) t(viewApply(x, as.vector)))
+
+# We can see that promoter_peak_view is now a list a matrix of vectors for each chromosome
+# rows are number of peaks and cols are position -3Kb to + 3Kb
+promoter_peak_matrix <- do.call("rbind", promoter_peak_view)
+
+# We are identifying all the - strand promoters in promoters_gr
+minus_idx <- which(as.character(strand(promoters_gr)) == "-")
+  
+# reversing the order from 2,000 - 1 to 1- 2000
+promoter_peak_matrix[minus_idx,] <- promoter_peak_matrix[minus_idx, ncol(promoter_peak_matrix):1]
+
+# eliminating promoters with no binding 
+promoter_peak_matrix <- promoter_peak_matrix[rowSums(promoter_peak_matrix) > 1,]
+
+# summing all the vectors of a given DBP to the promoter window
+peak_sums <- colSums(promoter_peak_matrix)
+
+# calculating the density at each position in the promoter window
+peak_dens <- peak_sums/sum(peak_sums)
+
+# making it go from -1K to + 1K and creating a df
+  metaplot_df <- data.frame(x = -upstream:(downstream-1),
+                            dens = peak_dens)
+  
+  # quick test everything ran
+  # plot(metaplot_df)
+  return(metaplot_df)
+}
+```
+# put this function in util/my_class_functions.R
+
+
+# we could generate each plot individually to save them
+```{r individual meta plots}
+
+# HEP300
+plot(profile_tss(consensus_peaks[["EP300"]], lncrna_mrna_promoters))
+
+# H3K27me3
+plot(profile_tss(consensus_peaks[["H3K27me3"]], lncrna_mrna_promoters))
+
+# H3K36me3
+plot(profile_tss(consensus_peaks[["H3K36me3"]], lncrna_mrna_promoters))
+
+# H3K4me3
+plot(profile_tss(consensus_peaks[["H3K4me3"]], lncrna_mrna_promoters))
+
+# HDAC2
+plot(profile_tss(consensus_peaks[["EP300"]], lncrna_mrna_promoters))
+
+# RCOR1
+plot(profile_tss(consensus_peaks[["RCOR1"]], lncrna_mrna_promoters))
+
+# REST
+plot(profile_tss(consensus_peaks[["REST"]], lncrna_mrna_promoters))
+
+
+```
+Cool that works but what if we had 480 DBPs as we will soon
+--> NO FUN
+However we can make a handy for loop to do this for us !
+
+# Running profile TSS function across consensus peaks
+NOTE THIS TAKES awhile to run !
+When we move to all DBPs (480) it can take 4 hours !
+
+```{r creating coverage matrix for all DBPs }
+
+# Let's now run this for all off the DBPs and compile it into one data frame.
+# Let's first define an empty data.frame to which we can row_bind each new one created.
+# We are adding one new col called dbp as we extract this in the forloop
+
+metaplot_df <- data.frame(x = integer(), dens = numeric(), dbp = character())
+
+# Writting a for loop to calculate promoter coverage for all consensus_peaks:
+
+for(i in 1:length(consensus_peaks)) {
+  print(names(consensus_peaks)[[i]])
+  tmp_df <- profile_tss(consensus_peaks[[i]], lncrna_mrna_promoters)
+  tmp_df$dbp <- names(consensus_peaks)[[i]]
+  metaplot_df <- bind_rows(metaplot_df, tmp_df)
+  
+}
+
+# write_rds(metaplot_df, "metaplot_df.rds")
+write_rds(metaplot_df, "results/metaplot_df_final.rds")
+
+
+```
+
+
+# Now let's make some meta plots and cluster them!
+We are starting with our denisty matrix of peaks overlapping
+each base in the +/- 1Kb window around TSS of lncrna and mrna promoters
+
+We will then cluster it by patterns/correlations in the metaplot 
+```{r Clustering META_PLOTS}
+# read in metaplot_df
+metaplot_df <- read_rds("results/metaplot_df_final.rds")
+# metaplot_df <- read_rds("metaplot_df.rds")
+
+# Pivot wider into a matrix for correlation analysis of patterns
+# This is the correlation across rows now
+
+metaplot_filtered_matrix <- metaplot_df %>% 
+  pivot_wider(names_from = x, values_from = dens) %>%
+  column_to_rownames("dbp") %>%
+  as.matrix()
+
+# Let's see how many have NA values
+table(rowSums(is.na(metaplot_filtered_matrix)))
+
+# If there are any NAs Let's filter out those is.na
+# metaplot_filtered_matrix <- metaplot_filtered_matrix[rowSums(is.na(metaplot_filtered_matrix)) == 0,]
+
+# Z-Scale the rows for clustering (not needed for profile plots)
+mm_scaled <- t(scale(t(metaplot_filtered_matrix)))
+
+# clustering
+metaplot_hclust <- hclust(dist(mm_scaled), method = "complete")
+
+# plotting
+plot(metaplot_hclust)
+
+# Plot the dendrogram
+pdf("figures/tss_profile_dendrogram.pdf", height = 10, width = 27)
+par(cex=0.3)
+plot(metaplot_hclust)
+dev.off()
+```
+Result: Here I see RCOR1 and REST are similar as 
+perhaps expected since they function together. 
+
+Result: Enhancer marks (EP300) correlate with K4me3 and
+HDAC2. HDAC2 is a bit odd since it is typically thought to 
+repress gene activity.
+
+Result: K2me3 is repressive and K36me3 is active. So a bit 
+suprising that they corrlate. Could be due to being in genebodies 
+more than promoters.
+
+# Let's dig deeper into clustering 
+We can set the number of clusters 
+to group into smaller groups etc.
+
+```{r Subsetting cluster numbers}
+# Cut the tree to make some clusters 
+# let's start with 4 since that is how many i have
+# change to how many your have - 3
+clusters <- cutree(metaplot_hclust, k=4)
+table(clusters)
+
+# Let's shrink to 4 clusters based on table
+clusters <- cutree(metaplot_hclust, k = 4)
+table(clusters)
+```
+Result: I see that one cluster has three DBPs most have 1
+and cluster 4 has 2. Let's make a heatmap to investigate further.
+
+# Making a heatmap of subclusters binding density patterns.
+
+```{r Subsetting cluster numbers}
+# Let's make a heatmap now.
+col_fun <- colorRamp2(c(-3, 0, 3), c("#5980B3", "#ffffff", "#B9605D"))
+split <- data.frame(split = c(rep("-1kb",1000), rep("+1kb", 1000)))
+
+# pdf("figures/tss_profile_heatmap.pdf", height = 35, width = 10)
+Heatmap(mm_scaled, cluster_columns = FALSE, col = col_fun, border = TRUE, 
+        show_column_names = FALSE,
+        use_raster = TRUE,
+        column_split = split,
+        column_gap = unit(0, "mm"),row_names_gp = gpar(fontsize = 7))
+# dev.off()
+
+# Now a heatmap with only cluster 1 since it has the most dbps (3).
+Heatmap(mm_scaled[clusters == 1,], cluster_columns = FALSE, col = col_fun, border = TRUE, 
+        show_column_names = FALSE,
+        use_raster = TRUE,
+        column_split = split,
+        column_gap = unit(0, "mm"),row_names_gp = gpar(fontsize = 7))
+par(cex = 1)
+
+```
+Result: RCOR1, REST, EP300, HDAC2, K4me3 all bind around TSS
+Result: H3K27me3 and H3K36 are more in gene bodies and depleted at TSS.
+
+
+# Strategy 1: lncrna and mrna metaplots individually
+here we will run profile TSS for lncrna and mrna seperately
+we will do this for each dbp indvidually.
+
+```{r making seperate metaplots for lncRNAs and mRNAs}
+
+# creating promoters just in case:
+lncrna_promoters <- lncrna_mrna_promoters[lncrna_mrna_promoters$gene_type == "lncRNA"]
+mrna_promoters <- lncrna_mrna_promoters[lncrna_mrna_promoters$gene_type == "protein_coding"]
+
+# Now we can use plot profile_tss with lncrna and mrna promoters
+# HDAC2 / feel free to pick any other gene
+lncrna_metaplot <- profile_tss(consensus_peaks[["HDAC2"]], lncrna_promoters)
+mrna_metaplot <- profile_tss(consensus_peaks[["HDAC2"]], mrna_promoters)
+
+# kinda grainy how many peaks?
+length(consensus_peaks[["HDAC2"]])
+
+
+# now make a new column that has mrna and lncrna
+# we can color the plot by this col.
+# we then bind the two matrices with "bind_rows"
+mrna_metaplot$gene_type <- "mRNA"
+lncrna_metaplot$gene_type <- "lncRNA"
+combined_metaplot_profile <- bind_rows(mrna_metaplot, lncrna_metaplot)
+
+# plotting
+ggplot(combined_metaplot_profile, 
+       aes(x = x, y = dens, color = gene_type)) +
+  geom_vline(xintercept = 0, lty = 2) + 
+  geom_line(size = 1.5) + 
+  ggtitle("HDAC2 Promoter Metaplot") + 
+  scale_x_continuous(breaks = c(-1000, 0, 1000),
+                     labels = c("-1kb", "TSS", "+1kb"),
+                     name = "") + 
+  ylab("Peak frequency") +
+ scale_color_manual(values = c("#424242","#a8404c"))
+
+# combinig on the same plot shows the difference in binding !
+```
+Result: HDAC2 has similar binding patterns on mrna and lncrna promoters!
+
+
+# STRATEGY 2 : Metaplots seperated by lncRNA and mRNA promoters
+The above strategy works just fine, however we would have to make
+a lot of plots if there were 480dbps in our dataset -- which there will be :)
+So a second strategy is to:
+
+(1) run the for loop for lncrna and mrna separately
+(2) add a column that has lncrna or mrna for plotting seperate
+(3) merge them and then facet wrap the figure into each dbp 
+
+Let's try it !
+
+
+```{r making seperate metaplots for lncRNAs and mRNAs}
+
+# making promoters (should already be loaded but just to be safe)
+lncrna_promoters <- lncrna_mrna_promoters[lncrna_mrna_promoters$gene_type == "lncRNA"]
+mrna_promoters <- lncrna_mrna_promoters[lncrna_mrna_promoters$gene_type == "protein_coding"]
+
+#setting up lncrna DF.
+lncrna_metaplot_df <- data.frame(x = integer(), dens = numeric(), dbp = character())
+
+# for loop to populate DF with overlap density in lncrna promoters
+
+for(i in 1:length(consensus_peaks)) {
+  print(names(consensus_peaks)[[i]])
+  tmp_df <- profile_tss(consensus_peaks[[i]], lncrna_mrna_promoters = lncrna_promoters)
+  tmp_df$dbp <- names(consensus_peaks)[[i]]
+  lncrna_metaplot_df <- bind_rows(lncrna_metaplot_df, tmp_df)
+  
+}
+
+# now for mRNAs 
+mrna_metaplot_df <- data.frame(x = integer(), dens = numeric(), dbp = character())
+
+for(i in 1:length(consensus_peaks)) {
+  print(names(consensus_peaks)[[i]])
+  tmp_df <- profile_tss(consensus_peaks[[i]], lncrna_mrna_promoters = mrna_promoters)
+  tmp_df$dbp <- names(consensus_peaks)[[i]]
+  mrna_metaplot_df <- bind_rows(mrna_metaplot_df, tmp_df)
+  
+}
+
+# now adding the information of gene type
+mrna_metaplot_df$gene_type <- "mRNA"
+lncrna_metaplot_df$gene_type <- "lncRNA"
+combined_metaplot_profile <- bind_rows(mrna_metaplot_df, lncrna_metaplot_df)
+
+# plotting - NOTE facet wrap by dbp !
+ggplot(combined_metaplot_profile, 
+       aes(x = x, y = dens, color = gene_type )) +
+  geom_vline(xintercept = 0, lty = 2) + 
+  geom_line(size = 1.5) + 
+  facet_wrap(dbp ~ ., scales = "free_y") +
+  ggtitle("HDAC2 Promoter Metaplot") + 
+  scale_x_continuous(breaks = c(-1000, 0, 1000),
+                     labels = c("-1kb", "TSS", "+1kb"),
+                     name = "") + 
+  ylab("Peak frequency") +
+ scale_color_manual(values = c("#424242","#a8404c"))
+
+```
+Result: H3K27me3 looks almost inverse between lncrna and mrna
+Result: Most look similar on lncrna and mrna promoters - 
+despite different profiles for different dbps
+
+####################################
+No exeRcise for this class --
+Enjoy a well deserved break :)
+####################################
+
+
+

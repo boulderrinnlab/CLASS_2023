@@ -1,0 +1,389 @@
+---
+title: "02_design_file"
+author: "JR"
+date: "8/8/2022"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(stringsAsFactors = FALSE)
+library(tidyverse)
+
+# install.packages("httr")
+library(httr)
+
+# install.packages("janitor")
+library(janitor)
+
+# install.packages("purrr")
+library(purrr)
+
+source("../../../../../util/my_class_functions.R")
+
+```
+
+In the previous class we created a function that can go and get data from encode and 
+make it an object in our environment "encode_file_info". What we would ideally like to do
+is provide a list of experimenta_accessions from ENCODE and have encode info give us the data.
+
+NOTE: using this approach we can make the design file from encode_file_info funciton. 
+Thus making the design file for NF_CORE 100% reproducible in code !
+
+FIRST, we need to learn a really awesome and powerful function called "MAP" in the "PURR" package.
+
+# Introduction to map
+Since one encode experimental accession has multiple files we can "MAP" 
+all the files to a single entry for each experiment accession. This would 
+be similar to putting a bunch of file paths in one excel "cell" 
+
+Let's start with the basics.
+
+# Using MAP
+```{r MAP example}
+
+# In this example we'll take the digits 1 through 10 and "map" each to the rnorm function. 
+map_example <- 1:10 %>%
+  map(rnorm, n = 1000) 
+
+# It returns a nested list, let's look:
+summary(map_example)
+
+# Let's look with table
+table(summary(map_example))
+
+# let's index and look
+map_example[[1]]
+
+hist(map_example[[1]])
+
+# another one
+map_example[[2]]
+
+# indexing to the first component of map vector
+map_example[[1]][[1]]
+
+```
+
+# MAP encode_file_info function output
+
+We can use map to call this encode_file_info function for each experiment accession
+and return each experimental_accession as an entry in a data.frame 
+Specifically one row associated with experiment acession (ENCSR) will have all the encode files (ENCFF)
+So one row will have many files in it -- similar to have a bunch of files in a single excel "cell"
+
+First let's read in the RNAseq samples we downloaded from ENCODE.
+
+```{r reading in sample sheet}
+
+# We'll also rename this Accession column to clarify between experiment_accession and file_accession.
+samples <- read.table("data/samples.txt",
+                      sep = "\t", skip = 1, header = T) %>%
+  dplyr::rename(experiment_accession = Accession) 
+
+# It's seems mundane but starting here is the best way to make a "reproducible" sample sheet.
+# Bottom line: the download to code to analysis is the way to reproducibility (this worked a year later :)
+```
+
+# Mapping each experiment to the experiment_accession
+
+Each experiment accession has multiple files associated with the accession
+Let's use map to map each experiment to it's experiment accession and clean up sample sheet
+
+```{r MAP to experiment_accession}
+
+?mutate
+?map
+
+# We are making a new column in samples called file_info. This is created
+# by mapping experiment_accession and putting the variable through encode_file_info function.
+# This will map the information (8 fields) retrieved by encode_file_info function by 
+# experiment_accession in a column called file_info.
+
+samples <- samples %>%
+  # note function inside a function being called.
+  # the "experiment_acession" col will be read into encode_file_info function
+  # ~ means pass the experiment_accession value into encode_file_info
+  # (.x) is a generic symbol meaning pass what is in memory == experiment_acession
+  mutate(file_info = map(experiment_accession, ~ encode_file_info(.x)))
+
+# Thus for each accession in experiment_accession mutate will use the function MAP
+# to map each experimental file to the "file_info" column and keep the data there.
+
+```
+
+# Unnesting the data from MAP
+This is a bit hard to read in this format, so we can unnest the data.frames in the file_info column using the unnest command.
+This will duplicate the remaining columns to match the number of lines in the nested data.frame.
+
+```{r unnesting MAP}
+
+?unnest
+# This function will extract the mapped info and make new cols and rows
+# We also need to tell it which column we want to unnest.
+
+# note samples is currently 5 rows
+samples <- samples %>%
+  unnest(cols = file_info)
+# Now samples is 20 rows from unnesting the 5 previous rows.
+# This is because each experimental accession had 4 files for 5 exp accession = 20 rows
+
+```
+
+# cleaning up sample sheet
+Now we have all the information we neeed in this data.frame and we just need to clean it up.
+
+```{r sample sheet curration: adding replicate number for each RNAseq experiment}
+# Let's number our replicates and create a new column called sample id 
+# where we join the experiment accesion and the rep number
+
+samples <- samples %>%
+  group_by(experiment_accession) %>%
+  mutate(rep_number = as.numeric(factor(replicate))) %>%
+  unite(sample_id, experiment_accession, rep_number, sep = "_rep", remove = F)
+
+ # unite will make a new column in samples (piped in) called sample_id
+  # here we will combine experiment accession and rep number with _rep in between
+  # This is a handy handle for the data to access later
+```
+
+# getting rid of non essential data
+Now let's get rid of all that data we don't need! 
+
+```{r removing data from sample sheet}
+
+# We're just selecting a subset of columns from samples with dplyr::select
+samples <- samples %>%
+   dplyr::select(accession, sample_id, experiment_accession, Assay.title,
+                Biosample.summary, md5sum, paired_end_identifier) %>%
+  
+  # here we are going to start to build the fastq file name for NF_core input
+  unite(fastq_file, sample_id, paired_end_identifier, sep = "_read", remove = F)
+
+# Now we have a new col fastq_file with the information for each fastq file
+# We will keep adding to this until we get to the final NF_Core input file name.
+```
+
+# Setting up filename for NF_CORE rnaseq pipeline
+Now let's make the full filename for the fastq files. 
+For the nf-core/rnaseq pipeline, the paired-end reads need to be named 
+with the read number in the filename. 
+
+```{r filename for NF_CORE rnaseq pipeline: adding .fastq.gz to fastq_file}
+
+# We are now making a new column with .fastq.gz extension and then unite to make fastq file name.
+
+samples <- samples %>%
+  mutate(fq_extension = ".fastq.gz") %>%
+  unite(fastq_file, fastq_file, fq_extension, sep = "", remove = F) %>%
+  
+  # This original file column will be used along with the new name column to rename the fastq files.
+  unite(original_file, accession, fq_extension, sep = "")
+
+# nice we see a fastq file column and can be used as input into NF_CORE
+```
+
+
+# renaming fastq files to fit sample sheet
+This cleaned up version of the samplesheet is good to go!
+Now we want to rename the fastq files to the fastq name we just made.
+
+```{r rename fastq files to samplesheet id}
+# Rename the fastq files so that they contain the sample ID.
+rename_script <- samples %>%
+  # removes grouping in samples
+  ungroup() %>%
+  dplyr::select(fastq_file, original_file) %>%
+  mutate(command = "mv") %>%
+  unite(command, command, original_file, fastq_file, sep = " ")
+# The result of this is that each row is a bash command.
+```
+
+# run rename script
+NOTE : MAKE SURE TO MOVE TO FASTQ FOLDER TO RUN THIS
+
+```{r rename fastq files to samplesheet id}
+# We can write this out as a bash script with ?write_lines 
+# We include a shebang header line so that the script is interpreted by bash.
+?write_lines
+
+write_lines(c("#!/bin/bash", rename_script$command), "rename.sh")
+
+# Now cd fastq and "chmod u+x rename.sh
+# then ./rename.sh
+
+# >>> voila all the files are renamed
+```
+
+# md5sum check on file downloads
+Additionally from all of this information we've gathered we can create a text file to run the md5sum check.
+
+```{r md5sum of fastq}
+# Let's create an md5.txt to run the checksums
+# We will use the same approach for the mv script.
+
+md5 <- samples %>% 
+  ungroup() %>%
+  dplyr::select(md5sum, fastq_file) %>%
+  # note double space for md5 requirements 
+  unite(line, md5sum, fastq_file, sep = "  ")
+
+# writting out md5$line col that has the command in it from above.
+write_lines(md5$line, "md5.txt")
+
+# Now let's run it from R to BASH with "system()" function
+# NOTE THIS TAKES A FEW MINUTES 
+md5_results <- system("cd fastq; md5sum -c md5.txt")
+
+# NOTE that we changed the file name but this isn't checked by md5sum
+ 
+```
+NICE all files are documented as properly downloaded (towards that 100% reproducible factor)
+
+
+# finalizing sample sheet for NF_CORE
+Finally, we can write out a nicely formatted sample sheet 
+that we will use downstream for further analysis of the read counts in R.
+
+```{r Reorganizing to make a sample sheet for DEseq2}
+# Let's create the sample sheet that we will use later
+# to do the RNA-seq analysis in R.
+
+samples <- samples %>%
+  dplyr::rename(fastq = fastq_file,
+                seq_type = Assay.title,
+                sample_name = Biosample.summary) %>%
+  # The minus sign will remove this column -- which we no longer need.
+  dplyr::select(-original_file) 
+
+```
+
+# final organization of sample sheet
+
+Now that we have it cleaned up, let's create one line for each replicate
+where the fastq read 1 and read 2 are in the same row.
+```{R organizing samplesheet }
+# For this next step we will use the pivot wider function
+# We need to tell the pivot_wider function which unique column combinations will specify each new row. 
+
+# PIVOT WIDER by "paired_end_identifier" 
+samplesheet <- samples %>%
+  #id_cols is a parameter in pivot wider to select the cols
+  # the paired end identifier becomes the "marienette" string of the data-frame.
+  # There are two values and thus all the current cols will be split into 2 (one for each pe-id)
+  pivot_wider(id_cols = c("sample_id", "seq_type", "sample_name"),
+              names_from = paired_end_identifier,
+              values_from = c("fastq", "md5sum"))
+
+
+# Cleaning up sample sheet (removing spaces - re-arrange etc)
+samplesheet <- samplesheet %>%
+# cleaning up column "sample_name" that has spaces in it to replace with underscore
+mutate(condition = gsub(" ", "_", sample_name) %>% tolower()) %>%
+# splitting up "sample_id" to extract replicate number (by "_" )
+separate(sample_id, into = c("experiment_accession", "replicate"), 
+           remove = FALSE, sep = "_") %>%
+# replicate col values came from sample id and are currently rep1 or rep2
+# we want to remove the "rep" with gsub to "R" and iterative using mutate
+mutate(replicate = gsub("rep", "R", replicate)) %>%
+  
+# we are writting over the sample_name col and uniting condition and replicate info 
+# into the previous sample_name col. syntax: (data frame - implied from tidy, new_col_name, what to unite)
+unite(sample_name, condition, replicate, sep = "_", remove = FALSE)
+```
+
+# FINAL cleanup of col names etc.
+```{R organizing samplesheet }
+samplesheet <- samplesheet %>%
+  
+  mutate(cell_type = "hepg2",
+         condition = gsub("hepg2_", "", condition)) %>%
+
+# final selection of samplesheet info !
+  dplyr::select(sample_id, sample_name, replicate, condition,
+                cell_type, seq_type, fastq_1, fastq_2, md5sum_1,
+                md5sum_2)
+```
+
+# That was a lot of work let's save it !
+# MAKE SURE TO PUT THIS WHERE WE RUN NF_CORE PIPELINE
+```{bash }
+
+# navigate to this path:
+cd <your_folder>/CLASS_2023/CLASSES/05_R_analyses/analysis/05_RNAseq/00_RNAseq_download_NF_core_pipeline
+
+mkdir 00_NF_CORE_RNAseq_Pipeline_run
+
+# set working directory inside 00_NF_CORE_RNAseq_Pipeline_run
+
+write_csv(samplesheet, "samplesheet.csv")
+```
+
+
+# Now we can easily create the final design file for NF_CORE RNAseq pipeline
+The design file needs to be in a specific format (as we saw with nf-core/chipseq)
+It needs the following columns:
+
+# sample,fastq_1,fastq_2,strandedness
+Let's create a sample column using mutate -- and we'll clean up the names
+
+```{r creating design file}
+# adding path to fastq files so NF_CORE knows where to get them
+base_path <- "/scratch/Shares/rinnclass/CLASS_2023/<your_folder>"
+fastq_path <- "CLASS_2023/CLASSES/05_R_analyses/analysis/05_RNAseq/00_RNAseq_download_NF_core_pipeline/data/fastq/"
+final_path <- c(file.path(base_path, fastq_path))
+
+# There's spaces in the names currently and we need to get rid of those.
+design <- samplesheet %>%
+  
+# we will modify 4 cols adding "sample" and "strandedness"
+# We will also add a file path to "fastq_1" and _2 cols
+# first changing "sample_name" and adding strandedness col
+mutate(sample = gsub(" ", "_", sample_name) %>% tolower(),
+         strandedness = "unstranded",
+       
+# now pasting file path into fastq_1 and _2 cols
+         fastq_1 = paste0(final_path, fastq_1),
+         fastq_2 = paste0(final_path, fastq_2)) %>%
+  
+  
+  # We aim to retrieve replicate number for sample_id and make it just a number 1 or 2 
+  separate(sample_id, into = c("experiment_accession", "replicate"), sep = "_", remove = FALSE) %>%
+  
+  # getting rid of the rep in front of rep1 and rep2
+  mutate(replicate = gsub("rep", "", replicate)) %>%
+  
+  # Now we gather just the columns we need
+  dplyr::select(sample, fastq_1, fastq_2, strandedness)
+
+
+# getting rid of _r1 and _r2 from sample col
+# note we know which replicate is which from fastq col
+design <- design %>%
+  mutate(sample = gsub("_r1", "", sample),
+         sample = gsub("_r2", "", sample))
+
+# let's test that the path to fastq works:
+all(sapply(design$fastq_1, file.exists))
+all(sapply(design$fastq_2, file.exists))
+```
+
+# Now we can write this out for input into nextflow
+# NOTE be sure to write this out in 00_NF_CORE_RNAseq_pipeline_run
+```{r saving design and samples file}
+
+# write out design.csv
+write_csv(design, "design.csv")
+
+# write out samples.csv
+write_csv(samples, "samples.csv")
+
+```
+# We now have everything we need to do some RNAseq analyses !!
+
+Now we have the raw files downloaded and the samplesheet needed for downstream analyses 
+(ex, differential expression). So the next step is to run nf-core/rnaseq on these samples.
+We'll do this in the RNAseq II.
+
