@@ -3,6 +3,8 @@ title: "01_create_consensus_peaks"
 author: "JR"
 date: "8/10/2022"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -47,11 +49,33 @@ consensus_list <- lapply(dbp, consensus_from_reduced, peak_list)
 # adding names to the GRange list
 names(consensus_list) <- dbp
 
+# exporting consensus peaks into results
+ for(i in 1:length(consensus_list)) {
+  rtracklayer::export(consensus_list[[i]], 
+                     paste0("results/consensus_peaks/", 
+                            names(consensus_list)[i], 
+                            "_consensus_peaks.bed"))
+ }
 
 ```
 
 
 ```{r}
 
+dbp <- unique(sapply(names(peak_list[1]), function(x) {
+   unlist(strsplit(x, "_"))[1]
+}))
+
+
+
+  dbp_peaks <- peak_list[grepl(as.character(dbp), names(peak_list))]
+  suppressWarnings(all_peaks <- GenomicRanges::reduce(unlist(as(dbp_peaks, "GRangesList"))))
+  all_peaks <- all_peaks[grepl("chr", seqnames(all_peaks))]
+  peak_exists <- matrix(NA, nrow = length(all_peaks), ncol = length(dbp_peaks))
+  for(i in 1:length(dbp_peaks)) {
+    suppressWarnings(peak_exists[,i] <- as.numeric(countOverlaps(all_peaks, dbp_peaks[[i]]) > 0))
+  
+all_peaks_df <- all_peaks %>% as.data.frame
+unique(all_peaks_df$seqnames)
 ```
 
