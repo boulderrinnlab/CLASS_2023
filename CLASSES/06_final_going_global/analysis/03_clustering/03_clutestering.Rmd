@@ -3,6 +3,8 @@ title: "03_clustering"
 author: "JR"
 date: "8/15/2022"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -22,4 +24,6 @@ source("../../util/_setup.R")
 load("../01_create_consensus_peaks/results/peak_features.RData", verbose = T)
 
 ```
+
+
 

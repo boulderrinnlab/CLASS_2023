@@ -143,6 +143,11 @@ num_peaks_df$total_peak_length <- sapply(filtered_consensus_list, function(x) su
 # creating number of promoter overlaps entry
 promoter_peak_counts <- count_peaks_per_feature(lncrna_mrna_promoters, filtered_consensus_list, type = "counts")
 
+# creating promoter peak_occurence for clustering - Metaplots later.
+promoter_peak_matrix <- count_peaks_per_feature(lncrna_mrna_promoters, filtered_consensus_list, type = "occurrence")
+
+# saving
+write.table(promoter_peak_matrix, "results/promoter_peak_occurrence_matrix.tsv")
 
 # summing rows to get total number of promoter overlaps
 num_peaks_df$peaks_overlapping_promoters <- rowSums(promoter_peak_counts)
@@ -276,7 +281,7 @@ write.csv(promoter_dbps, "results/promoter_dbps.csv")
 # saving key env objects
 ```{r saving key objects in environment to load next session}
 
-save(filtered_consensus_list, gencode_genes, lncrna_gene_ids, mrna_gene_ids, num_peaks_df, peak_occurence_df, lncrna_mrna_promoters, mrna_lncrna_genes, file = "results/peak_features.RData")
+save(filtered_consensus_list, gencode_genes, lncrna_gene_ids, mrna_gene_ids, num_peaks_df, peak_occurence_df, promoter_peak_matrix, lncrna_mrna_promoters, mrna_lncrna_genes, file = "results/peak_features.RData")
 # awesome - now we never have to load in consensus peaks again :)
 
 ```

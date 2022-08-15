@@ -301,7 +301,6 @@ stopifnot(all(colnames(promoter_peak_occurence) == lncrna_mrna_promoters$gene_id
 # Great we will use this quite a bit moving forward so let's write it out! 
 write.table(promoter_peak_occurence, "results/lncrna_mrna_promoter_peak_occurence_matrix.tsv")
 
-
 ```
 
 # Peak occurence as data.frame
