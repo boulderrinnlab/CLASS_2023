@@ -13,6 +13,7 @@ options(stringsAsFactors = F)
 library(tidyverse)
 library(GenomicRanges)
 library(ggplot2)
+library(pheatmap)
 source("../../util/my_class_functions.R")
 source("../../util/_setup.R")
 
@@ -25,5 +26,52 @@ load("../01_create_consensus_peaks/results/peak_features.RData", verbose = T)
 
 ```
 
+# creating distance matrix & dendrogram
+```{r distance matrix and dendrogram}
+
+# creating distance matrix
+peak_occurence_dist <- dist(promoter_peak_matrix, method = "binary")
+
+# clustering distance values
+bin_hier <- hclust(peak_occurence_dist, method = "complete")
+
+# heat map
+ggdendro::ggdendrogram(bin_hier, rotate = FALSE,  size = 3, 
+                       theme_dendro = TRUE) +
+   # 90 degree rotation to right
+   coord_flip() +
+   scale_y_continuous() +
+   # adds label
+   scale_x_continuous(position = "top") +
+   # subsection to labels in order of clustering
+   # ? seq_along
+   scale_x_continuous(breaks = seq_along(bin_hier$labels[bin_hier$order]),
+                      # adding labels that are in the order 'column'
+             labels = bin_hier$labels[bin_hier$order], position = "top",
+             expand = c(0,0)) +
+   theme(axis.text.x = element_text(angle = 90, hjust  = 1)) + 
+   theme(axis.text.y = element_text(angle = 0,hjust = 1)) +
+   scale_y_reverse(expand = c(0.01, 0)) +
+   theme(
+     plot.background = element_blank(),
+     panel.grid.major = element_blank(),
+   panel.grid.minor = element_blank(),
+     panel.border = element_blank()
+   )
+
+```
+
+# clustered heatmap of binding similarity
+
+```{r heatmap of binding similarities}
+
+pdf("figures/binding_similariy_heatmpa.pdf", height = 12, width = 70)
+pheatmap(promoter_peak_occurrence_matrix, show_colnames = FALSE, clustering_distance_rows = "binary", clustering_distance_cols = "binary")
+dev.off()
+
+
+
+
+```
 
 

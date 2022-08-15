@@ -80,8 +80,8 @@ test
 test2 <- dist(promoter_peak_occurence_matrix[1:2,], method = "binary")
 test2
 
-
 # Now let's create distance matrix for each pairwise vector comparison for the whole matrix now.
+
 # This take 5 min or so
 peak_occurence_dist <- dist(promoter_peak_occurence_matrix, method = "binary")
 peak_occurence_dist[1:10]
