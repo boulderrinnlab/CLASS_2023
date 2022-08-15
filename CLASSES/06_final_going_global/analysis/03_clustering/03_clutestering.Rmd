@@ -1,0 +1,25 @@
+---
+title: "03_clustering"
+author: "JR"
+date: "8/15/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(stringsAsFactors = F)
+library(tidyverse)
+library(GenomicRanges)
+library(ggplot2)
+source("../../util/my_class_functions.R")
+source("../../util/_setup.R")
+
+```
+
+# loading in peak_features env objects from 01_create_consensus_peaks
+```{r laod env objects}
+
+load("../01_create_consensus_peaks/results/peak_features.RData", verbose = T)
+
+```
+
