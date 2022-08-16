@@ -37,18 +37,13 @@ peak_occurence_dist <- dist(promoter_peak_matrix, method = "binary")
 # clustering distance values
 bin_hier <- hclust(peak_occurence_dist, method = "complete")
 
-# heat map
+# Dendrogram of binding profiles by promoter (not binding profile - below)
 ggdendro::ggdendrogram(bin_hier, rotate = FALSE,  size = 3,
                        theme_dendro = TRUE) +
-   # 90 degree rotation to right
    coord_flip() +
    scale_y_continuous() +
-   # adds label
    scale_x_continuous(position = "top") +
-   # subsection to labels in order of clustering
-   # ? seq_along
    scale_x_continuous(breaks = seq_along(bin_hier$labels[bin_hier$order]),
-                      # adding labels that are in the order 'column'
              labels = bin_hier$labels[bin_hier$order], position = "top",
              expand = c(0,0)) +
    theme(axis.text.x = element_text(angle = 90, hjust  = 1)) +
@@ -63,35 +58,18 @@ ggdendro::ggdendrogram(bin_hier, rotate = FALSE,  size = 3,
 
 ```
 
-# clustered heatmap of binding similarity
-
-```{r heatmap of binding similarities}
-
-# pdf("figures/binding_similariy_heatmpa.pdf", height = 12, width = 70)
-# pheatmap(promoter_peak_occurrence_matrix, show_colnames = FALSE, clustering_distance_rows = "binary", clustering_distance_cols = "binary")
-# dev.off()
-
-
-# pheatmap(promoter_peak_occurrence_matrix, show_colnames = FALSE, clustering_distance_rows = "binary", clustering_distance_cols = "binary")
-# dev.off()
-
-
-
-
-```
-
-
 # start point for metaplots and clustering
 ```{r}
 load("../../../05_R_analyses/01_peak_features/results/peak_features.RData", verbose = T)
 ```
 
+# Using profile_tss for all 430 DBPs
+```{r metaplot DF of binding profiles over promoter}
 
-
-```{r}
-
+# establishing DF
 metaplot_df <- data.frame(x = integer(), dens = numeric(), dbp = character())
-# Writting a for loop to calculate promoter coverage for all consensus_peaks:
+
+# for loop to populate DF 
 for(i in 1:length(filtered_consensus_list)) {
   print(names(filtered_consensus_list)[[i]])
   tmp_df <- profile_tss(filtered_consensus_list[[i]], lncrna_mrna_promoters)
@@ -99,85 +77,65 @@ for(i in 1:length(filtered_consensus_list)) {
   metaplot_df <- bind_rows(metaplot_df, tmp_df)
   
 }
-# write_rds(metaplot_df, "metaplot_df.rds")
+
+# saving
 write_rds(metaplot_df, "results/metaplot_df_final.rds")
 
 ```
   
 
-
-```{r}
-
+# creating distance matrix of binding profile correlations
+```{r scaling and plotting dendrogram of binding similarity by promoter}
 
 metaplot_filtered_matrix <- metaplot_df %>% 
   pivot_wider(names_from = x, values_from = dens) %>%
   column_to_rownames("dbp") %>%
   as.matrix()
-# Let's see how many have NA values
-table(rowSums(is.na(metaplot_filtered_matrix)))
-# If there are any NAs Let's filter out those is.na
-# metaplot_filtered_matrix <- metaplot_filtered_matrix[rowSums(is.na(metaplot_filtered_matrix)) == 0,]
-# Z-Scale the rows for clustering (not needed for profile plots)
 mm_scaled <- t(scale(t(metaplot_filtered_matrix)))
-# clustering
 metaplot_hclust <- hclust(dist(mm_scaled), method = "complete")
-# plotting
+
+# plotting relationship between binding profiles
 plot(metaplot_hclust)
-# Plot the dendrogram
 pdf("figures/tss_profile_dendrogram.pdf", height = 10, width = 27)
 par(cex=0.3)
 plot(metaplot_hclust)
 dev.off()
 ```
 
+# heat map of binding profile over +/- 1kb TSS window
+```{r heatmap of profile over TSS (+/- 1Kb)}
 
-```{r}
-col_fun <- colorRamp2(c(-3, 0, 3), c("#5980B3", "#ffffff", "#B9605D"))
-split <- data.frame(split = c(rep("-1kb",1000), rep("+1kb", 1000)))
-# pdf("figures/tss_profile_heatmap.pdf", height = 35, width = 10)
-Heatmap(mm_scaled, cluster_columns = FALSE, col = col_fun, border = TRUE, 
-        show_column_names = FALSE,
-        use_raster = TRUE,
-        column_split = split,
-        column_gap = unit(0, "mm"),row_names_gp = gpar(fontsize = 7))
-
-pdf("figures/tss_profile_heat_map.pdf", height = 10, width = 27)
-
-Heatmap(mm_scaled, cluster_columns = FALSE, col = col_fun, border = TRUE, 
-        show_column_names = FALSE,
-        use_raster = TRUE,
-        column_split = split,
-        column_gap = unit(0, "mm"),row_names_gp = gpar(fontsize = 7))
-dev.off
-#TODO how to save?
-ggsave("figures/tss_profile_heat_map.pdf")
-ggsave("figures/meta_heatmap.pdf", height = 50, width = 12, limitsize = F)
-
-par(cex=0.3)
-dev.off()
-
-# dev.off()
-# # Now a heatmap with only cluster 1 since it has the most dbps (3).
-# Heatmap(mm_scaled[clusters == 1,], cluster_columns = FALSE, col = col_fun, border = TRUE, 
-#         show_column_names = FALSE,
-#         use_raster = TRUE,
-#         column_split = split,
-#         column_gap = unit(0, "mm"),row_names_gp = gpar(fontsize = 7))
-# par(cex = 1)
-
-
+# setting up PDF function for saving
 pdf("figures/tss_profile_heatmap.pdf", height = 35, width = 10)
+
+# complex heatmap of mm_scaled
 Heatmap(mm_scaled, cluster_columns = FALSE, col = col_fun, border = TRUE, 
         show_column_names = FALSE,
         use_raster = TRUE,
         column_split = split,
         column_gap = unit(0, "mm"),row_names_gp = gpar(fontsize = 7))
+# to save
 dev.off()
 ```
 
+# looking more into the patterns of ChIP binding profiles relative to TSS
+```{r how many groups are there?}
 
-```{r}
+# Let's see how many DBPs have different patterns.
+clusters <- cutree(metaplot_hclust, k=4)
+table(clusters)
 
+# plot cluter 1
+
+pdf("figures/cluster_1_heatmap.pdf", height = 35, width = 10)
+
+Heatmap(mm_scaled[clusters == 4,], cluster_columns = FALSE, col = col_fun, border = TRUE, 
+        show_column_names = FALSE,
+        use_raster = TRUE,
+        column_split = split,
+        column_gap = unit(0, "mm"),row_names_gp = gpar(fontsize = 7))
+
+dev.off
 
 ```
 
