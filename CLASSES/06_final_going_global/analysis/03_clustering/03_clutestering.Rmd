@@ -22,7 +22,7 @@ source("../../util/_setup.R")
 # loading in peak_features env objects from 01_create_consensus_peaks
 ```{r laod env objects}
 
-load("../01_create_consensus_peaks/results/peak_features.RData", verbose = T)
+# load("../01_create_consensus_peaks/results/peak_features.RData", verbose = T)
 
 ```
 
@@ -36,7 +36,7 @@ peak_occurence_dist <- dist(promoter_peak_matrix, method = "binary")
 bin_hier <- hclust(peak_occurence_dist, method = "complete")
 
 # heat map
-ggdendro::ggdendrogram(bin_hier, rotate = FALSE,  size = 3, 
+ggdendro::ggdendrogram(bin_hier, rotate = FALSE,  size = 3,
                        theme_dendro = TRUE) +
    # 90 degree rotation to right
    coord_flip() +
@@ -49,7 +49,7 @@ ggdendro::ggdendrogram(bin_hier, rotate = FALSE,  size = 3,
                       # adding labels that are in the order 'column'
              labels = bin_hier$labels[bin_hier$order], position = "top",
              expand = c(0,0)) +
-   theme(axis.text.x = element_text(angle = 90, hjust  = 1)) + 
+   theme(axis.text.x = element_text(angle = 90, hjust  = 1)) +
    theme(axis.text.y = element_text(angle = 0,hjust = 1)) +
    scale_y_reverse(expand = c(0.01, 0)) +
    theme(
@@ -70,10 +70,86 @@ ggdendro::ggdendrogram(bin_hier, rotate = FALSE,  size = 3,
 # dev.off()
 
 
-pheatmap(promoter_peak_occurrence_matrix, show_colnames = FALSE, clustering_distance_rows = "binary", clustering_distance_cols = "binary")
+# pheatmap(promoter_peak_occurrence_matrix, show_colnames = FALSE, clustering_distance_rows = "binary", clustering_distance_cols = "binary")
+# dev.off()
+
+
+
+
+```
+
+
+# start point for metaplots and clustering
+```{r}
+load("../../05_R_analyses/01_peak_features/results/peak_features.RData", verbose = T)
+```
+
+
+
+```{r}
+
+metaplot_df <- data.frame(x = integer(), dens = numeric(), dbp = character())
+# Writting a for loop to calculate promoter coverage for all consensus_peaks:
+for(i in 1:length(consensus_peaks)) {
+  print(names(consensus_peaks)[[i]])
+  tmp_df <- profile_tss(consensus_peaks[[i]], lncrna_mrna_promoters)
+  tmp_df$dbp <- names(consensus_peaks)[[i]]
+  metaplot_df <- bind_rows(metaplot_df, tmp_df)
+  
+}
+# write_rds(metaplot_df, "metaplot_df.rds")
+write_rds(metaplot_df, "results/metaplot_df_final.rds")
+
+```
+  
+
+
+```{r}
+
+
+metaplot_filtered_matrix <- metaplot_df %>% 
+  pivot_wider(names_from = x, values_from = dens) %>%
+  column_to_rownames("dbp") %>%
+  as.matrix()
+# Let's see how many have NA values
+table(rowSums(is.na(metaplot_filtered_matrix)))
+# If there are any NAs Let's filter out those is.na
+# metaplot_filtered_matrix <- metaplot_filtered_matrix[rowSums(is.na(metaplot_filtered_matrix)) == 0,]
+# Z-Scale the rows for clustering (not needed for profile plots)
+mm_scaled <- t(scale(t(metaplot_filtered_matrix)))
+# clustering
+metaplot_hclust <- hclust(dist(mm_scaled), method = "complete")
+# plotting
+plot(metaplot_hclust)
+# Plot the dendrogram
+pdf("figures/tss_profile_dendrogram.pdf", height = 10, width = 27)
+par(cex=0.3)
+plot(metaplot_hclust)
 dev.off()
+```
 
 
+```{r}
+col_fun <- colorRamp2(c(-3, 0, 3), c("#5980B3", "#ffffff", "#B9605D"))
+split <- data.frame(split = c(rep("-1kb",1000), rep("+1kb", 1000)))
+# pdf("figures/tss_profile_heatmap.pdf", height = 35, width = 10)
+Heatmap(mm_scaled, cluster_columns = FALSE, col = col_fun, border = TRUE, 
+        show_column_names = FALSE,
+        use_raster = TRUE,
+        column_split = split,
+        column_gap = unit(0, "mm"),row_names_gp = gpar(fontsize = 7))
+# dev.off()
+# Now a heatmap with only cluster 1 since it has the most dbps (3).
+Heatmap(mm_scaled[clusters == 1,], cluster_columns = FALSE, col = col_fun, border = TRUE, 
+        show_column_names = FALSE,
+        use_raster = TRUE,
+        column_split = split,
+        column_gap = unit(0, "mm"),row_names_gp = gpar(fontsize = 7))
+par(cex = 1)
+```
+
+
+```{r}
 
 
 ```
