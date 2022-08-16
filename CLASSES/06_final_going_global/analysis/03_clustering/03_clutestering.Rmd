@@ -65,7 +65,11 @@ ggdendro::ggdendrogram(bin_hier, rotate = FALSE,  size = 3,
 
 ```{r heatmap of binding similarities}
 
-pdf("figures/binding_similariy_heatmpa.pdf", height = 12, width = 70)
+# pdf("figures/binding_similariy_heatmpa.pdf", height = 12, width = 70)
+# pheatmap(promoter_peak_occurrence_matrix, show_colnames = FALSE, clustering_distance_rows = "binary", clustering_distance_cols = "binary")
+# dev.off()
+
+
 pheatmap(promoter_peak_occurrence_matrix, show_colnames = FALSE, clustering_distance_rows = "binary", clustering_distance_cols = "binary")
 dev.off()
 
