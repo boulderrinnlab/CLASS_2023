@@ -14,15 +14,17 @@ library(tidyverse)
 library(GenomicRanges)
 library(ggplot2)
 library(pheatmap)
+library(ComplexHeatmap)
 source("../../util/my_class_functions.R")
 source("../../util/_setup.R")
+install.packages("colorRamps")
 
 ```
 
 # loading in peak_features env objects from 01_create_consensus_peaks
 ```{r laod env objects}
 
-# load("../01_create_consensus_peaks/results/peak_features.RData", verbose = T)
+load("../01_create_consensus_peaks/results/peak_features.RData", verbose = T)
 
 ```
 
@@ -81,7 +83,7 @@ ggdendro::ggdendrogram(bin_hier, rotate = FALSE,  size = 3,
 
 # start point for metaplots and clustering
 ```{r}
-load("../../05_R_analyses/01_peak_features/results/peak_features.RData", verbose = T)
+load("../../../05_R_analyses/01_peak_features/results/peak_features.RData", verbose = T)
 ```
 
 
@@ -90,10 +92,10 @@ load("../../05_R_analyses/01_peak_features/results/peak_features.RData", verbose
 
 metaplot_df <- data.frame(x = integer(), dens = numeric(), dbp = character())
 # Writting a for loop to calculate promoter coverage for all consensus_peaks:
-for(i in 1:length(consensus_peaks)) {
-  print(names(consensus_peaks)[[i]])
-  tmp_df <- profile_tss(consensus_peaks[[i]], lncrna_mrna_promoters)
-  tmp_df$dbp <- names(consensus_peaks)[[i]]
+for(i in 1:length(filtered_consensus_list)) {
+  print(names(filtered_consensus_list)[[i]])
+  tmp_df <- profile_tss(filtered_consensus_list[[i]], lncrna_mrna_promoters)
+  tmp_df$dbp <- names(filtered_consensus_list)[[i]]
   metaplot_df <- bind_rows(metaplot_df, tmp_df)
   
 }
@@ -138,14 +140,39 @@ Heatmap(mm_scaled, cluster_columns = FALSE, col = col_fun, border = TRUE,
         use_raster = TRUE,
         column_split = split,
         column_gap = unit(0, "mm"),row_names_gp = gpar(fontsize = 7))
-# dev.off()
-# Now a heatmap with only cluster 1 since it has the most dbps (3).
-Heatmap(mm_scaled[clusters == 1,], cluster_columns = FALSE, col = col_fun, border = TRUE, 
+
+pdf("figures/tss_profile_heat_map.pdf", height = 10, width = 27)
+
+Heatmap(mm_scaled, cluster_columns = FALSE, col = col_fun, border = TRUE, 
         show_column_names = FALSE,
         use_raster = TRUE,
         column_split = split,
         column_gap = unit(0, "mm"),row_names_gp = gpar(fontsize = 7))
-par(cex = 1)
+dev.off
+#TODO how to save?
+ggsave("figures/tss_profile_heat_map.pdf")
+ggsave("figures/meta_heatmap.pdf", height = 50, width = 12, limitsize = F)
+
+par(cex=0.3)
+dev.off()
+
+# dev.off()
+# # Now a heatmap with only cluster 1 since it has the most dbps (3).
+# Heatmap(mm_scaled[clusters == 1,], cluster_columns = FALSE, col = col_fun, border = TRUE, 
+#         show_column_names = FALSE,
+#         use_raster = TRUE,
+#         column_split = split,
+#         column_gap = unit(0, "mm"),row_names_gp = gpar(fontsize = 7))
+# par(cex = 1)
+
+
+pdf("figures/tss_profile_heatmap.pdf", height = 35, width = 10)
+Heatmap(mm_scaled, cluster_columns = FALSE, col = col_fun, border = TRUE, 
+        show_column_names = FALSE,
+        use_raster = TRUE,
+        column_split = split,
+        column_gap = unit(0, "mm"),row_names_gp = gpar(fontsize = 7))
+dev.off()
 ```
 
 
