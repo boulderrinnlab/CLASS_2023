@@ -121,12 +121,12 @@ dev.off()
 # looking more into the patterns of ChIP binding profiles relative to TSS
 ```{r how many groups are there?}
 
+#TODO not plotting
 # Let's see how many DBPs have different patterns.
 clusters <- cutree(metaplot_hclust, k=4)
 table(clusters)
 
 # plot cluter 1
-
 pdf("figures/cluster_1_heatmap.pdf", height = 35, width = 10)
 
 Heatmap(mm_scaled[clusters == 4,], cluster_columns = FALSE, col = col_fun, border = TRUE, 
@@ -134,9 +134,78 @@ Heatmap(mm_scaled[clusters == 4,], cluster_columns = FALSE, col = col_fun, borde
         use_raster = TRUE,
         column_split = split,
         column_gap = unit(0, "mm"),row_names_gp = gpar(fontsize = 7))
+par(cex = 1)
 
 dev.off
 
 ```
 
+# establishing lncRNA and mRNA promoters (+/- 1kb)
+```{r create lncRNA and mRNA promoters }
+
+# creating promoters just in case:
+lncrna_promoters <- lncrna_mrna_promoters[lncrna_mrna_promoters$gene_type == "lncRNA"]
+mrna_promoters <- lncrna_mrna_promoters[lncrna_mrna_promoters$gene_type == "protein_coding"]
+
+
+```
+
+# metaplots for each DBP by lncRNA and mRNA promoters
+```{r}
+
+#setting up lncrna DF.
+lncrna_metaplot_df <- data.frame(x = integer(), dens = numeric(), dbp = character())
+
+# for loop to populate DF with overlap density in lncrna promoters
+for(i in 1:length(filtered_consensus_list)) {
+  print(names(filtered_consensus_list)[[i]])
+  tmp_df <- profile_tss(filtered_consensus_list[[i]], lncrna_mrna_promoters = lncrna_promoters)
+  tmp_df$dbp <- names(filtered_consensus_list)[[i]]
+  lncrna_metaplot_df <- bind_rows(lncrna_metaplot_df, tmp_df)
+  
+}
+
+# saving
+write_rds(lncrna_metaplot_df, "results/lncRNA_metaplot_df_final.rds")
+
+# now for mRNAs 
+mrna_metaplot_df <- data.frame(x = integer(), dens = numeric(), dbp = character())
+
+# for loop to populate mRNA_metaplot
+for(i in 1:length(filtered_consensus_list)) {
+  print(names(filtered_consensus_list)[[i]])
+  tmp_df <- profile_tss(filtered_consensus_list[[i]], lncrna_mrna_promoters = mrna_promoters)
+  tmp_df$dbp <- names(filtered_consensus_list)[[i]]
+  mrna_metaplot_df <- bind_rows(mrna_metaplot_df, tmp_df)
+  
+}
+
+# saving mRNA metaplots
+write_rds(lncrna_metaplot_df, "results/mrna_metaplot_df_final.rds")
+
+# saving
+write_rds(mrna_metaplot_df, "results/metaplot_df_final.rds")
+
+# now adding the information of gene type
+mrna_metaplot_df$gene_type <- "mRNA"
+lncrna_metaplot_df$gene_type <- "lncRNA"
+combined_metaplot_profile <- bind_rows(mrna_metaplot_df, lncrna_metaplot_df)
+
+# plotting - NOTE facet wrap by dbp !
+ggplot(combined_metaplot_profile, 
+       aes(x = x, y = dens, color = gene_type )) +
+  geom_vline(xintercept = 0, lty = 2) + 
+  geom_line(size = 1.5) + 
+  facet_wrap(dbp ~ ., scales = "free_y") +
+  ggtitle("Promoter Metaplot") + 
+  scale_x_continuous(breaks = c(-1000, 0, 1000),
+                     labels = c("-1kb", "TSS", "+1kb"),
+                     name = "") + 
+  ylab("Peak frequency") +
+ scale_color_manual(values = c("#424242","#a8404c"))
+
+# saving
+ggsave("figures/mega_meta_plot_lncRNA-mRNA.pdf", height = 35, width = 10)
+
+```
 
