@@ -257,7 +257,7 @@ write_csv(hepg2_df,"results/hepg2_df.csv")
 hepg2_k562_promoter_features_df <- merge(hepg2_df, k562_df)
 
 # Now saving
-write_csv(hepg2_k562_promoter_features_df, "hepg2_k562_promoter_features_df.csv")
+write_csv(hepg2_k562_promoter_features_df, "results/hepg2_k562_promoter_features_df.csv")
 
 # Make a table of reservoir status
 res_status <- hepg2_k562_promoter_features_df %>% 
@@ -265,7 +265,7 @@ res_status <- hepg2_k562_promoter_features_df %>%
   summarize(count = n())
 
 # saving for future
-write_csv2(res_status, "reservoir_overlap_stats.csv")
+write_csv2(res_status, "results/reservoir_overlap_stats.csv")
 ```
 Result:
 (1) There are 345 reservoirs in both K562 and HEPG2

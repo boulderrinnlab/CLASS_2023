@@ -1,0 +1,19 @@
+---
+title: "01_BIG_KNIT"
+author: "JR"
+date: "8/17/2022"
+output: html_document
+---
+
+````{r setup, include=FALSE} 
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+knitr::opts_chunk$set(echo = TRUE)
+library(Gviz)
+library(ggpubr)
+library(ggplot2)
+library(tidyverse)
+library(GenomicRanges)
+library(ComplexHeatmap)
+source("../../../../util/intersect_functions.R")
+source("../../../../util/_setup.R")
+
