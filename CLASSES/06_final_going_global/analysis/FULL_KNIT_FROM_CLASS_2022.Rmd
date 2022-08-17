@@ -21,9 +21,23 @@ source("util/_setup.R")
 
 # Goal:
 
-Here we aim to download all available DNA binding protein (DBP) profiles in a single cell state (measured by ChIP-seq) . This will allow us to investigate the binding properties of hundreds of DBPs in the same cellular context or background. We aim to address several questions: (i) What are the number of peaks and genome coverage for each DBP? (ii) What are the binding preferences for promoters, gene-bodies and intergenic genomic regions? (iii) What are the similarities and differences across DBPs based on their genome-wide binding profiles genome-wide? (iv) What properties or preferences do promoters have for binding events. (iv) Are there reservoir promoters in HepG2 as defined in k562 previously? (v) How does binding to a promoter affect the transcriptional output of that promoter?
+Here we aim to download all available DNA binding protein (DBP) profiles in a single cell state (measured by ChIP-seq). This will allow us to investigate the binding properties of hundreds of DBPs in the same cellular context or background. We aim to address several questions: 
 
-To address these questions we have curated a set of X,000 ChIPs-eq data sets comprised of 486 DBPs in HEPG2 cells from the ENCODE consortrium. We required duplicate ChIP-seq experiments for a given DBP and other criterion that can be found here :
+(i) What are the number of peaks and genome coverage for each DBP? 
+
+(ii) What are the binding preferences for promoters, gene-bodies and intergenic genomic regions? 
+
+(iii) What are the similarities and differences across DBPs based on their genome-wide binding profiles genome-wide? 
+
+(iv) What properties or preferences do promoters have for binding events. 
+
+(v) How does binding to a promoter affect the transcriptional output of that promoter?
+
+(vi) Are there reservoir promoters in HepG2 as defined in k562 previously? 
+
+
+
+To address these questions we have curated a set of over 1,000 ChIPseq data sets comprised of 48 DBPs in HEPG2 cells from the ENCODE consortium. We required duplicate ChIP-seq experiments for a given DBP and other criterion that can be found here :
 
 <https://www.encodeproject.org/report/?type=Experiment&status=released&assay_slims=DNA+binding&biosample_ontology.term_name=HepG2&assay_title=TF+ChIP-seq&biosample_ontology.classification=cell+line&files.read_length=100&files.read_length=76&files.read_length=75&files.read_length=36&assay_title=Control+ChIP-seq&assay_title=Histone+ChIP-seq&files.run_type=single-ended>
 
@@ -47,11 +61,16 @@ MD5sums were checked with all passing (see encode_file_info function to reterive
 
 ### Processing data:
 
-We processed all the read alignments and peak calling using the NF_CORE ChIP-seq pipeline: (nfcore/chipseq v1.2.1)
+We processed all the read alignments and peak calling using the NF_CORE ChIP-seq pipeline: (nfcore/chipseq v1.2.2)
 
 ## Next we created consensus peaks that overlap in both replicates
 
-Our strategy was to take peaks in each replicate and find all overlapping peak windows. We then took the union length of the overlapping range in each peak window.
+Our strategy was to take peaks in each replicate and find all overlapping peak windows. We then took the union length of the overlapping range in each peak window. We further required that a DBP has at least 1,000 peaks (the min quartile of peaks observed)
+
+Result: we have 430 DBPs that have at least 1,000 peaks in both replicates
+
+## We will start with loading filtered consensus peaks (described above)
+## All subequent analyses are contained within this document.
 
 ```{r creating-consensus-peaks}
 # create_consensus_peaks requires an annotation .GTF file - loading in Gencode v32 annotations.

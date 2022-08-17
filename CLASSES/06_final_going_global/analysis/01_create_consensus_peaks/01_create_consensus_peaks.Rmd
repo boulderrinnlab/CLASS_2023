@@ -274,8 +274,7 @@ XIST_promoter <- promoter_dbps %>%
 GAPDH_promoter <- promoter_dbps %>%
   filter(gene_name == "GAPDH")
 
-
-#TODO pivot longer to make a handy data frame
+# saving
 promoter_dbps_df <- promoter_dbps %>% as.data.frame()
 write.csv(promoter_dbps, "results/promoter_dbps.csv")
 
