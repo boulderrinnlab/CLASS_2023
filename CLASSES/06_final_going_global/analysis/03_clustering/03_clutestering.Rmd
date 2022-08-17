@@ -64,6 +64,7 @@ load("../../../05_R_analyses/01_peak_features/results/peak_features.RData", verb
 ```
 
 # Using profile_tss for all 430 DBPs
+# ! this takes ~45 min !
 ```{r metaplot DF of binding profiles over promoter}
 
 # establishing DF
@@ -119,24 +120,85 @@ dev.off()
 ```
 
 # looking more into the patterns of ChIP binding profiles relative to TSS
+# breaking this down into several clusters and plotting each
 ```{r how many groups are there?}
 
-#TODO not plotting
+
 # Let's see how many DBPs have different patterns.
-clusters <- cutree(metaplot_hclust, k=4)
+# manually checking at 6 we get a new group of 10 - after that not much changes
+clusters <- cutree(metaplot_hclust, k=6)
 table(clusters)
 
 # plot cluter 1
+dev.new()
 pdf("figures/cluster_1_heatmap.pdf", height = 35, width = 10)
 
+Heatmap(mm_scaled[clusters == 1,], cluster_columns = FALSE, col = col_fun, border = TRUE, 
+        show_column_names = FALSE,
+        use_raster = TRUE,
+        column_split = split,
+        column_gap = unit(0, "mm"),row_names_gp = gpar(fontsize = 7))
+graphics.off()
+
+# TSS enriched a bit broader than cluster 2
+
+
+# cluster 2
+
+dev.new()
+pdf("figures/cluster_2_heatmap.pdf", height = 35, width = 10)
+
+Heatmap(mm_scaled[clusters == 2,], cluster_columns = FALSE, col = col_fun, border = TRUE, 
+        show_column_names = FALSE,
+        use_raster = TRUE,
+        column_split = split,
+        column_gap = unit(0, "mm"),row_names_gp = gpar(fontsize = 7))
+graphics.off()
+
+# TSS enrichred a bit more narrow
+
+# cluster 3
+dev.new()
+pdf("figures/cluster_3_heatmap.pdf", height = 35, width = 10)
+
+Heatmap(mm_scaled[clusters == 3,], cluster_columns = FALSE, col = col_fun, border = TRUE, 
+        show_column_names = FALSE,
+        use_raster = TRUE,
+        column_split = split,
+        column_gap = unit(0, "mm"),row_names_gp = gpar(fontsize = 7))
+graphics.off()
+
+# very narrow binding over tss !
+
+# cluster 4
+
+dev.new()
+pdf("figures/cluster_4_heatmap.pdf", height = 35, width = 10)
 Heatmap(mm_scaled[clusters == 4,], cluster_columns = FALSE, col = col_fun, border = TRUE, 
         show_column_names = FALSE,
         use_raster = TRUE,
         column_split = split,
         column_gap = unit(0, "mm"),row_names_gp = gpar(fontsize = 7))
-par(cex = 1)
+graphics.off()
 
-dev.off
+# looks like TSS depletion and histone mods
+
+# cluster 5 only 1 DBP
+names(clusters[5])
+
+
+# cluster 6
+dev.new()
+pdf("figures/cluster_6_heatmap.pdf", height = 35, width = 10)
+Heatmap(mm_scaled[clusters == 6,], cluster_columns = FALSE, col = col_fun, border = TRUE, 
+        show_column_names = FALSE,
+        use_raster = TRUE,
+        column_split = split,
+        column_gap = unit(0, "mm"),row_names_gp = gpar(fontsize = 7))
+graphics.off()
+
+# TSS depletion and histone mods again.
+
 
 ```
 
@@ -193,7 +255,10 @@ combined_metaplot_profile <- bind_rows(mrna_metaplot_df, lncrna_metaplot_df)
 write_rds(mrna_metaplot_df, "results/metaplot_df_final.rds")
 
 #TODO why not printing
+# TODO asign cluster value and plot the average of the clusters
 # plotting - NOTE facet wrap by dbp !
+
+pdf(file = "figures/mega_plot_test.pdf")
 ggplot(combined_metaplot_profile, 
        aes(x = x, y = dens, color = gene_type )) +
   geom_vline(xintercept = 0, lty = 2) + 
@@ -207,7 +272,10 @@ ggplot(combined_metaplot_profile,
  scale_color_manual(values = c("#424242","#a8404c"))
 
 # saving
-ggsave("figures/mega_meta_plot_lncRNA-mRNA.pdf", height = 35, width = 10)
+ggsave("figures/mega_meta_plot_lncRNA-mRNA.pdf", width = 50, height = 12)
+ggsave("figures/mega_meta_plot_lncRNA-mRNA.pdf", limitsize = F)
+
+pdf(file="out.pdf", )
 
 ```
 
