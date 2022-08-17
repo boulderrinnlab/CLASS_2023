@@ -258,7 +258,7 @@ write_rds(mrna_metaplot_df, "results/metaplot_df_final.rds")
 # TODO asign cluster value and plot the average of the clusters
 # plotting - NOTE facet wrap by dbp !
 
-pdf(file = "figures/mega_plot_test.pdf")
+# pdf(file = "figures/mega_plot_test.pdf")
 ggplot(combined_metaplot_profile, 
        aes(x = x, y = dens, color = gene_type )) +
   geom_vline(xintercept = 0, lty = 2) + 
@@ -272,10 +272,9 @@ ggplot(combined_metaplot_profile,
  scale_color_manual(values = c("#424242","#a8404c"))
 
 # saving
-ggsave("figures/mega_meta_plot_lncRNA-mRNA.pdf", width = 50, height = 12)
-ggsave("figures/mega_meta_plot_lncRNA-mRNA.pdf", limitsize = F)
+ggsave("figures/mega_meta_plot_lncRNA-mRNA.pdf", width = 49, height = 12)
+# ggsave("figures/mega_meta_plot_lncRNA-mRNA.pdf", limitsize = F)
 
-pdf(file="out.pdf", )
 
 ```
 
