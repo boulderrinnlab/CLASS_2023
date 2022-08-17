@@ -181,16 +181,18 @@ for(i in 1:length(filtered_consensus_list)) {
 }
 
 # saving mRNA metaplots
-write_rds(lncrna_metaplot_df, "results/mrna_metaplot_df_final.rds")
+write_rds(mrna_metaplot_df, "results/mrna_metaplot_df_final.rds")
 
-# saving
-write_rds(mrna_metaplot_df, "results/metaplot_df_final.rds")
 
 # now adding the information of gene type
 mrna_metaplot_df$gene_type <- "mRNA"
 lncrna_metaplot_df$gene_type <- "lncRNA"
 combined_metaplot_profile <- bind_rows(mrna_metaplot_df, lncrna_metaplot_df)
 
+# saving
+write_rds(mrna_metaplot_df, "results/metaplot_df_final.rds")
+
+#TODO why not printing
 # plotting - NOTE facet wrap by dbp !
 ggplot(combined_metaplot_profile, 
        aes(x = x, y = dens, color = gene_type )) +
