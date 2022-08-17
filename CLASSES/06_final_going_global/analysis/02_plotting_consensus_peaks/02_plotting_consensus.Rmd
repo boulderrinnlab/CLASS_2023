@@ -30,7 +30,6 @@ load("../01_create_consensus_peaks/results/peak_features.RData", verbose = T)
 ```{r plotting peak features}
 
 # First let's look at a histogram of peak#/DBP
-
  ggplot(num_peaks_df, aes(x = num_peaks)) + 
   geom_histogram(bins = 70)
 # saving
@@ -41,7 +40,6 @@ ggsave("figures/num_peaks_hist.pdf")
 
 # plotting num_peaks versus genome coverage.
 ```{r peaks vs coverage}
-
 
 ggplot(num_peaks_df, aes(x = num_peaks, y = total_peak_length)) +
   geom_point() + 

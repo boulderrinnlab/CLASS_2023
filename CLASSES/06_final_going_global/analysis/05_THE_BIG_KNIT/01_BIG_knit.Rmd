@@ -26,9 +26,25 @@ consensusPeakPath <- file.path(basepath, peak_path)
 
 ```
 
-Here we aim to download all available DNA binding protein (DBP) profiles in a single cell state (measured by ChIP-seq) in HEPG2. This will allow us to investigate the binding properties of hundreds of DBPs in the same cellular context or background. We aim to address several questions: (i) What are the number of peaks and genome coverage for each DBP? (ii) What are the binding preferences for promoters, gene-bodies and intergenic genomic regions? (iii) What are the similarities and differences across DBPs based on their genome-wide binding profiles genome-wide? (iv) What properties or preferences do promoters have for binding events. (iv) Are there reservoir promoters in HepG2 as defined in k562 previously? (v) How does binding to a promoter affect the transcriptional output of that promoter?
+# Goal:
 
-To address these questions we have curated a set of X,000 ChIPs-eq data sets comprised of 486 DBPs in HEPG2 cells from the ENCODE consortrium. We required duplicate ChIP-seq experiments for a given DBP and other criterion that can be found here :
+Here we aim to download all available DNA binding protein (DBP) profiles in a single cell state (measured by ChIP-seq). This will allow us to investigate the binding properties of hundreds of DBPs in the same cellular context or background. We aim to address several questions: 
+
+(i) What are the number of peaks and genome coverage for each DBP? 
+
+(ii) What are the binding preferences for promoters, gene-bodies and intergenic genomic regions? 
+
+(iii) What are the similarities and differences across DBPs based on their genome-wide binding profiles genome-wide? 
+
+(iv) What properties or preferences do promoters have for binding events. 
+
+(v) How does binding to a promoter affect the transcriptional output of that promoter?
+
+(vi) Are there reservoir promoters in HepG2 as defined in k562 previously? 
+
+
+
+To address these questions we have curated a set of over 1,000 ChIPseq data sets comprised of 48 DBPs in HEPG2 cells from the ENCODE consortium. We required duplicate ChIP-seq experiments for a given DBP and other criterion that can be found here :
 
 <https://www.encodeproject.org/report/?type=Experiment&status=released&assay_slims=DNA+binding&biosample_ontology.term_name=HepG2&assay_title=TF+ChIP-seq&biosample_ontology.classification=cell+line&files.read_length=100&files.read_length=76&files.read_length=75&files.read_length=36&assay_title=Control+ChIP-seq&assay_title=Histone+ChIP-seq&files.run_type=single-ended>
 
@@ -48,6 +64,22 @@ To address these questions we have curated a set of X,000 ChIPs-eq data sets com
 
 "<https://www.encodeproject.org/metadata/?status=released&assay_slims=DNA+binding&biosample_ontology.term_name=HepG2&assay_title=TF+ChIP-seq&biosample_ontology.classification=cell+line&files.read_length=100&files.read_length=76&files.read_length=75&files.read_length=36&assay_title=Control+ChIP-seq&assay_title=Histone+ChIP-seq&files.run_type=single-ended&type=Experiment>"
 
+MD5sums were checked with all passing (see encode_file_info function to reterive MD5Sum values that are not available from the encode portal (/util)
+
+### Processing data:
+
+We processed all the read alignments and peak calling using the NF_CORE ChIP-seq pipeline: (nfcore/chipseq v1.2.2)
+
+## Next we created consensus peaks that overlap in both replicates
+
+Our strategy was to take peaks in each replicate and find all overlapping peak windows. We then took the union length of the overlapping range in each peak window. We further required that a DBP has at least 1,000 peaks (the min quartile of peaks observed)
+
+Result: 
+(i) we have 430 DBPs that have at least 1,000 peaks in both replicates
+
+## We will start with loading filtered consensus peaks (described above)
+## All subequent analyses are contained within this document.
+## To find results, search for "Result:"
 
 # Loading in all .broadPeak files for all dbps and their replicates
 ```{r load .broadPeak files}
@@ -88,7 +120,8 @@ hist(num_peaks, breaks = 1000)
 hist(num_peaks, breaks = 1000, xlim = c(0,3000))
 
 ```
-Result: seems like 1000 peaks should be the min moving forward.
+Result:
+(i)seems like 1000 peaks should be the min moving forward.
 
 # filtering consensus_list to dbps with > 1000 peaks
 ```{r filtered_consenus_list}
@@ -198,7 +231,7 @@ Each will have 1 if overlapped by a given dbp : 0 if no overlaps
 ```{r promoter peak occurence matrix}
 
 # running count_peaks_per_feature
-promoter_peak_occurence <- count_peaks_per_feature(lncrna_mrna_promoters, filtered_consensus_list, 
+promoter_peak_occurence_matrix <- count_peaks_per_feature(lncrna_mrna_promoters, filtered_consensus_list, 
                                                type = "occurrence")
 
 # Let's double check that all lncrna & mrna genes are accounted for:
@@ -231,7 +264,7 @@ DBPs_on_promoter <- lncrna_mrna_promoters %>%
   dplyr::select(gene_id, gene_name)
 
 # creating promoter dbps by pivot longer of promoter_peak_occurence_matrix
-promoter_dbps <- promoter_peak_occurence %>%
+promoter_dbps <- promoter_peak_occurence_matrix %>%
   as.data.frame() %>%
   rownames_to_column("dbp") %>%
 pivot_longer(2:ncol(.), names_to = "gene_id", values_to = "occurrence") %>%
@@ -256,5 +289,160 @@ promoter_dbps_df <- promoter_dbps %>% as.data.frame()
 write.csv(promoter_dbps, "results/promoter_dbps.csv")
 
 ```
+
+# Peaks per dbp
+```{r plotting peak features}
+
+# First let's look at a histogram of peak#/DBP
+ ggplot(num_peaks_df, aes(x = num_peaks)) + 
+  geom_histogram(bins = 70)
+
+# saving
+ggsave("figures/num_peaks_hist.pdf")
+
+```
+Result:
+(i) Most DBPs have less than 50,000 peaks
+
+
+# plotting num_peaks versus genome coverage.
+```{r peaks vs coverage}
+
+ggplot(num_peaks_df, aes(x = num_peaks, y = total_peak_length)) +
+  geom_point() + 
+  geom_smooth(method = "gam", se = TRUE, color = "black", lty = 2)+
+  ylab("BP covered") +
+  xlab("Number of peaks") +
+  ggtitle("Peak count vs. total bases covered")
+
+# saving 
+ggsave("figures/peak_num_vs_coverage.pdf")
+
+
+```
+Result: 
+(i) there is a linear relationship between number of peaks and total coverage
+
+
+# plotting num peaks on promoters
+```{r number of DBPS on promoters}
+
+ggplot(num_peaks_df,
+       aes(x = num_peaks, y = peaks_overlapping_promoters)) +
+  xlab("Peaks per DBP") +
+  ylab("Number of peaks overlapping promoters") +
+  ggtitle("Relationship Between Number of DBP Peaks and Promoter Overlaps")+
+  geom_point() +
+  geom_abline(slope = 1, linetype="dashed") +
+  geom_smooth(method = "lm", se=FALSE, formula = 'y ~ x',
+              color = "#a8404c") +
+  stat_regline_equation(label.x = 35000, label.y = 18000) +
+  ylim(0,60100) +
+  xlim(0,60100)
+
+# saving
+ggsave("figures/peak_num_vs_promoter_coverage.pdf")
+
+```
+Result: 
+(i) saturation of binding events -- as you get more peaks 
+you stop increasing binding to promoters -- probably saturated.
+(ii) inflection of saturation occurs around 20,000 peaks per DBP
+
+# peak Coverage on gene bodies
+```{r peak coverage on gene bodies}
+
+ggplot(num_peaks_df,
+       aes(x = num_peaks, y = peaks_overlapping_genebody)) +
+  xlab("Peaks per DBP") +
+  ylab("Number of peaks overlapping genes") +
+  ggtitle("Relationship Between Number of DBP Peaks and Gene Body Overlaps")+
+  geom_point() +
+  geom_abline(slope = 1, linetype="dashed") +
+  geom_smooth(method = "lm", se=F, formula = 'y ~ x',
+              color = "#a8404c") +
+  stat_regline_equation(label.x = 35000, label.y = 18000) +
+  ylim(0,60100) +
+  xlim(0,60100)
+
+# saving
+ggsave("figures/4_peak_num_vs_gene_body_coverage.pdf")
+```
+Result: 
+(i) Gene bodies explain almost all the places of binding in the genome (.9x slope)
+(ii) thus roughly 90% of binding events occur within or overlap gene bodies
+
+# Density plot of binding events
+Let's make a density plot of num DBPs bound per promoter
+
+```{r density plot of DBP localization events}
+
+ggplot(peak_occurence_df, aes(x = number_of_dbp)) +
+geom_density(alpha = 0.2, color = "#424242", fill = "#424242") +
+  theme_paperwhite() +
+  xlab(expression("Number of DBPs")) +
+  ylab(expression("Density")) +
+  ggtitle("Promoter binding events",
+          subtitle = "mRNA and lncRNA genes") 
+
+# saving
+ggsave("figures/num_binding_events_per_promoter.pdf")
+
+```
+Result: 
+(i) very interesting that the promoter binding is bimodal !
+(ii) most promoters have upto 100 dbps then a lag and 2nd dist at ~200dbs
+(iii) There are two types of promoter binding - (1) normal (2) super-binders
+
+
+# promoters with out binding events
+Lets find how many promoters don't have any DBPs bound
+```{r prmoters with out binding events}
+
+unbound_promoters <- peak_occurence_df %>% 
+  filter(peak_occurence_df$number_of_dbp < 1)
+
+# how many are there?
+nrow(unbound_promoters)
+# so there are only a few 6,720 promoters that don't have binding evetns (~10%)
+
+#  let's put it in a folder called results. We will always use this folder structure
+write_csv(unbound_promoters, "results/unbound_promoters.csv")
+
+```
+
+# lncRNA versus mRNA promoter binding
+Let's compare the binding patterns of lncRNA vs mRNA promoters.
+```{r lncrna vs mrna promoter binding}
+
+num_peaks_dfl <- num_peaks_df %>%
+  dplyr::select(-peaks_overlapping_promoters) %>%
+  pivot_longer(cols = peaks_overlapping_lncrna_promoters:peaks_overlapping_mrna_promoters,
+               names_to = "gene_type",
+               values_to = "peaks_overlapping_promoters") %>%
+  mutate(gene_type = gsub("peaks_overlapping_", "", gene_type))
+
+# plotting
+ggplot(num_peaks_dfl, aes(x = num_peaks, y = peaks_overlapping_promoters, 
+                         col = gene_type)) +
+         geom_point() +
+         geom_abline(slope = 1, linetype="dashed") +
+  geom_smooth(method = "lm", se = FALSE, formula = "y ~ x") +
+  stat_regline_equation() +
+  scale_color_manual(values = c("#a8404c", "#424242"))+
+  xlab("Peaks per DBP") +
+  ylab("Peaks Overlapping Promoters") +
+  ggtitle("Number of DBP Peaks and Promoter Overlaps")
+
+# saving
+ggsave("figures/peaks_overlaps_relationship_by_gene_type.pdf", height = 5, width = 8)
+```
+Result:
+(i) in general mRNA promoters have more overlaps than lncRNAs
+(ii) both have linear trend with more peaks more overlaps
+(iii) mRNA promoters are 4x more likely to overlaps a dbp than lncRNA promoters
+
+
+
 
 

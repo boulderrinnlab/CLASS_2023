@@ -137,7 +137,6 @@ hist(num_peaks_df$total_peak_length)
 ```
 
 # Now we will create promoter annotations for lncRNA and mRNA and both.
-
 We have created a funciton get_promter_regions that has up and downstream parameters
 
 ```{r promoter-gene-body-annotations}
