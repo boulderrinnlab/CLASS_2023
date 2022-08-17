@@ -32,7 +32,7 @@ load("../01_create_consensus_peaks/results/peak_features.RData", verbose = T)
 ```{r distance matrix and dendrogram}
 
 # creating distance matrix
-peak_occurence_dist <- dist(promoter_peak_matrix, method = "binary")
+peak_occurence_dist <- dist(promoter_peak_occurence_matrix, method = "binary")
 
 # clustering distance values
 bin_hier <- hclust(peak_occurence_dist, method = "complete")
@@ -56,11 +56,8 @@ ggdendro::ggdendrogram(bin_hier, rotate = FALSE,  size = 3,
      panel.border = element_blank()
    )
 
-```
+ggsave("figures/promoter_overlap_dendrogram")
 
-# start point for metaplots and clustering
-```{r}
-load("../../../05_R_analyses/01_peak_features/results/peak_features.RData", verbose = T)
 ```
 
 # Using profile_tss for all 430 DBPs

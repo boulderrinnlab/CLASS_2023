@@ -442,7 +442,238 @@ Result:
 (ii) both have linear trend with more peaks more overlaps
 (iii) mRNA promoters are 4x more likely to overlaps a dbp than lncRNA promoters
 
+# creating distance matrix & dendrogram
+```{r distance matrix and dendrogram}
+
+# creating distance matrix
+peak_occurence_dist <- dist(promoter_peak_matrix, method = "binary")
+
+# clustering distance values
+bin_hier <- hclust(peak_occurence_dist, method = "complete")
+
+# Dendrogram of binding profiles by promoter (not binding profile - below)
+ggdendro::ggdendrogram(bin_hier, rotate = FALSE,  size = 3,
+                       theme_dendro = TRUE) +
+   coord_flip() +
+   scale_y_continuous() +
+   scale_x_continuous(position = "top") +
+   scale_x_continuous(breaks = seq_along(bin_hier$labels[bin_hier$order]),
+             labels = bin_hier$labels[bin_hier$order], position = "top",
+             expand = c(0,0)) +
+   theme(axis.text.x = element_text(angle = 90, hjust  = 1)) +
+   theme(axis.text.y = element_text(angle = 0,hjust = 1)) +
+   scale_y_reverse(expand = c(0.01, 0)) +
+   theme(
+     plot.background = element_blank(),
+     panel.grid.major = element_blank(),
+   panel.grid.minor = element_blank(),
+     panel.border = element_blank()
+   )
 
 
+ggsave("figures/promoter_overlap_dendrogram.pdf", height = 49, width = 12)
+```
+Result:
+(i) histone mods cluster together and seperate from others
+(ii) Pol2 and S5-Pol2 don't cluster together as expected
 
 
+# Using profile_tss for all 430 DBPs
+# ! this takes ~45 min !
+```{r metaplot DF of binding profiles over promoter}
+
+# establishing DF
+metaplot_df <- data.frame(x = integer(), dens = numeric(), dbp = character())
+
+# for loop to populate DF 
+for(i in 1:length(filtered_consensus_list)) {
+  print(names(filtered_consensus_list)[[i]])
+  tmp_df <- profile_tss(filtered_consensus_list[[i]], lncrna_mrna_promoters)
+  tmp_df$dbp <- names(filtered_consensus_list)[[i]]
+  metaplot_df <- bind_rows(metaplot_df, tmp_df)
+  
+}
+
+# saving
+write_rds(metaplot_df, "results/metaplot_df_final.rds")
+
+```
+  
+
+# creating distance matrix of binding profile correlations
+```{r scaling and plotting dendrogram of binding similarity by promoter}
+
+metaplot_filtered_matrix <- metaplot_df %>% 
+  pivot_wider(names_from = x, values_from = dens) %>%
+  column_to_rownames("dbp") %>%
+  as.matrix()
+mm_scaled <- t(scale(t(metaplot_filtered_matrix)))
+metaplot_hclust <- hclust(dist(mm_scaled), method = "complete")
+
+# plotting relationship between binding profiles
+plot(metaplot_hclust)
+pdf("figures/tss_profile_dendrogram.pdf", height = 10, width = 27)
+par(cex=0.3)
+plot(metaplot_hclust)
+dev.off()
+```
+
+
+# heat map of binding profile over +/- 1kb TSS window
+```{r heatmap of profile over TSS (+/- 1Kb)}
+
+pdf("figures/tss_profile_heatmap.pdf", height = 35, width = 10)
+Heatmap(mm_scaled, cluster_columns = FALSE, col = col_fun, border = TRUE, 
+        show_column_names = FALSE,
+        use_raster = TRUE,
+        column_split = split,
+        column_gap = unit(0, "mm"),row_names_gp = gpar(fontsize = 7))
+dev.off()
+```
+Result:
+(i) most binding profiles are over the TSS
+(ii) some binding profiles are more narrow directly over TSS
+(iii) histone mods tend to be depleted at TSS (probably NFR)
+
+# looking more into the patterns of ChIP binding profiles relative to TSS
+# breaking this down into several clusters and plotting each
+```{r how many groups are there?}
+
+# Let's see how many DBPs have different patterns.
+# manually checking at 6 we get a new group of 10 - after that not much changes
+clusters <- cutree(metaplot_hclust, k=6)
+table(clusters)
+
+# plot cluter 1
+dev.new()
+pdf("figures/cluster_1_heatmap.pdf", height = 35, width = 10)
+
+Heatmap(mm_scaled[clusters == 1,], cluster_columns = FALSE, col = col_fun, border = TRUE, 
+        show_column_names = FALSE,
+        use_raster = TRUE,
+        column_split = split,
+        column_gap = unit(0, "mm"),row_names_gp = gpar(fontsize = 7))
+graphics.off()
+
+# cluster 2
+dev.new()
+pdf("figures/cluster_2_heatmap.pdf", height = 35, width = 10)
+
+Heatmap(mm_scaled[clusters == 2,], cluster_columns = FALSE, col = col_fun, border = TRUE, 
+        show_column_names = FALSE,
+        use_raster = TRUE,
+        column_split = split,
+        column_gap = unit(0, "mm"),row_names_gp = gpar(fontsize = 7))
+graphics.off()
+
+# cluster 3
+dev.new()
+pdf("figures/cluster_3_heatmap.pdf", height = 35, width = 10)
+Heatmap(mm_scaled[clusters == 3,], cluster_columns = FALSE, col = col_fun, border = TRUE, 
+        show_column_names = FALSE,
+        use_raster = TRUE,
+        column_split = split,
+        column_gap = unit(0, "mm"),row_names_gp = gpar(fontsize = 7))
+graphics.off()
+# very narrow binding over tss !
+
+# cluster 4
+dev.new()
+pdf("figures/cluster_4_heatmap.pdf", height = 35, width = 10)
+Heatmap(mm_scaled[clusters == 4,], cluster_columns = FALSE, col = col_fun, border = TRUE, 
+        show_column_names = FALSE,
+        use_raster = TRUE,
+        column_split = split,
+        column_gap = unit(0, "mm"),row_names_gp = gpar(fontsize = 7))
+graphics.off()
+
+# looks like TSS depletion and histone mods
+
+# cluster 5 only 1 DBP
+names(clusters[5])
+
+# cluster 6
+dev.new()
+pdf("figures/cluster_6_heatmap.pdf", height = 35, width = 10)
+Heatmap(mm_scaled[clusters == 6,], cluster_columns = FALSE, col = col_fun, border = TRUE, 
+        show_column_names = FALSE,
+        use_raster = TRUE,
+        column_split = split,
+        column_gap = unit(0, "mm"),row_names_gp = gpar(fontsize = 7))
+graphics.off()
+
+# TSS depletion and histone mods again.
+
+
+```
+Result:
+(i) Cluster 1 and 2 have broad TSS binding (cluster 2 is more narrow than cluster 1)
+(ii) Cluster 3 has very narrow binding right over tss
+(iii) cluster 4 and 6 have depletion over TSS (also mostly histone mods and EZH2)
+(iv) cluster 5 was not plotted as only has one DBP.
+
+
+# metaplots for each DBP by lncRNA and mRNA promoters
+```{r}
+
+#TODO test by loading in env variable
+#setting up lncrna DF.
+lncrna_metaplot_df <- data.frame(x = integer(), dens = numeric(), dbp = character())
+
+# for loop to populate DF with overlap density in lncrna promoters
+for(i in 1:length(filtered_consensus_list)) {
+  print(names(filtered_consensus_list)[[i]])
+  tmp_df <- profile_tss(filtered_consensus_list[[i]], lncrna_mrna_promoters = lncrna_promoters)
+  tmp_df$dbp <- names(filtered_consensus_list)[[i]]
+  lncrna_metaplot_df <- bind_rows(lncrna_metaplot_df, tmp_df)
+  
+}
+
+# saving
+write_rds(lncrna_metaplot_df, "results/lncRNA_metaplot_df_final.rds")
+
+# now for mRNAs 
+mrna_metaplot_df <- data.frame(x = integer(), dens = numeric(), dbp = character())
+
+# for loop to populate mRNA_metaplot
+for(i in 1:length(filtered_consensus_list)) {
+  print(names(filtered_consensus_list)[[i]])
+  tmp_df <- profile_tss(filtered_consensus_list[[i]], lncrna_mrna_promoters = mrna_promoters)
+  tmp_df$dbp <- names(filtered_consensus_list)[[i]]
+  mrna_metaplot_df <- bind_rows(mrna_metaplot_df, tmp_df)
+  
+}
+
+# saving mRNA metaplots
+write_rds(mrna_metaplot_df, "results/mrna_metaplot_df_final.rds")
+
+
+# now adding the information of gene type
+mrna_metaplot_df$gene_type <- "mRNA"
+lncrna_metaplot_df$gene_type <- "lncRNA"
+combined_metaplot_profile <- bind_rows(mrna_metaplot_df, lncrna_metaplot_df)
+
+# saving
+write_rds(mrna_metaplot_df, "results/metaplot_df_final.rds")
+```
+
+# profile plots for lncRNA and mRNA promoters seperated for each DBP
+```{r lncRNA and mRNA profile plots for each dbp}
+
+ggplot(combined_metaplot_profile, 
+       aes(x = x, y = dens, color = gene_type )) +
+  geom_vline(xintercept = 0, lty = 2) + 
+  geom_line(size = 1.5) + 
+  facet_wrap(dbp ~ ., scales = "free_y") +
+  ggtitle("Promoter Metaplot") + 
+  scale_x_continuous(breaks = c(-1000, 0, 1000),
+                     labels = c("-1kb", "TSS", "+1kb"),
+                     name = "") + 
+  ylab("Peak frequency") +
+ scale_color_manual(values = c("#424242","#a8404c"))
+
+# saving
+ggsave("figures/mega_meta_plot_lncRNA-mRNA.pdf", width = 49, height = 12)
+
+```
+Result: 
