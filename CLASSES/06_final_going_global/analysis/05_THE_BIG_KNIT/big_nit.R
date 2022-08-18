@@ -1,12 +1,5 @@
----
-  title: "01_BIG_KNIT"
-author: "JR"
-date: "8/17/2022"
-output: html_document
-editor_options: 
-  chunk_output_type: console
----
-  ````{r setup, include=FALSE} 
+
+
 knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
 knitr::opts_chunk$set(echo = TRUE)
 library(Gviz)
@@ -23,7 +16,7 @@ basepath <- "/scratch/Shares/rinnclass/CLASS_2023/JR"
 peak_path <- "CLASS_2023/CLASSES/05_R_analyses/analysis/00_consensus_peaks"
 consensusPeakPath <- file.path(basepath, peak_path)
 
-```
+
 
 # Goal:
 

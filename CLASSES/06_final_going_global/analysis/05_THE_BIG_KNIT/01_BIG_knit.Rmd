@@ -2,7 +2,7 @@
 title: "01_BIG_KNIT"
 author: "JR"
 date: "8/17/2022"
-output: html_document
+output: github_document 
 editor_options: 
   chunk_output_type: console
 ---
@@ -677,3 +677,281 @@ ggsave("figures/mega_meta_plot_lncRNA-mRNA.pdf", width = 49, height = 12)
 
 ```
 Result: 
+(i) Most DBPs show similar binding profiles between lncRNA/mRNA promoters
+(ii) a few interesting ones EZH2 is more bound over TSS of lncRNA promoters
+(iii) H2AFZ is the most depleted over TSS
+(iv) H3K4me2 is more enriched over lncRNA TSS
+(v) H3K4me1 is slightly more over lncRNA promoters
+(vi) ZNF460 has different pattern between mRNA and lncRNA promoters
+
+
+# DBP Binding versus RNA expression output
+Now we are going to explore how binding to a promoter relates to gene
+expression output. We will use RNAseq data from ENCODE in HEPG2.
+The data is RNA from differnet fractions -- it was run throguh 
+NF_CORE RNAseq pipeline v1.4.2
+
+The data files are here:
+
+```{bash RNAseq files}
+
+# ENCODE report on experimental accessions used (fractionated and total RNA HEPG2)
+
+# wget -O samples.txt "https://www.encodeproject.org/report.tsv?type=Experiment&status=released&assay_slims=Transcription&assay_slims=Transcription&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&biosample_ontology.term_name=HepG2&biosample_ontology.classification=cell+line&assay_title=total+RNA-seq&files.read_length=50&limit=all&advancedQuery=date_released:[2009-01-01%20TO%202021-12-31]"
+
+# This will give us a text file of the file names.  
+
+# wget -O files.txt "https://www.encodeproject.org/batch_download/?type=Experiment&status=released&assay_slims=Transcription&assay_slims=Transcription&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&biosample_ontology.term_name=HepG2&biosample_ontology.classification=cell+line&assay_title=total+RNA-seq&files.read_length=50&limit=all&advancedQuery=date_released:[2009-01-01%20TO%202021-12-31]"
+
+
+```
+
+
+First we want to load in our final_samplesheet from 01_DESEQ_counts.Rmd
+# Reading in sample sheet
+
+```{r read in sample_sheet}
+# First let's read in the sample sheet to know what is what
+samplesheet <- read_rds("../../../05_R_analyses/05_RNAseq/01_differential_expression/results/final_samplesheet.rds")
+```
+
+# reading in TPM values from Salmon for our analyses
+
+```{r reading in salmon Salmon TPMs}
+
+# reading in salmon tpm
+salmon_tpm <- read.csv("../../../05_R_analyses/05_RNAseq/00_RNAseq_download_NF_core_pipeline/00_NF_CORE_RNAseq_Pipeline_run/results/salmon/salmon_merged_gene_tpm.csv")
+
+# TPM table is in same order as samplesheet
+tpm <- salmon_tpm %>% 
+  pivot_longer(cols = 2:ncol(.), names_to = "sample_id", values_to = "tpm") %>%
+  merge(samplesheet) %>%
+  group_by(gene_id, condition) %>%
+  summarize(tpm = mean(tpm, na.rm = T)) %>%
+  pivot_wider(names_from = condition, values_from = tpm, names_prefix = "tpm_")
+```
+
+# determining how many DBPs are bound at each promoter
+
+```{r loading in peak features data frame }
+
+# peak_occurence_df is loaded in our environment and contains how many DBPs bind to each promoter (rows)
+promoter_features_df <- merge(peak_occurence_df, tpm)
+
+# DBP density plot
+ggplot(promoter_features_df, aes(x = number_of_dbp)) +
+  geom_density() 
+
+# saving
+  ggsave("figures/DBP_binding_density_plot.pdf")
+
+```
+result: There appears to be a bimodal distribution of binding at promoters.
+those with less than 100dbps and those with more than 250
+
+
+# Abundance of genes in each cellular fraction
+
+```{r TPM of genes in each fraction}
+# First we need to the tpm DF into a matrix
+
+
+tpm_matrix <- tpm %>% 
+  column_to_rownames("gene_id") %>%
+  as.matrix()
+tpm_scaled <- t(scale(t(tpm_matrix)))
+tpm_scaled <- tpm_scaled[complete.cases(tpm_scaled),]
+
+
+# plotting
+new.env()
+pdf("figures/heatmap_expression.pdf", height =49, width = 12)
+pheatmap::pheatmap(tpm_scaled, show_rownames = FALSE)
+graphics.off()
+
+```
+RESULT: 
+(1) Most RNAs are abundant in the nucleus
+(2) Some RNAs expressed in total that are not in other fractions
+
+
+# Plotting binding versus expression
+
+Now let's examine how binding effects expression.
+We have published previously that the more binding
+events at a promoter the more abundant the expression is.
+Let's see if this holds for our current subset of DBPs
+```{r DBP promoter binding versus total RNA expression}
+
+# plotting binding vs total RNA expression
+ggplot(promoter_features_df, 
+            aes(y = log2(tpm_homo_sapiens_hepg2 + 0.001), x = number_of_dbp, color = gene_type)) + 
+geom_point(data = promoter_features_df %>% filter(tpm_homo_sapiens_hepg2 > 0.001),
+             shape = 17, alpha = 0.7) +
+  geom_smooth(method = 'gam', formula = y ~ s(x, bs = "cs")) +
+  stat_cor() +
+  geom_smooth(method = "lm") +
+  scale_x_continuous(expand = c(0,0)) +
+  scale_color_manual(values = c("#a8404c", "#424242"), name = "Gene type") + 
+  ggtitle("Expression vs. promoter binding events") + 
+  xlab(expression('Number of TFs')) +
+  ylab(expression(log[2](TPM))) 
+
+ggsave("figures/binding_vs_expression_total_rna.pdf")
+```
+Result: 
+(1) There is a linear trend with number of DBPS and expression levels
+(2) There is a population of genes that have numerous DBPs with low expression
+
+
+# Binding versus nuclear expression
+Let's see if the binding versus expression holds in the nuclear fraction
+```{r binding versus nuclear expression}
+
+# Now let's make a similar plot for nuclear RNA abundance versus #DBPs bound to their promoter
+ggplot(promoter_features_df, 
+            aes(y = log2(tpm_homo_sapiens_nuclear_fraction + 0.001), x = number_of_dbp, color = gene_type)) + 
+  geom_point(data = promoter_features_df %>% filter(tpm_homo_sapiens_nuclear_fraction > 0.001),
+             shape = 17, alpha = 0.7) +
+  geom_smooth(method = 'gam', formula = y ~ s(x, bs = "cs")) +
+  stat_cor() +
+  scale_x_continuous(expand = c(0,0)) +
+  scale_color_manual(values = c("#a8404c", "#424242"), name = "Gene type") + 
+  ggtitle("Nuclear Expression vs. promoter binding events") + 
+  xlab(expression('Number of TFs')) +
+  ylab(expression(log[2](TPM))) 
+  # saving figure
+  ggsave("figures/nuclear_expression-vs-promoter_binding.pdf")
+```
+RESULT: 
+(i) looks very similar to total RNA binding versus expression
+
+
+# Binding versus cytoplasmic expression
+
+Next we will determine the DBP binding versus cytoplasmic expression
+```{Binding versus cytoplasmic expression}
+
+# Same thing just seeing if there is a difference of cyto RNAs versus DBPs on promoter
+ggplot(promoter_features_df, 
+            aes(y = log2(tpm_homo_sapiens_cytosolic_fraction + 0.001), x = number_of_dbp, color = gene_type)) + 
+  geom_point(data = promoter_features_df %>% filter(tpm_homo_sapiens_cytosolic_fraction > 0.001),
+             shape = 17, alpha = 0.7) +
+  geom_smooth(method = 'gam', formula = y ~ s(x, bs = "cs")) +
+  stat_cor() +
+  scale_x_continuous(expand = c(0,0)) +
+  scale_color_manual(values = c("#a8404c", "#424242"), name = "Gene type") + 
+  ggtitle("Cytoplasmic Expression vs. promoter binding events") + 
+  xlab(expression('Number of TFs')) +
+  ylab(expression(log[2](TPM))) 
+  # saving figure
+  ggsave("figures/cytoplasmic_expression-vs-promoter_binding.pdf")
+  
+```
+Result:
+(1) everything seems to be low abundance 
+(2) Some mRNAs are expressed in the nucleus -- we could look at this more later.
+(3) The same linear trend holds but is driven by mostly low expression events.
+
+# lncRNA versus mRNA expression in total RNA
+Next we will directly test the lncRNA vs mRNA expression levels in total RNA. 
+
+```{r determining lncRNA and mRNA expression levels in total RNA}
+
+# plotting
+ggplot(promoter_features_df, aes(x = log2(tpm_homo_sapiens_hepg2 + 0.01), color = gene_type))+
+  geom_density()
+
+# saving figure
+ggsave("figures/mrna_lncrna_tpm_total_rna.pdf")
+
+# let's also do the same for nuclear since lncRNAs are typically more nuclear
+ggplot(promoter_features_df, aes(x = log2(tpm_homo_sapiens_nuclear_fraction + 0.01), color = gene_type))+
+  geom_density()
+
+# saving figure
+ggsave("figures/mrna_lncrna_tpm_nuclear.pdf")
+```
+Result:
+(i) This yet again confirms lncRNAs have lower expression levels than mRNAs.
+(ii) In the nuclear fraction it shift's to closer.
+(ii) lot's of mRNA with nuclear expression -- that seems odd
+
+
+
+We have previously observed that k562 cells also exhibit high binding promoters
+that are not expressed. We termed them 'reservoirs' as they are a reservoir
+for many Dna-protein interaction sites. Based on the plot above we observed that
+this phenomena also exists in hepG2 cells as well. 
+
+Based on this we next wanted to identify the 'reservoirs' in hepG2 cells.
+```{r defining HEPG2 reservoirs}
+
+
+# first we will use a cutoff of 100 DBPs.
+promoter_features_df$hepg2_reservoir <- 
+  as.numeric(promoter_features_df$number_of_dbp > 5 & 
+               promoter_features_df$tpm_homo_sapiens_hepg2 < 0.001)
+
+# seeing what we got with table
+table(promoter_features_df$hepg2_reservoir)
+
+```
+Result:
+(i) There are 2,360 reservoirs in this largert data set in HEPG2
+
+
+Now that we have defined reservoirs in hepG2 cells, we next want to determine how many 
+are similar genomic regions in k562 and hepG2.
+
+```{r reading in K562 reservoirs}
+
+# reading in k562 promoter_features_DF
+k562_df <- read_csv("/scratch/Shares/rinnclass/CLASS_2023/data/data/2020_k562_promoter_peak_df.csv")
+
+# next we want to merge the k562 adn Hepg2 DFs 
+k562_df <- k562_df %>% 
+  dplyr::select(gene_id, reservoir, conservative_reservoir, tpm, expression, tf_binding, promoter_mean_tpm, promoter_median_tpm, promoter_max_tpm) %>%
+  dplyr::rename(k562_reservoir = reservoir, 
+                k562_conservative_reservoir = conservative_reservoir,
+                k562_expression = expression,
+                k562_tpm = tpm,
+                k562_tf_binding = tf_binding,
+                k562_promoter_mean_tpm =  promoter_mean_tpm,
+                k562_promoter_median_tpm = promoter_median_tpm,
+                k562_promoter_median_tpm = promoter_median_tpm,
+                k562_promoter_max_tpm = promoter_max_tpm)
+
+# save this file in new format
+write_csv(k562_df,"results/k562_df.csv")
+
+# renaming promoter_features_df to hepg2_df
+hepg2_df <- promoter_features_df %>%
+  dplyr::select(gene_id, gene_name, tpm_homo_sapiens_hepg2, tpm_homo_sapiens_cytosolic_fraction, tpm_homo_sapiens_nuclear_fraction, tpm_homo_sapiens_insoluble_cytoplasmic_fraction, tpm_homo_sapiens_membrane_fraction, number_of_dbp, hepg2_reservoir) %>%
+   dplyr::rename( tpm_total = tpm_homo_sapiens_hepg2,
+                 tpm_cytosolic_fraction =  tpm_homo_sapiens_cytosolic_fraction,
+                 tpm_nuclear_fraction = tpm_homo_sapiens_nuclear_fraction ,
+                 tpm_insoluble_cytoplasmic_fraction = tpm_homo_sapiens_insoluble_cytoplasmic_fraction ,
+                 tpm_membrane_fraction = tpm_homo_sapiens_membrane_fraction)
+
+# let's save this handy file
+write_csv(hepg2_df,"results/hepg2_df.csv")
+  
+# Let's merge the k562 reservoirs in with HEPG2_df
+# Merges on Gene_id
+hepg2_k562_promoter_features_df <- merge(hepg2_df, k562_df)
+
+# Now saving
+write_csv(hepg2_k562_promoter_features_df, "results/hepg2_k562_promoter_features_df.csv")
+
+# Make a table of reservoir status
+res_status <- hepg2_k562_promoter_features_df %>% 
+  group_by(hepg2_reservoir, k562_reservoir, k562_conservative_reservoir) %>%
+  summarize(count = n())
+
+# saving for future
+write_csv2(res_status, "results/reservoir_overlap_stats.csv")
+```
+Result:
+(i) There are 345 reservoirs in both K562 and HEPG2
+(ii) There are 80 Hepg2 reservoirs that overlap "conservative" k562 reservoirs
