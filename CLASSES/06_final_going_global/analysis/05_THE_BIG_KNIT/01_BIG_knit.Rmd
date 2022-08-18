@@ -19,11 +19,6 @@ library(ComplexHeatmap)
 source("../../../../util/my_class_functions.R")
 source("../../../../util/_setup.R")
 
-# filepath to import peaks
-basepath <- "/scratch/Shares/rinnclass/CLASS_2023/JR"
-peak_path <- "CLASS_2023/CLASSES/05_R_analyses/analysis/00_consensus_peaks"
-consensusPeakPath <- "/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/06_final_going_global/analysis/01_create_consensus_peaks/results/filtered_consensus_peaks"
-
 ```
 
 # Goal:
@@ -84,16 +79,11 @@ Result:
 # Loading in all .broadPeak files for all dbps and their replicates
 ```{r load .broadPeak files}
 
-# using import peaks to import .broadPeak files (~10min)
-fl <- list.files(consensusPeakPath, full.names = T)
+broadpeakfilepath <- "/scratch/Shares/rinnclass/CLASS_2023/data/data/peaks"
 
-peak_list <- lapply(fl, rtracklayer::import)
-
-names(peak_list) <- gsub("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/06_final_going_global/analysis/01_create_consensus_peaks/results/filtered_consensus_peaks|_filtered_consensus_peaks", "", fl)
-
-
-
-peak_list <- import_peaks(consensus_file_path = file.path(consensusPeakPath))
+# importing peaks as granges with "import_peaks" function
+# can take 10+ min !
+peak_list <- import_peaks(consensus_file_path = broadpeakfilepath)
 
 ```
 
@@ -116,16 +106,18 @@ consensus_list <- lapply(dbp, consensus_from_reduced, peak_list)
 # adding names to the GRange list
 names(consensus_list) <- dbp
 
-# exploring the number of peaks in the consensus_list
 ```
 
+# exploring number of peaks per DBP for filtering
 ```{r exploring number of peaks in consenus peaks}
+
 # creating list of num_peaks per dbp
 num_peaks <- sapply(consensus_list, length)
 
 # plotting
 hist(num_peaks, breaks = 1000)
 hist(num_peaks, breaks = 1000, xlim = c(0,3000))
+ggsave("figures/hist_num_peaks.pdf")
 
 ```
 Result:
