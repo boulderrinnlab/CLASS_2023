@@ -16,6 +16,8 @@ library(ggplot2)
 library(tidyverse)
 library(GenomicRanges)
 library(ComplexHeatmap)
+library(circlize)
+library(colorRamps)
 source("../../../../util/my_class_functions.R")
 source("../../../../util/_setup.R")
 
@@ -487,7 +489,7 @@ for(i in 1:length(filtered_consensus_list)) {
 
 # saving
 write_rds(metaplot_df, "results/metaplot_df_final.rds")
-
+metaplot_df <- read_rds("results/metaplot_df_final.rds")
 ```
   
 
@@ -514,10 +516,9 @@ dev.off()
 ```{r heatmap of profile over TSS (+/- 1Kb)}
 
 pdf("figures/tss_profile_heatmap.pdf", height = 35, width = 10)
-Heatmap(mm_scaled, cluster_columns = FALSE, col = col_fun, border = TRUE, 
+Heatmap(mm_scaled, cluster_columns = FALSE,  border = TRUE, 
         show_column_names = FALSE,
         use_raster = TRUE,
-        column_split = split,
         column_gap = unit(0, "mm"),row_names_gp = gpar(fontsize = 7))
 dev.off()
 ```
@@ -539,10 +540,9 @@ table(clusters)
 dev.new()
 pdf("figures/cluster_1_heatmap.pdf", height = 35, width = 10)
 
-Heatmap(mm_scaled[clusters == 1,], cluster_columns = FALSE, col = col_fun, border = TRUE, 
+Heatmap(mm_scaled[clusters == 1,], cluster_columns = FALSE,  border = TRUE, 
         show_column_names = FALSE,
         use_raster = TRUE,
-        column_split = split,
         column_gap = unit(0, "mm"),row_names_gp = gpar(fontsize = 7))
 graphics.off()
 
@@ -550,20 +550,18 @@ graphics.off()
 dev.new()
 pdf("figures/cluster_2_heatmap.pdf", height = 35, width = 10)
 
-Heatmap(mm_scaled[clusters == 2,], cluster_columns = FALSE, col = col_fun, border = TRUE, 
+Heatmap(mm_scaled[clusters == 2,], cluster_columns = FALSE,  border = TRUE, 
         show_column_names = FALSE,
         use_raster = TRUE,
-        column_split = split,
         column_gap = unit(0, "mm"),row_names_gp = gpar(fontsize = 7))
 graphics.off()
 
 # cluster 3
 dev.new()
 pdf("figures/cluster_3_heatmap.pdf", height = 35, width = 10)
-Heatmap(mm_scaled[clusters == 3,], cluster_columns = FALSE, col = col_fun, border = TRUE, 
+Heatmap(mm_scaled[clusters == 3,], cluster_columns = FALSE,  border = TRUE, 
         show_column_names = FALSE,
         use_raster = TRUE,
-        column_split = split,
         column_gap = unit(0, "mm"),row_names_gp = gpar(fontsize = 7))
 graphics.off()
 # very narrow binding over tss !
@@ -571,10 +569,9 @@ graphics.off()
 # cluster 4
 dev.new()
 pdf("figures/cluster_4_heatmap.pdf", height = 35, width = 10)
-Heatmap(mm_scaled[clusters == 4,], cluster_columns = FALSE, col = col_fun, border = TRUE, 
+Heatmap(mm_scaled[clusters == 4,], cluster_columns = FALSE,  border = TRUE, 
         show_column_names = FALSE,
         use_raster = TRUE,
-        column_split = split,
         column_gap = unit(0, "mm"),row_names_gp = gpar(fontsize = 7))
 graphics.off()
 
@@ -586,10 +583,9 @@ names(clusters[5])
 # cluster 6
 dev.new()
 pdf("figures/cluster_6_heatmap.pdf", height = 35, width = 10)
-Heatmap(mm_scaled[clusters == 6,], cluster_columns = FALSE, col = col_fun, border = TRUE, 
+Heatmap(mm_scaled[clusters == 6,], cluster_columns = FALSE, border = TRUE, 
         show_column_names = FALSE,
         use_raster = TRUE,
-        column_split = split,
         column_gap = unit(0, "mm"),row_names_gp = gpar(fontsize = 7))
 graphics.off()
 
