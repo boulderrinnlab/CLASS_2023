@@ -179,6 +179,8 @@ lncrna_gene_ids <- mrna_lncrna_genes$gene_id[mrna_lncrna_genes$gene_type == "lnc
 # mrna_gene_ids
 mrna_gene_ids <-mrna_lncrna_genes$gene_id[mrna_lncrna_genes$gene_type == "protein_coding"]
 
+
+
 ```
 
 # making data frame of filtered_consensus_peak info
@@ -598,6 +600,19 @@ Result:
 (ii) Cluster 3 has very narrow binding right over tss
 (iii) cluster 4 and 6 have depletion over TSS (also mostly histone mods and EZH2)
 (iv) cluster 5 was not plotted as only has one DBP.
+
+# establishing lncRNA and mRNA promoters (+/- 1kb)
+```{r}
+
+
+# creating promoters just in case:
+lncrna_promoters <- lncrna_mrna_promoters[lncrna_mrna_promoters$gene_type == "lncRNA"]
+
+
+mrna_promoters <- lncrna_mrna_promoters[lncrna_mrna_promoters$gene_type == "protein_coding"]
+
+
+```
 
 
 # metaplots for each DBP by lncRNA and mRNA promoters
