@@ -482,7 +482,7 @@ metaplot_df <- data.frame(x = integer(), dens = numeric(), dbp = character())
 
 # for loop to populate DF 
 for(i in 1:length(filtered_consensus_list)) {
-  print(names(filtered_consensus_list)[[i]])
+  # print(names(filtered_consensus_list)[[i]])
   tmp_df <- profile_tss(filtered_consensus_list[[i]], lncrna_mrna_promoters)
   tmp_df$dbp <- names(filtered_consensus_list)[[i]]
   metaplot_df <- bind_rows(metaplot_df, tmp_df)
@@ -623,7 +623,7 @@ lncrna_metaplot_df <- data.frame(x = integer(), dens = numeric(), dbp = characte
 
 # for loop to populate DF with overlap density in lncrna promoters
 for(i in 1:length(filtered_consensus_list)) {
-  print(names(filtered_consensus_list)[[i]])
+  #print(names(filtered_consensus_list)[[i]])
   tmp_df <- profile_tss(filtered_consensus_list[[i]], lncrna_mrna_promoters = lncrna_promoters)
   tmp_df$dbp <- names(filtered_consensus_list)[[i]]
   lncrna_metaplot_df <- bind_rows(lncrna_metaplot_df, tmp_df)
@@ -638,7 +638,7 @@ mrna_metaplot_df <- data.frame(x = integer(), dens = numeric(), dbp = character(
 
 # for loop to populate mRNA_metaplot
 for(i in 1:length(filtered_consensus_list)) {
-  print(names(filtered_consensus_list)[[i]])
+ # print(names(filtered_consensus_list)[[i]])
   tmp_df <- profile_tss(filtered_consensus_list[[i]], lncrna_mrna_promoters = mrna_promoters)
   tmp_df$dbp <- names(filtered_consensus_list)[[i]]
   mrna_metaplot_df <- bind_rows(mrna_metaplot_df, tmp_df)

@@ -887,18 +887,17 @@ body {
 <span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>mrna_promoters <span class="ot">&lt;-</span> lncrna_mrna_promoters[lncrna_mrna_promoters<span class="sc">$</span>gene_type <span class="sc">==</span> <span class="st">&quot;protein_coding&quot;</span>]</span></code></pre></div>
 <h1 id="metaplots-for-each-dbp-by-lncrna-and-mrna-promoters">metaplots for each DBP by lncRNA and mRNA promoters</h1>
-<div class="sourceCode" id="cb43"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="co">#TODO test by loading in env variable</span></span>
-<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a><span class="co">#setting up lncrna DF.</span></span>
-<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>lncrna_metaplot_df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">x =</span> <span class="fu">integer</span>(), <span class="at">dens =</span> <span class="fu">numeric</span>(), <span class="at">dbp =</span> <span class="fu">character</span>())</span>
-<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a><span class="co"># for loop to populate DF with overlap density in lncrna promoters</span></span>
-<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">length</span>(filtered_consensus_list)) {</span>
-<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="fu">names</span>(filtered_consensus_list)[[i]])</span>
-<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a>  tmp_df <span class="ot">&lt;-</span> <span class="fu">profile_tss</span>(filtered_consensus_list[[i]], <span class="at">lncrna_mrna_promoters =</span> lncrna_promoters)</span>
-<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a>  tmp_df<span class="sc">$</span>dbp <span class="ot">&lt;-</span> <span class="fu">names</span>(filtered_consensus_list)[[i]]</span>
-<span id="cb43-10"><a href="#cb43-10" aria-hidden="true" tabindex="-1"></a>  lncrna_metaplot_df <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(lncrna_metaplot_df, tmp_df)</span>
-<span id="cb43-11"><a href="#cb43-11" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb43-12"><a href="#cb43-12" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<div class="sourceCode" id="cb43"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="co">#setting up lncrna DF.</span></span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>lncrna_metaplot_df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">x =</span> <span class="fu">integer</span>(), <span class="at">dens =</span> <span class="fu">numeric</span>(), <span class="at">dbp =</span> <span class="fu">character</span>())</span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a><span class="co"># for loop to populate DF with overlap density in lncrna promoters</span></span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">length</span>(filtered_consensus_list)) {</span>
+<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="fu">names</span>(filtered_consensus_list)[[i]])</span>
+<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>  tmp_df <span class="ot">&lt;-</span> <span class="fu">profile_tss</span>(filtered_consensus_list[[i]], <span class="at">lncrna_mrna_promoters =</span> lncrna_promoters)</span>
+<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a>  tmp_df<span class="sc">$</span>dbp <span class="ot">&lt;-</span> <span class="fu">names</span>(filtered_consensus_list)[[i]]</span>
+<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a>  lncrna_metaplot_df <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(lncrna_metaplot_df, tmp_df)</span>
+<span id="cb43-10"><a href="#cb43-10" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb43-11"><a href="#cb43-11" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
 <pre><code>## [1] &quot;ADNP&quot;
 ## [1] &quot;AFF4&quot;
 ## [1] &quot;AHDC1&quot;
@@ -1848,7 +1847,7 @@ body {
 <span id="cb55-10"><a href="#cb55-10" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb55-11"><a href="#cb55-11" aria-hidden="true" tabindex="-1"></a><span class="co"># plotting</span></span>
 <span id="cb55-12"><a href="#cb55-12" aria-hidden="true" tabindex="-1"></a><span class="fu">new.env</span>()</span></code></pre></div>
-<pre><code>## &lt;environment: 0x20aae8e38&gt;</code></pre>
+<pre><code>## &lt;environment: 0x246c47238&gt;</code></pre>
 <div class="sourceCode" id="cb57"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a><span class="fu">pdf</span>(<span class="st">&quot;figures/heatmap_expression.pdf&quot;</span>, <span class="at">height =</span><span class="dv">49</span>, <span class="at">width =</span> <span class="dv">12</span>)</span>
 <span id="cb57-2"><a href="#cb57-2" aria-hidden="true" tabindex="-1"></a>pheatmap<span class="sc">::</span><span class="fu">pheatmap</span>(tpm_scaled, <span class="at">show_rownames =</span> <span class="cn">FALSE</span>)</span>
 <span id="cb57-3"><a href="#cb57-3" aria-hidden="true" tabindex="-1"></a><span class="fu">graphics.off</span>()</span></code></pre></div>

@@ -1088,7 +1088,6 @@ mrna_promoters <- lncrna_mrna_promoters[lncrna_mrna_promoters$gene_type == "prot
 # metaplots for each DBP by lncRNA and mRNA promoters
 
 ``` r
-#TODO test by loading in env variable
 #setting up lncrna DF.
 lncrna_metaplot_df <- data.frame(x = integer(), dens = numeric(), dbp = character())
 
@@ -2105,7 +2104,7 @@ tpm_scaled <- tpm_scaled[complete.cases(tpm_scaled),]
 new.env()
 ```
 
-    ## <environment: 0x20aae8e38>
+    ## <environment: 0x246c47238>
 
 ``` r
 pdf("figures/heatmap_expression.pdf", height =49, width = 12)
