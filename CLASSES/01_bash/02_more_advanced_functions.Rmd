@@ -116,7 +116,7 @@ So we can use AWK in a similar way to grep to get started:
 man awk
 
 # now we can run awk to select for POLR2A
-awk -F $'\t' '{if ($6 == "POLR2A") print $0;}' data/encode_awk_lessons.tsv | wc -l 
+awk -F $'\t' '{if ($6 == "POLR2A") print $0;}' encode_awk_lessons.tsv | wc -l 
 
 # The syntax for awk is:
 # awk -options 'selection _criteria {action }' input-file > output-file
@@ -138,9 +138,10 @@ First let's make a file with just the names of DBPs.
 # We are using a variant in the syntax to set seperator
 # 'BEGING {FS="\t"} instead of the flag above -F
 
-awk 'BEGIN {FS="\t"}; {print $6}' data/encode_awk_lessons.tsv > DBP.txt
+awk 'BEGIN {FS="\t"}; {print $6}' encode_awk_lessons.tsv > DBP.txt
 cat DBP.txt
 
+wc -l DBP.txt
 # The statement above is using the function print to "print" the column of choice.
 # In this case we are choosing column 6 as it has the names of all the DBPs.
 # The final argument after the awk instructions is the file to search: 'encode_awk_lessons.tsv'
@@ -156,7 +157,7 @@ man sort
 # now we can use the pipe to take take the awk output and sort it
 # then we can pipe that to wc -l to see how many enteries there are
 
-awk 'BEGIN {FS="\t"}; {print $6}' data/encode_awk_lessons.tsv | sort | wc -l
+awk 'BEGIN {FS="\t"}; {print $6}' encode_awk_lessons.tsv | sort | wc -l
 
 # we find 564 enteries returned by AWK
 ```
