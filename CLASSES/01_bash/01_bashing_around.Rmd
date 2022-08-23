@@ -14,6 +14,9 @@ options(stringsAsFactors = FALSE,
 
 Let's start with some of the very basics of BASH to navigate servers and your command line:
 
+Youtube video for this class is here :
+https://youtu.be/yqENuEzE1KY
+
 # First commands:
 cd - to change directories
 ls - list the files
