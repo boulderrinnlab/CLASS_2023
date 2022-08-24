@@ -59,7 +59,7 @@ many ways to spell but we can search for anything that starts with POL.
 
 ```{BASH}
 
-grep -i 'pol' data/encode_awk_lessons.tsv | wc -l
+grep -i 'pol' encode_awk_lessons.tsv | wc -l
 
 ```
 We see that there are 11 entries for anything matching the text of pol.
@@ -168,7 +168,7 @@ the actual number of proteins.
 We can use sort -u to find all the unique enteries:
 
 ```{BASH}
-awk 'BEGIN {FS="\t"}; {print $6}' data/encode_awk_lessons.tsv | sort -u | wc -l
+awk 'BEGIN {FS="\t"}; {print $6}' encode_awk_lessons.tsv | sort -u | wc -l
 
 # cool we see there are 480 proteins in the file!
 
@@ -270,7 +270,7 @@ Here is a for loop to print out each line of a file
 
 ```{BASH}
 
-for line in $(cat data/encode_awk_lessons.tsv)
+for line in $(cat encode_awk_lessons.tsv)
 do 
 echo "$line"
 done
@@ -307,15 +307,15 @@ Let's try changing POLR2A to POL2
 
 ```{BASH}
 
-sed -i 's/POLR2A/POL2/g' data/encode_awk_lessons.tsv
+sed -i 's/POLR2A/POL2/g' encode_awk_lessons.tsv
 
 # Note you have changed the file forever -- there is no undo in bash 
 
 # Did you see a change? How would you check?
-awk -F $'\t' '{if ($6 == "POLR2A") print $0;}' data/encode_awk_lessons.tsv | wc -l 
+awk -F $'\t' '{if ($6 == "POLR2A") print $0;}' encode_awk_lessons.tsv | wc -l 
 
 # yup we see there is no POLR2A anymore -- let's see if we can find the replacement:
-awk -F $'\t' '{if ($6 == "POL2") print $0;}' data/encode_awk_lessons.tsv | wc -l 
+awk -F $'\t' '{if ($6 == "POL2") print $0;}' encode_awk_lessons.tsv | wc -l 
 
 # Nice back to 4 enteries. This seems essoteric but it can be very useful to use sed 
 # in a for loop to change a chromosome name to the needed format etc.
