@@ -222,3 +222,57 @@ Check on your git hub site and you should see test.Rmd after refreshing
 
 This seems much easier and is a more "social" way to clone as it will be noted by creator of repo 
 
+
+#################
+Excercise
+#################
+
+Change your .gitignore file to contain the following:
+Hint: use nano, cut and paste and then your git knowledge to commit and push!
+
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+*fastq*
+.nextflow*
+log/*
+results/*
+work/*
+*.Rproj
+*.csv
+*.gtf
+*data*
+*.pdf
+*.RData
+*.rda
+*results*
+*.html
+*.tbl
+*.feather
+*.log
+*.png
+*.err
+*.out
+*figures*
+*cache*
+*.cnt
+*.bam
+*.bai
+*.zip
+*work*
+*.bedGraph
+*qc*
+*align*
+*.svg
+*.bdg
+*.rds
+*bin*
+*data*
+*.txt
+*.tsv
+*.rds
+*.gtf
+*fa
+*.bed
+
