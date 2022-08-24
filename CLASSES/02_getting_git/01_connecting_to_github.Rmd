@@ -8,11 +8,10 @@ output: html_document
 Our first objective today will be to sync to the class github. We will
 go over a few needed things to establish git connections:
 
-### Sign up for github -- if you already have nothing to do.
+### Sign up for github -- if you have already have nothing to do.
 
 
 ## FIRST STEP: set up ssh connection to github (one time only)
-
 Navigate to your home directory on fiji ~/IDENTIKEY
 
 ```{bash}
@@ -30,6 +29,7 @@ Here we are connecting out "public key" on our server "Fiji" to github.
 # If you want to connect your local computer there is also a .ssh file (MAC)
 
 ```{bash}
+cd ~/
 cd .ssh
 ls -lah
 
@@ -43,8 +43,15 @@ cat id_rsa.pub
 ```{bash}
 
 ssh-keygen -t rsa
-
+# just use the default name and no password needed
 # Then cat the contents of the public key file (id_rsa.pub) and copy to clipboard.
+
+
+# In windows you can use puttygen to create the key  
+# Mac or Linux you can use ssh-keygen
+# The instructions for creating a key with putty are here and detailed.
+# https://www.ssh.com/ssh/putty/windows/puttygen
+
 
 ```
 
@@ -52,9 +59,7 @@ Now let's got to your github website.
 You will need to sign into your github account first.
 
 On the top right there is a drop down menu. 
-
 Click on "Settings". Now you will see on the left side there is a list of options. 
-
 Click on "SSH and GPG Keys" > "Add new key" on top right (green button). Paste in the new public SSH key we just generated.
 
 # You may also want to go to your local computer shell .ssh folder (same place).
@@ -69,20 +74,6 @@ Cool we are all connected !
 ```{BASH}
 
 # We will be adding the public key to the `~/.ssh/authorized_keys` file on FIJI.
-
-# First: look to see if you have an id_rsa.pub in your .ssh folder (on your local computer)
-# If you don't have one: You'll create a key on your local computer . 
-
-# In windows you can use puttygen to create the key  
-# Mac or Linux you can use ssh-keygen
-
-
-# The instructions for creating a key with putty are here and detailed.
-https://www.ssh.com/ssh/putty/windows/puttygen
-
-# The location of the key file should be in cd ~/.ssh for Mac and
-# in Windows it should be in C:/Users/<username>/.ssh
-
 # Then as above for github, you'll copy the public key to your clipboard
 # and paste it into `~/.ssh/authorized_keys` on FIJI
 
@@ -98,17 +89,80 @@ ssh identikey@fiji.colorado.edu
 # should connect directly with out a password 
 ```
 
-There are often little bugs along the way we will fix.
-Here is some good trouble shooting steps.
+
+--------- Nice we are all connected --------------
+
+
+
+# {VERSION ONE cloning: start on your git hub site} 
+Now let's clone the class git hub
+
+# STEP 1: GO TO YOUR GIT HUB and make new repository called: CLASS_2023
+You can leave empty
+
+# STEP 2: clone in directory of choosing   
+```{git bash}
+
+# navigate to the directory of your choosing locally 
+# On fiji
+cd /scratch/Shares/rinnclass/CLASS_2023/<YOUR_NAME>
+
+# NOW Clone via termial
+git clone git@github.com:boulderrinnlab/CLASS_2023.git
+
+# Cool so you can see all the class files now !!
+# change directories into the new folder that was cloned
+cd CLASS_2023/
+
+```
+
+# STEP 3 : initialize
+```{git bash}
+
+# simply type:
+git init
+
+# ok one step closer
+```
+
+
+# STEP 4: set up remote origin and url
+```{git bash}
+
+# setting up git origin
+git remote add origin git@github.com:your_github/CLASS_2023.git
+# git remote add origin git@github.com:rinntestsite/CLASS_2023.git
+
+# setting up origin
+git remote set-url origin git@github.com:YOU/REPO_NAME.git
+# git remote set-url origin git@github.com:rinntestsite/CLASS_2023.git
+
+
+
+git push --set-upstream origin master
+```
+
+
+
+
+
+git remote set-url origin git@github.com:YOU/REPO_NAME.git
+
+(5) git push --set-upstream origin master 
+
+
+
 # trouble shooting
 ```{r}
 # (***) check  push pull on Rstudio -- if grey doesn't know remote origin.
 
+
+
 # From the start:
 
-# (1) Go to GitHub and make repo - add a file (e.g. .readme)
 
-# GO TO TERMINAL and project directory
+
+
 
 # (2)  git remote add origin git@github.com:YOU/REPO_NAME.git
 # Example - DON'T USE :) git remote add origin git@github.com:Boulderrinnlab/CODE_VAULT.git
@@ -119,7 +173,7 @@ Here is some good trouble shooting steps.
 
 # (4) git pull
 
-# (5) git push --set-upstream origin master 
+# 
 
 ```
 
