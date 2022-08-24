@@ -138,54 +138,87 @@ git remote set-url origin git@github.com:YOU/REPO_NAME.git
 # git remote set-url origin git@github.com:rinntestsite/CLASS_2023.git
 
 
+```
 
+# STEP 6: git push to upstream origin master
+```{git }
+
+# type this in 
 git push --set-upstream origin master
-```
 
 
-
-
-
-git remote set-url origin git@github.com:YOU/REPO_NAME.git
-
-(5) git push --set-upstream origin master 
-
-
-
-# trouble shooting
-```{r}
-# (***) check  push pull on Rstudio -- if grey doesn't know remote origin.
-
-
-
-# From the start:
-
-
-
-
-
-# (2)  git remote add origin git@github.com:YOU/REPO_NAME.git
-# Example - DON'T USE :) git remote add origin git@github.com:Boulderrinnlab/CODE_VAULT.git
-
-# (3)  git remote set-url origin git@github.com:YOU/REPO_NAME.git
-
-# Example - DON'T USE :) git remote set-url origin git@github.com:Boulderrinnlab/CODE_VAULT.git
-
-# (4) git pull
-
-# 
+# now go back to your git hub website and you should see all the files there !
 
 ```
 
 
-# if you find that your commits are not being tracked by github it's likely that 
-# the email you made the github account is different than CU boulder
-# to get credit change git env email on fiji to the one used to start git hub
+# STEP 7: make a new file and push
+
+```{git bash}
+
+# make a new .Rmd
+nano test.Rmd
+# type in whatever you want and cntrl-x, y, enter to exit
+
+# check on git status
+git status
+
+# now add the .rmd
+git add test.Rmd
+
+# now commit
+git commit -m "adding first file"
+
+# now push 
+git push
+
+# check on your git hub site and should have new .Rmd file !
+
+```
+
+# Now let's make sure you are configured with the right email
+Did you see a green square show up on your git site to credit the commit?
+If not you probably have an email that is not the same as your git site
+
+```{git bash}
+
+# let's see what our git configuration is:
+cat ~/.gitconfig
+
+# or we can see everything with this:
+git config --list
+
+# is your email the same as the one you set up git hub?
+# If not we can easily change:
+
+# Set your username:
+git config --global user.name "FIRST_NAME LAST_NAME"
+
+# Set your email address  **** this should be the same as the one associated with your git hub *****
+git config --global user.email "MY_NAME@example.com"
+
+# note you can remove the origin and change above 
+git remote rm origin
+```
+
+Ok that was a lot but now you have the class cloned and can make changes and commit to your own git hub site !!
 
 
+# ANOTHER APPROACH: FORKING
 
+On your git hub site search for "boulderrinnlab"
+Click on CLASS 2023 recent commits
 
+On the top right you will see "FORK"
+Click that and you will have everything ready to go !
 
+# Now clone this using the terminal
+Create a new file (nano test.Rmd) -- type something and save
+git add test.Rmd
+git commit -m "let's hope this pushes"
+git push
 
+Check on your git hub site and you should see test.Rmd after refreshing
 
-------------------Nice all connected to Git and Fiji ----------------------
+This seems much easier and is a more "social" way to clone as it will be noted by creator of repo 
+
