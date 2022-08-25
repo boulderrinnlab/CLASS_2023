@@ -106,19 +106,21 @@ the .profile is loaded each time you login to the terminal
 It tells fiji how to set up your environment (for example you can make)
 custom prompts or colors etc like my prompt is : [*~*]
 
-Oddly there are several . files loaded in each shell session with fiji
+there are several . files loaded in each shell session with fiji
 Theer is:
 
 .bash_profile
 .profile (main simple path to bin directory)
 .bshrc (set up for bash in fiji - prompts env etc)
 
+these default in different order depending on which type of shell you are connecting with.
+
 ```{BASH .profile}
 
 # let's take a look at our .bash_profile
 cat ~/.bash_profile
 
-# or we can put this in our .profile file
+# Let's also put this in our .profile file
 nano .profile
 PATH=$PATH:~/bin
 
@@ -137,6 +139,8 @@ export PATH=$PATH:~/bin
 # then source the profile so it will be embedded each time your shell starts.
 
 source ~/.bash_profile
+
+source ~/.profile
 
 # Since /bin is in our path then after we source it will automatically
 # load in each session (just like ls, cd etc..)
@@ -209,17 +213,9 @@ let's make your directory nice and tidy.
 We will run our first test ChIPseq analysis in the data directory.
 
 ```{BASH setting up }
-cd /scratch/Shares/rinnclass/CLASS_2023/<your-folder>/class_exeRcises
 
-# first make a directory for all analyses in the class
-mdkir analysis
-
-# move to analysis 
-cd analysis
-
-# now we will make a directory for our first analysis 
-mkdir 01_nextflow_chipseq
-cd 01_nextflow_chipseq
+# her is where we want to be to run out first chipseq :
+cd /scratch/Shares/rinnclass/CLASS_2023/<your-folder>/CLASS_2023/CLASSES/03_Nextflow/00_my_chipseq
 
 # this is where we run the pipeline!
 

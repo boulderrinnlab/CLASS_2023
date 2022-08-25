@@ -5,6 +5,14 @@ date: "7/18/2022"
 output: html_document
 ---
 
+Youtube video of this class:
+https://youtu.be/dTlz2sJgv1A
+
+GOAL: take all the code for class -> "clone" it to your git hub 
+-> track your changes on your own github site! Also we will learn how to 
+make SSH keys to connect your computer to github so the two become trusted friends.
+
+
 Our first objective today will be to sync to the class github. We will
 go over a few needed things to establish git connections:
 
