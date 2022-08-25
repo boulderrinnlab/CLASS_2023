@@ -92,8 +92,6 @@ ssh identikey@fiji.colorado.edu
 
 --------- Nice we are all connected --------------
 
-
-
 # {VERSION ONE cloning: start on your git hub site} 
 Now let's clone the class git hub
 
@@ -110,17 +108,19 @@ cd /scratch/Shares/rinnclass/CLASS_2023/<YOUR_NAME>
 # NOW Clone via termial
 git clone git@github.com:boulderrinnlab/CLASS_2023.git
 
+git@github.com:boulderrinnlab/CLASS_2023.git
+
 # Cool so you can see all the class files now !!
 # change directories into the new folder that was cloned
 cd CLASS_2023/
 
 ```
 
-# STEP 3 : initialize
+#DELETE
 ```{git bash}
 
 # simply type:
-git init
+#git init
 
 # ok one step closer
 ```
@@ -128,9 +128,9 @@ git init
 
 # STEP 4: set up remote origin and url
 ```{git bash}
-
+#git remote rename origin upstream
 # setting up git origin
-git remote add origin git@github.com:your_github/CLASS_2023.git
+#git remote add origin git@github.com:your_github/CLASS_2023.git
 # git remote add origin git@github.com:rinntestsite/CLASS_2023.git
 
 # setting up origin
@@ -145,7 +145,6 @@ git remote set-url origin git@github.com:YOU/REPO_NAME.git
 
 # type this in 
 git push --set-upstream origin master
-
 
 # now go back to your git hub website and you should see all the files there !
 
