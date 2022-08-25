@@ -180,10 +180,27 @@ git config --global user.email "MY_NAME@example.com"
 # note you can remove the origin and change above 
 git remote rm origin
 ```
-
 Ok that was a lot but now you have the class cloned and can make changes and commit to your own git hub site !!
 
-# ANOTHER APPROACH: FORKING
+####################################
+# NOTE: on WHY 1 id_rsa is best
+####################################
+I had made a second id_rsa ssh key to show how to make a key and connect that key to github.com
+However, If you have two keys say "id_rsa.pub" & "id_rsa_2.pub" it will default to the former.
+The solution is to make a "config" file in .ssh directory. The connection will defualt to this "config file"
+Here is what I had: [*~*]$ cat config
+Host github.com
+	IdentityFile ~/.ssh/id_rsa_2
+
+This then defaults to the id_rsa_2.pub key which is the one I pasted in the video.
+It will look for the .pub version of id_rsa_2 in the config file above
+
+# In short jsut stick with one id_rsa.pub key :)!
+
+
+####################################
+# ANOTHER APPROACH -- SUPER EASY : FORKING
+####################################
 
 On your git hub site search for "boulderrinnlab"
 Click on CLASS 2023 recent commits
