@@ -200,8 +200,14 @@ nextflow run nf-core/chipseq -r 1.1.0 \
 
 --macs_gsize 2.7e9 \
 # MACS3 will be run to call peaks and for some reason needs to know the genome size :)
+
+
 --blacklist /scratch/Shares/rinnclass/CLASS_2023/data/data/genomes/hg38-blacklist.v2.bed \
 # Some regions of the genome are very difficult to align short-reads to so they are flagged out
+#TODO download here : 
+wget https://www.dropbox.com/s/v6uo554wgq4arb5/hg38-blacklist.v2.bed?dl=0
+
+
 --email john.rinn@colorado.edu \
 # You will get an email with a funny job name (random-adjective_scientist-name)
 # You get an email telling you if it succeeded (exit status 0) or failed (exit status 1)
@@ -255,8 +261,18 @@ process {
 ```
 
 Now all you need is a design file with correct headers.
+Let's make that below
 
-group,replicate,fastq_1,fastq_2,antibody,control
+To download the fastq files from ENCODE portal:
+(1) Go to : https://www.encodeproject.org/
+(2) In searhc bar put in the name of "experiment Aceession needed"
+- ENCFF000XWJ, ENCFF000PNT, ENCFF000XWR, ENCFF000PNM, ENCFF000XTF(input), input
+(3) Click on fastq 
+(4) click download button
+
+
+# Making design file wiht these exact col names and order:
+# group,replicate,fastq_1,fastq_2,antibody,control
 
 ```{Text for design.csv}
 group,replicate,fastq_1,fastq_2,antibody,control
