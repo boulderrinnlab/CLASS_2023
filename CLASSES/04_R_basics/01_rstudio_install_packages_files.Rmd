@@ -3,6 +3,8 @@ title: "01_R_studio_install_packages_basics"
 author: "JR"
 date: "7/20/2022"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -13,6 +15,7 @@ library(GenomicRanges)
 ```
 
 Today we are going to connect to Rstudio on the Fiji-viz server.
+
 
 We simply go here and login with our identikey:
 https://fiji-viz.colorado.edu/
