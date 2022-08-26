@@ -240,7 +240,7 @@ Here is a full "run.sh" script with slurm instructions and nextflow.
 #SBATCH -p short
 #SBATCH --job-name=PolII_test
 #SBATCH --mail-type=END,FAIL
-#SBATCH --mail-user=john.rinn@colorado.edu 
+#SBATCH --mail-user=your_email 
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --mem=6gb
