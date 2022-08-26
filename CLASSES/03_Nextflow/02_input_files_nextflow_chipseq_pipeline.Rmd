@@ -105,10 +105,10 @@ nextflow run nf-core/chipseq -r 1.2.1 \
 -profile singularity \
 --single_end \
 --input design.csv \
---fasta /Shares/rinn_class/data/genomes/human/gencode/v32/GRCh38.p13.genome.fa \
---gtf /Shares/rinn_class/data/genomes/human/gencode/v32/gencode.v32.annotation.gtf \
+--fasta /scratch/Shares/rinnclass/CLASS_2023/data/data/genomes/human/gencode/v32/GRCh38.p13.genome.fa \
+--gtf /scratch/Shares/rinnclass/CLASS_2023/data/data/genomes/human/gencode/v32/gencode.v32.annotation.gtf \
 --macs_gsize 3.2e9 \
---blacklist /scratch/Shares/rinnclass/CLASS_2022/data/hg38-blacklist.v2.bed \
+--blacklist /scratch/Shares/rinnclass/CLASS_2023/data/data/genomes/hg38-blacklist.v2.bed \
 --email your email \
 -resume \
 -c nextflow.config
@@ -184,11 +184,20 @@ nextflow run nf-core/chipseq -r 1.1.0 \
 # Now we are setting NF_CORE ChIPseq specific parameters (with --) in this case the data is single-end reads
 --input design.csv \
 # Giving NF_CORE specific design file. 
+
+
 --fasta /scratch/Shares/rinnclass/CLASS_2023/data/data/genomes/human/gencode/v32/GRCh38.p13.genome.fa \
+
+#TODO can be downloaded here: https://www.ncbi.nlm.nih.gov/assembly/GCF_000001405.39/
+# Also here : https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/
+
+
 # The genome file that will be used to align reads to -- you can change to any species.
 --gtf /scratch/Shares/rinnclass/CLASS_2023/data/data/genomes/human/gencode/v32/gencode.v32.annotation.gtf \
+
+#TODO can be downloaded here: https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/
 # genome feature file provided by GENCODE. Tells where genes, promoters etc are in .GTF format.
-# https://www.gencodegenes.org/human/
+
 --macs_gsize 2.7e9 \
 # MACS3 will be run to call peaks and for some reason needs to know the genome size :)
 --blacklist /scratch/Shares/rinnclass/CLASS_2023/data/data/genomes/hg38-blacklist.v2.bed \
