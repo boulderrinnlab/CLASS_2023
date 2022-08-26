@@ -10,6 +10,9 @@ The goal for this class is to RUN our FIRST ChIPseq !!
 First we need to learn the input files and parameters
 for the NF_CORE ChIPseq pipeline.
 
+Associated you tube video going over code is here:
+https://youtu.be/NxCl_u0Rnh8
+
 *********************
 Input files
 *********************
