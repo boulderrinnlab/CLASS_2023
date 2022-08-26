@@ -46,13 +46,10 @@ basepath <- "/scratch/Shares/rinnclass/CLASS_2023/<your_folder>"
 # we can then add the rest of the path as such:
 Pol2_peak1 <- read_tsv(file.path(basepath, " rest of file path"))
 
-
 # now we can read in the peak file using file.path() function , rest of path
 # we will use the "read_tsv" baseR function and assign it ( <- ) to Pol2_peak1
 
 Pol2_peak1 <- read_tsv(file.path(basepath, "CLASS_2023/CLASSES/03_Nextflow/00_Pol2_NF_CORE_RUN/results/bwa/mergedLibrary/macs/broadPeak/POLR2A_R1_peaks.broadPeak"))
-
-# note we had to shut off base.path function with closing ) then do col_names = F
 
 # cool, let's take a look at what we got by clicking the object in the env window.
 ```
