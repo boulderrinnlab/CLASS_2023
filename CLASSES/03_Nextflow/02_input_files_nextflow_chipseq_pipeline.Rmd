@@ -5,8 +5,10 @@ date: "7/19/2022"
 output: html_document
 ---
 
+The goal for this class is to RUN our FIRST ChIPseq !!
 
-The goal for this class is to learn the input files for the NF_CORE ChIPseq pipeline.
+First we need to learn the input files and parameters
+for the NF_CORE ChIPseq pipeline.
 
 *********************
 Input files
@@ -14,12 +16,17 @@ Input files
 
 The NF_CORE ChIPseq pipeline requires a few input files.
 
-1) Config file:  tells next flow how to talk to Fiji
-2) shell script: info on what resources can be used on Fiji & where input files are for pipeline
-3) design file: This has all the info needed for ChIP data (replicates, input controls etc)
+# 1) Config file:  
+tells next flow how to talk to Fiji
+
+# 2) shell script: 
+info on what resources can be used on Fiji & where input files are for pipeline
+
+# 3) design file:
+This has all the info needed for ChIP data (replicates, input controls etc)
 
 *********************
-1. Config File
+# 1. Config File
 *********************
 
 The Config file tells nextflow how to run on fiji by giving some instructions.
@@ -55,7 +62,7 @@ maxforks : this tells nextflow how many processes can be run in parallel.
 
 
 *****************************
-2. Design file 
+# 2. Design file 
 *****************************
 
 The design file will tell NF_CORE ChIPseq pipeline which samples are which.
@@ -73,7 +80,7 @@ group,replicate,fastq_1,fastq_2,antibody,control
 
 
 *********************
-3. Shell script 
+# 3. Shell script 
 *********************
 
 The shell script is going to contain two parts:
@@ -87,6 +94,7 @@ Let's make a run.sh file
 nano run.sh
 # Paste the code below into the run.sh (note the #s are part of slurm speak)
 # Note that the pound sign is required.
+
 #!/bin/bash
 #SBATCH -p short
 #SBATCH --job-name=Hepg2_Pol_test
@@ -129,7 +137,7 @@ First step is the basic SLURM set up
 ### want to be in the short queue (For jobs that take less than 24 hrs to run. Name of the job, who to email etc...
 ```
 
-Now we are goint to set up the resources to be used on FIJI (be careful in practice
+Next we are going to set up the resources to be used on FIJI (be careful in practice
 
 ```{bash slurm instructions}
 #SBATCH --nodes=1
@@ -171,21 +179,27 @@ pwd; hostname; date
 echo "Here we go again $SLURM_CPUS_ON_NODE core."
 # The first step is telling the pathway, hostname and date of where and when job was run.
 # the echo command is sort of silly and just let's you know the SLURM set up was successful!
+
 module load singularity/3.1.1
 # module load singularity/3.1.1 is going to load singularity & tell bash to use singularity.
 # What is Singularity: this creates a empty compute environment where packages can be installed,
 # run and version tracked. Thus, we are making a "container" of the nextflow pipeline
 # that is version tracked and is 100% reproducible.
+
 nextflow run nf-core/chipseq -r 1.1.0 \
 # We actually did this in the 05.RMD, basically nextflow loads the NF_CORE pipeline fresh each time.
+
 -profile singularity \
 # This is telling nextflow (with the single -) to talk in singularity (others could be docker etc)
+
 --single_end \
 # Now we are setting NF_CORE ChIPseq specific parameters (with --) in this case the data is single-end reads
+
 --input design.csv \
 # Giving NF_CORE specific design file. 
 
 
+# Genome sequence
 --fasta /scratch/Shares/rinnclass/CLASS_2023/data/data/genomes/human/gencode/v32/GRCh38.p13.genome.fa \
 
 #TODO can be downloaded here: https://www.ncbi.nlm.nih.gov/assembly/GCF_000001405.39/
@@ -226,7 +240,7 @@ Here is a full "run.sh" script with slurm instructions and nextflow.
 #SBATCH -p short
 #SBATCH --job-name=PolII_test
 #SBATCH --mail-type=END,FAIL
-#SBATCH --mail-user=your email 
+#SBATCH --mail-user=john.rinn@colorado.edu 
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --mem=6gb
