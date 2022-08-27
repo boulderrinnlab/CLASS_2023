@@ -12,23 +12,16 @@ knitr::opts_chunk$set(echo = TRUE)
 options(stringsAsFactors = F)
 library(tidyverse)
 library(GenomicRanges)
-source("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/util/intersect_functions.R")
-source("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/util/_setup.R")
 ```
 
 Today we are going to do some basic R commands and look at our Pol2 ChIP data.
 This lesson can be applied to most data frames (similar to excel sheets). 
 
-
 We will use read_tsv to load in a peak file that is in tab separated format (tsv)
-
 ```{bash}
 
 # The Peak files are located in our 03 nextflow folder -- let's take a look:
-
 cd /scratch/Shares/rinnclass/CLASS_2023/<your_folder>/CLASS_2023/CLASSES/03_Nextflow/00_Pol2_NF_CORE_RUN/results/bwa/mergedLibrary/macs/broadPeak
-
-# /scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/03_Nextflow/00_Pol2_NF_CORE_RUN/results/bwa/mergedLibrary/macs/broadPeak
 
 # We see a lot of different types of peak files and we want .braodPeak Let's load one in 
 
@@ -45,6 +38,7 @@ basepath <- "/scratch/Shares/rinnclass/CLASS_2023/<your_folder>"
 
 # we can then add the rest of the path as such:
 Pol2_peak1 <- read_tsv(file.path(basepath, " rest of file path"))
+
 
 # now we can read in the peak file using file.path() function , rest of path
 # we will use the "read_tsv" baseR function and assign it ( <- ) to Pol2_peak1
@@ -76,28 +70,24 @@ Solution: filter them out.
 Let's first rename the cols. Well we need to know what they are :) 
 So let's look up the labels of a .broad peak:
 
-Chromosome, start, stop, name, score, strand, signalValue, pValue, qValue
-
-# Signal value = overall enrichment of peak over input
-# score is how dark the peak will show up in browser (not very useful :)
+# Chromosome, start, stop, name, score, strand, signalValue, pValue, qValue
+Signal value = overall enrichment of peak over input
+score is how dark the peak will show up in browser (not very useful :)
 
 Ok now we are ready to rename the cols.
 There are so many ways to do this we will just explore a couple
 ```{r renaming columns}
 
 # first let's just change the name of one col (we have X1-X9)
-
-names(Pol2_peak1) <- 'chromosome'
+names(Pol2_peak1)[1] <- 'chromosome'
 
 # ok changed the right col name, but now the other cols have no names !!
 # not to worry we can index them and rename
-
 
 # here we used names and then outside that indexed col 2 with [] 
 names(Pol2_peak1)[2] <- 'start'
 
 # This will get really repetitive but works. Here is a better solution:
-
 names(Pol2_peak1) <- c('chromosome', 'start', 'end', 'name', 'score', 'strand', 
                        'signalValue', 'pValue', 'qValue')
 
@@ -195,8 +185,6 @@ Pol2_peak1 <- Pol2_peak1 %>%
   # we will simply subtract the end and start of the peak.
   
   mutate(peak_width = end - start)
-
-
 # That is very handy and a function we will use a lot !!
 
 ```

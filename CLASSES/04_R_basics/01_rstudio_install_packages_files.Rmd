@@ -16,6 +16,9 @@ library(GenomicRanges)
 
 Today we are going to connect to Rstudio on the Fiji-viz server.
 
+Accompanying Youtube Video:
+https://youtu.be/2ESg9rpGQr8
+
 
 We simply go here and login with our identikey:
 https://fiji-viz.colorado.edu/

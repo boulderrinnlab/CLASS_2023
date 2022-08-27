@@ -5,7 +5,11 @@ date: "7/19/2022"
 output: html_document
 ---
 
-Let's look at our results:
+Let's look at our results !!
+
+Accompanying Youtube Video:
+https://youtu.be/RL7EhtVRu0Q
+
 Basepath: 
 "/scratch/Shares/rinnclass/CLASS_2023/Your_FOLDER/-- rest of path/results"
 
