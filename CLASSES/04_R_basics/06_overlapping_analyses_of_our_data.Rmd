@@ -1,0 +1,393 @@
+---
+title: "06_overlapping_Granges"
+author: "JR"
+date: "7/26/2022"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(stringsAsFactors = F)
+library(GenomicRanges)
+library(tidyverse)
+# library(Gviz)
+library(IRanges)
+source("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/util/intersect_functions.R")
+
+```
+
+# genome features overlapping chip data
+Now let's use GRanges to find overlaps of genome features and peaks from ChIPseq.
+This is probably one of the most commonly used functions in genome sciences!
+First we need to import POLR2A Chip-seq files -- a simple .bed file of peaks.
+
+```{r reading in Pol2 peaks}
+
+# setting file path to peak files
+
+basepath <- "/scratch/Shares/rinnclass/CLASS_2023/<your_folder>"
+path <- "CLASS_2023/CLASSES/03_Nextflow/00_Pol2_NF_CORE_RUN/results/bwa/mergedLibrary/macs/broadPeak"
+
+# first we read the peak files in as gRanges object with rtracklayer function.
+peaks1 <- rtracklayer::import(file.path(basepath,path, "POLR2A_R1_peaks.broadPeak"))
+peaks2 <- rtracklayer::import(file.path(basepath,path, "POLR2A_R2_peaks.broadPeak"))
+
+# Load Gencode-v32: for genome features.
+gencode_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2023/data/data/genomes/gencode.v32.annotation.gtf")
+
+```
+
+# promoters function
+Now let's define the promoters using the handy promoters function in GRanges
+
+```{R promoters}
+
+# The promoter functions will use the first base in a genbody at the TSS.
+# Then we can define the promoter up and downstream from there.
+?promoters
+
+# let's add 1Kb upstream and downstream from the TSS to define "promoters"
+gencode_promoters <- promoters(gencode_gr[gencode_gr$type == "gene"], 
+                               upstream = 1e3, 
+                               downstream = 1e3)
+
+
+length(gencode_promoters)
+# there are ~60,000 promoters in the $type == gene
+
+```
+
+# findOVerlaps function
+Now we have promoter ranges and peak ranges let's use findOverlaps function
+
+```{R findoverlaps chip peaks &}
+# Promoter overlap function requires two parameters:
+# Query file (peaks) and subject file (promoters)
+promoter_overlaps_pol2_peaks1 <- findOverlaps(peaks1, gencode_promoters)
+promoter_overlaps_pol2_peaks1
+
+# nice we see that 19,063 promoters overlap with Pol2 replicate 1.
+# Let's try the same for replicate 2:
+
+promoter_overlaps_pol2_peaks2 <- findOverlaps(peaks2, gencode_promoters)
+promoter_overlaps_pol2_peaks2
+
+# 19,700 promoters overlap -- so similar to rep 1.
+```
+
+This raises the question: Are these the same promoters?
+We can use our new skill and findOverlaps of the overlaps :)
+
+# Overlap of promoters between replicates
+
+```{r overlap of overlaps}
+# one obvious thought maybe to do findOverlaps(promoter_overlaps_pol2_peaks1, promoter_overlaps_pol2_peaks2)
+# Let's try it !
+
+same_prom_ov <- findOverlaps(promoter_overlaps_pol2_peaks1, promoter_overlaps_pol2_peaks2)
+
+# huh that didn't work? Why not?
+```
+well the findOveralps provides @to and @from that can's be overlapped 
+these are indicies of which one overlaps
+Peak 1 w. Peak 7, Peak 1 with peak 10 etc ...
+NOTE: each peak is going to have numerous overlaps so we want only the unique ones.
+
+# indexing into an overlaps file and then finding overlaps.
+
+```{r overlap of overlaps}
+# We have all the info we need in peaks1 and 2.
+# Thus we can index there and only retreive the peaks that had overlaps
+# Since we did peaks1, gencode promoters peaks1 is @ from adn promoters @ to
+
+# indexing
+peak1_ov_gr <- peaks1[unique(promoter_overlaps_pol2_peaks1@from)] 
+
+# indexing
+peak2_ov_gr <- peaks2[unique(promoter_overlaps_pol2_peaks2@from)]
+
+# now let's find the overlaps of the overlaps
+ov_of_ov <- findOverlaps(peak1_ov_gr, peak2_ov_gr)
+ov_of_ov
+
+# nice we see that there are 12,961 promoter overlaps in common.
+# 13,857 and 14,403 promoter ov had 12,961 in common ~90% !
+```
+
+So the good news is we have good overlap but that was kinda 
+annoying to have to index before the second overlaps.
+
+Luckily someone thought of that too and made a function called:
+subsetbyoverlaps!
+
+This will retrieve the overlapping index only from the original Granges.
+
+
+# Using subseByOverlaps instead of findOverlaps
+
+```{r SubsetByOverlaps }
+
+# subset overlaps from peaks1 and promoters
+promoter_overlaps_pol2_peaks1 <- subsetByOverlaps(peaks1, gencode_promoters)
+promoter_overlaps_pol2_peaks1
+# 13,857 = same as before with findOverlaps
+
+# subset overlaps from peaks2 and promoters
+promoter_overlaps_pol2_peaks2 <- subsetByOverlaps(peaks2, gencode_promoters)
+promoter_overlaps_pol2_peaks2
+# 14,403 = same as before with findOverlaps
+
+# now overlapping the two overlaps by findOverlaps
+subset_overlaps_peaks <- findOverlaps(promoter_overlaps_pol2_peaks1, promoter_overlaps_pol2_peaks2)
+subset_overlaps_peaks
+# 12,961 -- It's the same -- yay and simpler code.
+
+```
+
+This is great that findOverlaps + indexing = subsetByOverlaps 
+However, remember how we had more overlaps than peaks in R_basics/03 ???
+
+Let's see if perhaps this is more overlaps than peaks !
+
+# how many unique peaks resulted in 12,961 overlaps
+```{r how many unique peaks had overlaps}
+
+# we can use length and unique to solve this
+length(unique(subset_overlaps_peaks@to))
+length(unique(subset_overlaps_peaks@to))
+# Yup there were only 12,257 peaks that had 12,961 overlaps!
+
+
+# let's use our lessons from R_basics/03 to find out:
+table(table(subset_overlaps_peaks@from))
+
+#1     2     3     4 
+# 11589   633    34     1 
+
+# This means there are = 12,961 overlaps and unique = from 12,257 peaks
+# note we did this for @from (promoter_overlaps_pol2_peaks1)
+# let's look at @to
+table(table(subset_overlaps_peaks@to))
+
+#  1     2     3     4 
+# 12037   413    30     2 
+
+# This also adds up to 12,961 with
+# 12,482 unique peaks
+
+```
+
+Nice so we are getting really good at overlaps in GenomicRanges!
+Abover we took the approach of overlap each peak file to promoters
+then overlapping those overlaps.
+
+Alternatively we can find overlaps of the peak files and then
+overlaps with promoters. 
+
+Let's try overlapping peaks first then promoters:
+
+# peak overlaps realtive to promoters
+
+```{r peak overlaps and promoter overlaps}
+
+pol2_consensus_peaks <- subsetByOverlaps(peaks1, peaks2)
+pol2_consensus_peaks
+# 27,206 
+peaks1
+# 33,582
+peaks2
+# 43,435
+
+# Ok so we somethign similar to R_basica/03_
+
+# Overlap with promoters:
+pol2_consensus_peaks_ov_promoters <- subsetByOverlaps(pol2_consensus_peaks, gencode_promoters)
+pol2_consensus_peaks_ov_promoters
+# 12,331
+```
+
+cool so we saw before that it was 12,961 promoter overlaps 
+now we have 12,331 which is pretty close 
+
+# Do we dare to compare the promters ov from both methods?
+# Go on then :)
+
+```{r promoter overlaps between methods}
+
+# so we previously made overlaps this way (changed to subsetByOverlaps)
+
+subset_overlaps_peaks <- subsetByOverlaps(promoter_overlaps_pol2_peaks1, promoter_overlaps_pol2_peaks2)
+subset_overlaps_peaks
+# 12,257 unique overlap
+
+
+# let's overlap this with peak overlaps
+
+both_method_ov <- subsetByOverlaps(subset_overlaps_peaks, pol2_consensus_peaks_ov_promoters )
+both_method_ov
+# 12,257 that is a good sign that we got the same result !
+
+# The one downside is we can't see how this all worked with @to and @from
+both_method_ov@from 
+#error :( 
+
+```
+
+Ok, that was a lot of overlapping. To summarize:
+1) FindOverlaps will keep the @from and @to information 
+2) Subset by overlaps only keeps the ranges that overlap 
+3) you can do the same by indexing the original query or subject file
+e.g. peaks1[unique(promoter_overlaps_pol2_peaks1@from)] 
+4) Subset by overlaps is great for continuing to do lots of overlaps
+5) @from = subject, @to = query
+
+
+#########################
+Excercise 
+#########################
+
+1) Find the peaks that overlap in all the replicates of your favorite protein.
+- make sure to document how many peaks were in each starting file for overlaps
+- how did this number change
+
+2) How many of those peaks overlap promoters? 
+- how many unqiue peaks are there that resulted in N overlaps?
+
+3) Does the order of overlapping matter?
+
+simple solution
+
+```{r}
+
+# create file path to load from
+basepath <- "/scratch/Shares/rinnclass/CLASS_2023/<your_folder>"
+path <- "/CLASS_2023/CLASSES/03_Nextflow/00_my_chipseq/results/bwa/mergedLibrary/macs/broadPeak"
+
+# load in each replicate
+EP300_R1 <- rtracklayer::import(file.path(basepath,path, "EP300_R1_peaks.broadPeak"))
+EP300_R2 <- rtracklayer::import(file.path(basepath,path, "EP300_R2_peaks.broadPeak"))
+EP300_R3 <- rtracklayer::import(file.path(basepath,path, "EP300_R3_peaks.broadPeak"))
+EP300_R4 <- rtracklayer::import(file.path(basepath,path, "EP300_R4_peaks.broadPeak"))
+
+# finding length for each peak file
+length(EP300_R1)
+# 62260
+length(EP300_R2)
+# 66416
+length(EP300_R3)
+# 14319
+length(EP300_R4)
+# 16872
+
+
+# iterative find overlaps
+EP300_ov1 <- subsetByOverlaps(EP300_R1, EP300_R2) 
+#38,409 overlaps
+EP300_ov2 <- subsetByOverlaps(EP300_ov1, EP300_R3)
+# 11,020 (got much smaller since R3 has only 14K peaks)
+EP300_ov3 <- subsetByOverlaps(EP300_ov2, EP300_R4)
+# 8,160 (even smaller since we reduced to 11K above)
+
+
+# Does the order matter?
+
+EP300_ov1 <- subsetByOverlaps(EP300_R3, EP300_R4) 
+EP300_ov2 <- subsetByOverlaps(EP300_ov1, EP300_R1)
+EP300_ov3 <- subsetByOverlaps(EP300_ov2, EP300_R2)
+# now we have 8,199 !!
+
+# This is an issue of reproducibility. If the order matters 
+# then someone has to do the exact same order.
+# not that much of a difference but not ideal.
+
+```
+
+
+Advanced Solution to prevent order mattering
+
+```{r get a list of files}
+
+#TODO? Does subset by overlaps take largest width? 
+
+# make a list of all the peak file paths
+peaks_fl <- list.files("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/03_Nextflow/00_my_chipseq/results/bwa/mergedLibrary/macs/broadPeak", full.names = T, pattern = ".broadPeak")
+
+
+# extract the DBP name from the file path with regex
+dbp <- sapply(peaks_fl, function(x){
+  y <-  str_extract(x, "([^\\/]+$)")
+  paste(unlist(strsplit(y, "_"))[c(1,2)], collapse = "_")
+})
+
+# let's see what peaks_fl looks like
+peaks_fl
+
+# adding names as dbp name and replicate
+names(peaks_fl) <- dbp
+
+# now let's see -- cool names are there
+peaks_fl
+
+# lapply will load all the files in one at a time using rtracklayer::import
+# this can take a min
+peaks_list <- lapply(peaks_fl, rtracklayer::import)
+
+# checking we have names
+names(peaks_list)
+
+# let's find the number of peaks in each file
+num_peaks <- sapply(peaks_list, length) %>% as.data.frame()
+
+# creating a list of unique DBP names
+dbps <- sapply(names(peaks_list), function(x){
+  unlist(strsplit(x, "_"))[[1]]
+}) %>%
+  unique()
+
+# let's check that dbps has unique names
+dbps
+
+
+# Consensus peaks from reduced "all peaks" set
+# setting up function
+consensus_from_reduced <- function(dbp, peaks_list) {
+  
+# index into list of Granges for each replicate for each dbp
+  dbp_peaks <- peaks_list[grepl(as.character(dbp), names(peaks_list))]
+  
+  # this will unlist the Granges for each of the dbps "unlist"
+  # This makes a list of all the peaks in all the file
+  suppressWarnings(all_peaks <- GenomicRanges::reduce(unlist(as(dbp_peaks, "GRangesList"))))
+  
+  # Make a matrix of all peaks and the cols will be the replicate for each DBP
+  peak_exists <- matrix(NA, nrow = length(all_peaks), ncol = length(dbp_peaks))
+  for(i in 1:length(dbp_peaks)) {
+    suppressWarnings(peak_exists[,i] <- as.numeric(countOverlaps(all_peaks, dbp_peaks[[i]]) > 0))
+  }
+  # filter to consensus requiring peaks to be in all replicates
+  dbp_consensus <- all_peaks[rowSums(peak_exists) == ncol(peak_exists)]
+  # Required only two replicates
+  # dbp_consensus <- all_peaks[rowSums(peak_exists) > 1]
+  return(dbp_consensus)
+}
+
+# Now run consensus_from_reduced on peak_list
+# parameters: dbps (unique dbp names, function = consensu_from_reduced, peaks_list of Granges)
+consensus_list <- lapply(dbps, consensus_from_reduced, peaks_list)
+
+# adding names to results
+names(consensus_list) <- dbps
+
+# determining then length of resulting consensus peaks
+sapply(consensus_list, length)
+sapply(peak_list, length)
+
+# now we can export each as .bed file
+for(i in 1:length(consensus_list)) {
+rtracklayer::export(consensus_list[[i]], 
+paste0("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/04_R_basics/results/consensus_peaks/", names(consensus_list)[i], "_consensus_peaks.bed")) }
+
+
+#TODO is there an lapply that can be done? 
+
