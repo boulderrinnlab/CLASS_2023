@@ -1,5 +1,5 @@
 ---
-title: "03_Iranges-Granges"
+title: "03_Iranges"
 author: "JR"
 date: "7/21/2022"
 output: html_document
@@ -10,9 +10,9 @@ editor_options:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 options(stringsAsFactors = F)
-library(GenomicRanges)
 library(tidyverse)
 library(IRanges)
+# library(GenomicRanges)
 # library(Gviz)
 ```
 
