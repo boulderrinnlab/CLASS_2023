@@ -111,6 +111,7 @@ Exercise : install packages needed for class
 
 # probably worth reading what they do while installing...
 
+Iranges
 ggplot2
 broom
 Gviz
@@ -120,7 +121,12 @@ pheatmap
 httr
 janitor
 purrr
-IRanges
+deseq2
+
+# let's try this one -- maybe tricky:
+ggpubr
+
+
 
 
 
