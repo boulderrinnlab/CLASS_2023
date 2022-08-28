@@ -16,6 +16,10 @@ library(IRanges)
 # library(Gviz)
 ```
 
+Accompanying Youtube video of this class:
+https://youtu.be/jhOmejP6cNQ
+
+
 ### Have you ever wanted to find overlaps between two lists of genes? Well
 Iranges and GRanges are just the thing!
 

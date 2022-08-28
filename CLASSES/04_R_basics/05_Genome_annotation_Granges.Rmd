@@ -17,7 +17,10 @@ library(IRanges)
 
 ```
 
-#### Let's go explore the human geneome annotations from GENCODE.
+Accompanying Youtube video of this class:
+https://youtu.be/l1AcyUdNCDc
+
+# Let's go explore the human geneome annotations from GENCODE.
 We will do this by importing a GTF file of these annotations.
 A GTF file is similar in a way to a .bed file with start stop of features
 and other associated metadata that is described here:
