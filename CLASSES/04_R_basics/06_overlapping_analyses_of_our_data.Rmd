@@ -13,8 +13,6 @@ library(GenomicRanges)
 library(tidyverse)
 # library(Gviz)
 library(IRanges)
-source("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/util/intersect_functions.R")
-
 ```
 
 # genome features overlapping chip data
@@ -43,7 +41,7 @@ Now let's define the promoters using the handy promoters function in GRanges
 
 ```{R promoters}
 
-# The promoter functions will use the first base in a genbody at the TSS.
+# The promoter functions will use the first base in a genebody at the TSS.
 # Then we can define the promoter up and downstream from there.
 ?promoters
 
@@ -58,6 +56,7 @@ length(gencode_promoters)
 
 ```
 
+# How many POLR2A peaks overlap promoters?
 # findOVerlaps function
 Now we have promoter ranges and peak ranges let's use findOverlaps function
 
@@ -65,12 +64,14 @@ Now we have promoter ranges and peak ranges let's use findOverlaps function
 # Promoter overlap function requires two parameters:
 # Query file (peaks) and subject file (promoters)
 promoter_overlaps_pol2_peaks1 <- findOverlaps(peaks1, gencode_promoters)
+# Let's look
 promoter_overlaps_pol2_peaks1
 
 # nice we see that 19,063 promoters overlap with Pol2 replicate 1.
 # Let's try the same for replicate 2:
 
 promoter_overlaps_pol2_peaks2 <- findOverlaps(peaks2, gencode_promoters)
+# Let's look
 promoter_overlaps_pol2_peaks2
 
 # 19,700 promoters overlap -- so similar to rep 1.
@@ -80,7 +81,6 @@ This raises the question: Are these the same promoters?
 We can use our new skill and findOverlaps of the overlaps :)
 
 # Overlap of promoters between replicates
-
 ```{r overlap of overlaps}
 # one obvious thought maybe to do findOverlaps(promoter_overlaps_pol2_peaks1, promoter_overlaps_pol2_peaks2)
 # Let's try it !
@@ -98,8 +98,8 @@ NOTE: each peak is going to have numerous overlaps so we want only the unique on
 
 ```{r overlap of overlaps}
 # We have all the info we need in peaks1 and 2.
-# Thus we can index there and only retreive the peaks that had overlaps
-# Since we did peaks1, gencode promoters peaks1 is @ from adn promoters @ to
+# Thus we can index there and only retrieve the peaks that had overlaps
+# Since we did peaks1, gencode promoters peaks1 is @ from and promoters @ to
 
 # indexing
 peak1_ov_gr <- peaks1[unique(promoter_overlaps_pol2_peaks1@from)] 
@@ -122,19 +122,19 @@ Luckily someone thought of that too and made a function called:
 subsetbyoverlaps!
 
 This will retrieve the overlapping index only from the original Granges.
-
-
 # Using subseByOverlaps instead of findOverlaps
 
 ```{r SubsetByOverlaps }
 
 # subset overlaps from peaks1 and promoters
 promoter_overlaps_pol2_peaks1 <- subsetByOverlaps(peaks1, gencode_promoters)
+# Let's look
 promoter_overlaps_pol2_peaks1
 # 13,857 = same as before with findOverlaps
 
 # subset overlaps from peaks2 and promoters
 promoter_overlaps_pol2_peaks2 <- subsetByOverlaps(peaks2, gencode_promoters)
+# Let's look
 promoter_overlaps_pol2_peaks2
 # 14,403 = same as before with findOverlaps
 
@@ -177,17 +177,11 @@ table(table(subset_overlaps_peaks@to))
 # 12,482 unique peaks
 
 ```
-
 Nice so we are getting really good at overlaps in GenomicRanges!
-Abover we took the approach of overlap each peak file to promoters
-then overlapping those overlaps.
 
-Alternatively we can find overlaps of the peak files and then
-overlaps with promoters. 
+Now let's overlap our peak files and then overlap with promoters.
 
-Let's try overlapping peaks first then promoters:
-
-# peak overlaps realtive to promoters
+# Percentage of consensus peaks that overlap promoters?
 
 ```{r peak overlaps and promoter overlaps}
 
@@ -203,6 +197,7 @@ peaks2
 
 # Overlap with promoters:
 pol2_consensus_peaks_ov_promoters <- subsetByOverlaps(pol2_consensus_peaks, gencode_promoters)
+# Let's look
 pol2_consensus_peaks_ov_promoters
 # 12,331
 ```
