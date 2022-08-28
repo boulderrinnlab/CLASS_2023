@@ -124,7 +124,7 @@ NOW LET'S Make this a FUNction -- in our util/my_class_function.R
 Very useful and who would want to code that again :)
 
 # CONGRATUALTIONS we have finished 04_R_basics !
-# We will now move to 05_R_analyses
+# We will now move to 05_R_analyses and work on the custom data set you chose!
 
 We are now equipped with some data and functions to explore Genome Biology!
 Moving fowrard we will start analyzing the data -- Let's GO !
