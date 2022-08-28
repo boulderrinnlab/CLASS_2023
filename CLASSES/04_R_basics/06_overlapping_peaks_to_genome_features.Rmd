@@ -15,6 +15,9 @@ library(tidyverse)
 library(IRanges)
 ```
 
+Accompanying Youtube video is here:
+https://youtu.be/g_0Ylw-iHQ4
+
 # genome features overlapping chip data
 Now let's use GRanges to find overlaps of genome features and peaks from ChIPseq.
 This is probably one of the most commonly used functions in genome sciences!
