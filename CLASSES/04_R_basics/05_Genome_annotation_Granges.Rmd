@@ -17,45 +17,25 @@ library(IRanges)
 
 ```
 
-### Have you ever wanted to find overlaps between two lists of genes? Well
-Iranges and GRanges are just the thing!
-
-#### Iranges allows one to index "windows" with properties. Say you had a vector
-of all genes and wanted to track start and stop. Iranges can keep the start, 
-stop and width of values. So this list of ranges (start and stop) for each 
-gene-length is essentially a vector or each column a gene id. With this indexing
-we can now apply several attributes to these ranges. For example if an enhancer 
-or other feature resided in the gene we could also track the start, stop of that
-"interval". 
-
-#### Granges is even more specially aadapted for features in a given genome. All
-the start, stops for each feature is given similar to Iranges. However, we could
-have a big problem since we have 23 chromosomes in the geneome! So simple start
-and stop indexing isn't enough as there could be up to 23 redudant "intervals" 
-that are actually unique. So we need to consider choromosome and coordinates. 
-Worse we also should think about the strand. So GRanges works similar to Iranges
-just having the advantage of indexing chromosome and strand to the start and stop.
-
-
 #### Let's go explore the human geneome annotations from GENCODE.
-We will do this by importing a GTF file of these annotaitons.
+We will do this by importing a GTF file of these annotations.
 A GTF file is similar in a way to a .bed file with start stop of features
 and other associated metadata that is described here:
 
 https://uswest.ensembl.org/info/website/upload/gff.html
 
+(1) Need GEncode GTF of annotations for this class. # Let's go get all the features of the human genome ! I have downloaded this from gencode and stored for everyone below. 
 
-## Ok enough background let's start exploring the features of the human genome!
+If not in class please download Gencode annotations gtf here : https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/
+
+
+## Ok let's start exploring the features of the human genome!
 ```{r loading in GENCODE GRanges annotation file}
 
-# Let's go get all the features of the human genome ! I have downloaded this
-# from gencode and stored for everyone below. However you can do the same for 
-# any genome of your interest here : https://www.gencodegenes.org/
-
+# setting class path to Gencode annotations GTF
 basepath <- "/scratch/Shares/rinnclass/CLASS_2023/data/data/genomes"
 
-# we use rtracklayer::import to turn the annotations into start and stops (Iranges) w/ chr (Granges)
-# This takes ~5min
+# we use rtracklayer::import to turn the annotations into start and stops (Iranges) w/ chr (Granges)This takes ~5min
 
 gencode_gr <- rtracklayer::import(file.path(basepath, "gencode.v32.annotation.gtf"))
 

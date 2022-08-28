@@ -19,9 +19,28 @@ library(IRanges)
 Goal: to understand the basic usage of Iranges. These principles are core to almost
 all analyses we will perform so it's worth taking sometime to review the fundamentals.
 
+### Have you ever wanted to find overlaps between two lists of genes? Well
+Iranges and GRanges are just the thing!
+
+#### Iranges allows one to index "windows" with properties. Say you had a vector
+of all genes and wanted to track start and stop. Iranges can keep the start, 
+stop and width of values. So this list of ranges (start and stop) for each 
+gene-length is essentially a vector or each column a gene id. With this indexing
+we can now apply several attributes to these ranges. For example if an enhancer 
+or other feature resided in the gene we could also track the start, stop of that
+"interval". 
+
+#### Granges is even more specially aadapted for features in a given genome. All
+the start, stops for each feature is given similar to Iranges. However, we could
+have a big problem since we have 23 chromosomes in the genome! So simple start
+and stop indexing isn't enough as there could be up to 23 redundant "intervals" 
+that are actually unique. So we need to consider chromosome and coordinates. 
+Worse we also should think about the strand. So GRanges works similar to Iranges
+just having the advantage of indexing chromosome and strand to the start and stop.
+
 Overall, our goal will be find overlaps of Iranges.
 
-# First let's see what these are 
+# First let's see what an Irange is 
 
 ```{r}
 

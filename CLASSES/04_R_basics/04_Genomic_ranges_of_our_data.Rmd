@@ -1,5 +1,5 @@
 ---
-title: "04_Iranges-Granges"
+title: "04_Genomic_Ranges"
 author: "JR"
 date: "7/21/2022"
 output: html_document
@@ -16,17 +16,24 @@ library(IRanges)
 # library(Gviz)
 ```
 
-Iranges is great if there is only one chromosome in the genome :) 
-However, there are multiple chromosomes in the genome and there are two strands
-of DNA that we need to keep track of.
+### Have you ever wanted to find overlaps between two lists of genes? Well
+Iranges and GRanges are just the thing!
 
+#### Iranges allows one to index "windows" with properties. Say you had a vector
+of all genes and wanted to track start and stop. Iranges can keep the start, 
+stop and width of values. So this list of ranges (start and stop) for each 
+gene-length is essentially a vector or each column a gene id. With this indexing
+we can now apply several attributes to these ranges. For example if an enhancer 
+or other feature resided in the gene we could also track the start, stop of that
+"interval". 
 
-The GenomicRanges package was developed to include the addition information of chr1 
-and other aspects associated with a given interval in IRanges. 
-Essentially GenomicRanges is a genome specific version of IRanges. 
-
-** seqnames is the index for the chromosome number
-
+#### Granges is even more specially aadapted for features in a given genome. All
+the start, stops for each feature is given similar to Iranges. However, we could
+have a big problem since we have 23 chromosomes in the genome! So simple start
+and stop indexing isn't enough as there could be up to 23 redundant "intervals" 
+that are actually unique. So we need to consider chromosome and coordinates. 
+Worse we also should think about the strand. So GRanges works similar to Iranges
+just having the advantage of indexing chromosome and strand to the start and stop.
 
 # Genomic Ranges (Granges)
 ```{R GRanges}
@@ -78,7 +85,7 @@ I have some set up to test in the data folder.
 ```{R find overlaps}
 
 # setting file path to peak files
-basepath <- "/scratch/Shares/rinnclass/CLASS_2023/JR"
+basepath <- "/scratch/Shares/rinnclass/CLASS_2023/<your_folder>"
 path <- "CLASS_2023/CLASSES/03_Nextflow/00_Pol2_NF_CORE_RUN/results/bwa/mergedLibrary/macs/broadPeak"
 
 # first we read the peak files in as gRanges object with rtracklayer function.
@@ -89,7 +96,7 @@ peaks2 <- rtracklayer::import(file.path(basepath,path, "POLR2A_R2_peaks.broadPea
 peaks1
 
 # for reference to last class looking at this file
-peaks_1_tsv <- read_tsv(file.path(basepath,path, "POLR2A_R1_peaks.broadPeak"))
+peaks_1_tsv <- read_tsv(file.path(basepath,path, "POLR2A_R1_peaks.broadPeak"), colnames = F)
 
 # now we can use the findOverlaps function to see what overlaps!
 ?findOverlaps
@@ -141,7 +148,7 @@ wget https://www.dropbox.com/s/vwhpecqxskbfuh4/POLR2B_consensus_peaks_filter.bed
 crazy_ovf <- findOverlaps(crazy_peaks1, crazy_peaks2)
 
 # seeing how many overlaps
-summary(crazy_peaks1)
+length(crazy_peaks1)
 length(crazy_peaks2)
 summary(crazy_ovf)
 # What?? 11042 overlaps but there were only 10,255 peaks in crazy_peaks1
