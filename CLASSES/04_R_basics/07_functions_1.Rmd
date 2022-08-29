@@ -79,7 +79,7 @@ fun <- function(x, y) {
 library(GenomicRanges)
 library(tidyverse)
 library(IRanges)
-source("../../util/test_class_function.R")
+source("../../util/my_class_functions.R")
 # cool we see it loaded in environment and ready to use!
 # now type fun(7,6) in console
 # We will store all our custom function in this .R script
@@ -102,7 +102,7 @@ This is a very common first step and now we can automate it with some functions!
 
 # First let's set a file path to where all our peak files are.
 # This is very helpful in the long run to not have huge filepaths everywhere :)
-basepath <- "/scratch/Shares/rinnclass/CLASS_2023/<Your_folder>"
+basepath <- "/scratch/Shares/rinnclass/CLASS_2023/JR"
 peak_path <- "CLASS_2023/CLASSES/03_Nextflow/00_my_chipseq/results/bwa/mergedLibrary/macs/broadPeak"
 broadpeakfilepath <- file.path(basepath, peak_path)
 
@@ -168,6 +168,8 @@ y <-  str_extract(fl[28], "([^\\/]+$)") %>%
 
 dbp_name <- sapply(fl, function(y){
  y <-  str_extract(y, "([^\\/]+$)")
+ # NOTE alternative
+ # gsub("_peaks.broadPeak", "", y)
   unlist(strsplit(y, "_"))[[1]]
   
 })
@@ -222,7 +224,11 @@ import_peaks <- function(consensus_file_path = broadpeakfilepath) {
   peak_files <- list.files(consensus_file_path, full.names = T, pattern = ".broadPeak")
   dbp_name <- sapply(peak_files, function(x){
     y <-  str_extract(x, "([^\\/]+$)")
-    paste(unlist(strsplit(y, "_"))[c(1,2)], collapse = "_") })
+    # NOTE ALTERNATIVE Gsub
+    # gsub("_peaks.broadPeak", "", y)
+    paste(unlist(strsplit(y, "_"))[c(1,2)], collapse = "_") 
+    
+    })
   
 # NOW FOR LOOP TO IMPORT FILES
 # setting an empty list "peak_list" to be filled by for loop
