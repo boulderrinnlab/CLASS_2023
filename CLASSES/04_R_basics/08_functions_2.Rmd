@@ -15,6 +15,8 @@ library(tidyverse)
 library(IRanges)
 source("../../util/my_class_functions.R")
 
+
+# setting file paths
 basepath <- "/scratch/Shares/rinnclass/CLASS_2023/<your_folder>"
 peak_path <- "CLASS_2023/CLASSES/03_Nextflow/00_my_chipseq/results/bwa/mergedLibrary/macs/broadPeak/"
 broadpeakfilepath <- file.path(basepath, peak_path)
@@ -65,22 +67,26 @@ dbps <- unique(sapply(names(peak_list), function(x) {
    unlist(strsplit(x, "_"))[1]
 }))
 
-dbps
 ```
 
 # Now let's make the consensus_from_reduced function !
 The parameters are peak_list and dbp which will be made in the funtion
 
 ```{r consensus peaks function}
+
 # Now we can make a function to find peaks in all samples!!
 # setting up function and parameters (dbp and peak_list)
 consensus_from_reduced <- function(dbp, peak_list) {
   
-# index into list of Granges for each replicate for each dbp
+  
+# index into list of Granges for each replicate for each dbp: dbp looks like:
+dbps
+  # grep instead of string split for dbp name in peak list
   dbp_peaks <- peak_list[grepl(as.character(dbp), names(peak_list))]
   
   # this will unlist the Granges for each of the dbps "unlist"
   # This makes a list of all the peaks in all the file and takes union of overlaps
+  # note making a list of all peaks in any replicate - then count how many times peak shows up (below)
   suppressWarnings(all_peaks <- GenomicRanges::reduce(unlist(as(dbp_peaks, "GRangesList"))))
   
   # Make a matrix of all peaks and the cols will be the replicate for each DBP
@@ -95,6 +101,7 @@ consensus_from_reduced <- function(dbp, peak_list) {
   }
   
   # filter to consensus requiring peaks to be in all replicates
+  # row sum of peak exist has to be greater than nDBPs and thus n enteries in peak exists
   dbp_consensus <- all_peaks[rowSums(peak_exists) == ncol(peak_exists)]
   # Required only two replicates
   # dbp_consensus <- all_peaks[rowSums(peak_exists) > 1]
@@ -104,12 +111,19 @@ consensus_from_reduced <- function(dbp, peak_list) {
 
 # Nice we have a function we can use in lapply (kinda like forloop) across each file
 Note we are using dbps as input of unique dbp a required parameter.
-To refresh:
 
-# dbps <- unique(sapply(names(peak_list), function(x) {
-# unlist(strsplit(x, "_"))[1]
+To refresh: this code that splits "DBP_1" into DBP and 1 takes just dbp value [1]
+dbps <- unique(sapply(names(peak_list), function(x) {
+   unlist(strsplit(x, "_"))[1]
+}))
+
 
 ```{r consensus peaks function}
+
+# getting dbp input as dbps
+dbps <- unique(sapply(names(peak_list), function(x) {
+   unlist(strsplit(x, "_"))[1]
+}))
 
 # Now run consensus_from_reduced on peak_list
 # parameters: dbps (unique dbp names, function = consensu_from_reduced, peaks_list of Granges)
