@@ -36,6 +36,12 @@ If it doesn't we will generate one with the with ssh-keygen command.
 Here we are connecting out "public key" on our server "Fiji" to github.
 # If you want to connect your local computer there is also a .ssh file (MAC)
 
+For PC:
+Install Putty
+Open putty keygen
+Save it somewhere (save public and private).
+- in putty -- SSH -- AUTH select private key
+
 ```{bash}
 cd ~/
 cd .ssh
