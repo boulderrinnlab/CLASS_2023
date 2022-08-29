@@ -16,6 +16,9 @@ library(IRanges)
 # library(Gviz)
 # source("../../util/my_class_functions.R")
 ```
+Accompanying Youtube video:
+https://youtu.be/56ZI6htKFns
+
 
 Today we will go over a "function" in R. This is a really nice feature of 
 defining a function for R that you may run frequently. 
