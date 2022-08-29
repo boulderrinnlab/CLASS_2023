@@ -17,7 +17,7 @@ source("../../util/my_class_functions.R")
 
 
 # setting file paths
-basepath <- "/scratch/Shares/rinnclass/CLASS_2023/<your_folder>"
+basepath <- "/scratch/Shares/rinnclass/CLASS_2023/JR"
 peak_path <- "CLASS_2023/CLASSES/03_Nextflow/00_my_chipseq/results/bwa/mergedLibrary/macs/broadPeak/"
 broadpeakfilepath <- file.path(basepath, peak_path)
 
@@ -78,11 +78,10 @@ The parameters are peak_list and dbp which will be made in the funtion
 # setting up function and parameters (dbp and peak_list)
 consensus_from_reduced <- function(dbp, peak_list) {
   
-  
 # index into list of Granges for each replicate for each dbp: dbp looks like:
 dbps
   # grep instead of string split for dbp name in peak list
-  dbp_peaks <- peak_list[grepl(as.character(dbp), names(peak_list))]
+  dbp_peaks <- peak_list[grepl(as.character(dbps), names(peak_list))]
   
   # this will unlist the Granges for each of the dbps "unlist"
   # This makes a list of all the peaks in all the file and takes union of overlaps

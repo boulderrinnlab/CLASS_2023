@@ -13,7 +13,7 @@ options(stringsAsFactors = F)
 library(GenomicRanges)
 library(tidyverse)
 library(IRanges)
-source("../../util/my_class_functions.R")
+source("../../../util/my_class_functions.R")
 
 # filepath to import peaks
 basepath <- "/scratch/Shares/rinnclass/CLASS_2023/<your_folder>"
@@ -32,10 +32,7 @@ lines up with raw data on the UCSC genome browser. We will do this in these step
 4) format the file to be uploaded into UCSC
 5) inspect raw data to see if consensus peaks make sense.
 
-
-
 # STEP1: import peaks 
-
 ```{r import peaks}
 
 # import peaks
@@ -51,9 +48,7 @@ names(peak_num) <- c("num_peaks")
 peak_num <- peak_num %>%
   rownames_to_column(var = "dbp") %>%
   separate(col = dbp,  into = c('dbp', 'replicate'), sep = "_")
-  
-# peak_num <- separate(peak_num, col = dbp,  into = c('dbp', 'replicate'), sep = "_")
-
+  # peak_num <- separate(peak_num, col = dbp,  into = c('dbp', 'replicate'), sep = "_")
 
 # let's save this for our records 
 write_csv(peak_num, "results/num_peaks_df.csv")
@@ -61,10 +56,13 @@ write_csv(peak_num, "results/num_peaks_df.csv")
 # cool our first results file !
 ```
 
-
 # STEP2: create consensus peaks
 ```{r create consensus peaks}
 # first we need a list of unique dbps as input parameter
+dbp <- c("EP300", ...)
+# works but real pain for 480 dbps later :)
+
+# or use our handy previous code 
 dbps <- unique(sapply(names(peak_list), function(x) {
    unlist(strsplit(x, "_"))[1]
 }))
@@ -99,7 +97,7 @@ Let's use "analysis/00_consensus_peaks/
 ```{r exporting consensus peaks }
 # setting file path to export
 basepath <- "/scratch/Shares/rinnclass/CLASS_2023/<your_folder>"
-consensus_path <- "CLASS_2023/CLASSES/05_R_analyses/analysis/00_consensus_peaks/"
+consensus_path <- "CLASS_2023/CLASSES/05_R_analyses/analysis/00_consensus_peaks/consensus_peaks"
 exportpath <- file.path(basepath, consensus_path)
 
 # now we can export each as .bed file
@@ -125,30 +123,38 @@ peak_1 <- read_tsv("analysis/00_consensus_peaks/EP300_consensus_peaks.bed", col_
 # let's clean this up with lapply:
 ```
 
-# STEP4_2 : cleaning up .bed file basics (col anmes and chromosomes)
+# STEP4_2 : cleaning up .bed file basics adding col names
+Rtracklayer export does not keep the col names :( 
 ```{r reading .bed file from rtracklayer_export}
 # FIRST a file list:
 consensus_file_list <- list.files("analysis/00_consensus_peaks", full.names = T, pattern = ".bed")
 
 # lapply (for loop) across consensus file list to add colnames
+# The actual col names for .broadPeak are: chr, start, end, name, score, strand
 peaks <- lapply(consensus_file_list, read.table, col.names = c("chr", "start", "end", "name", "score", "strand"))
+
 names(peaks) <- dbps
 # double check order by looking at consensus_file_list is same order as dbps
+```
 
-# now clean up the chromosomes:
+# STEP4_3 remove contigs from peak files 
+```{r filtering out contigs}
+
+# make chromosomes of interest object
 canonical_chr <- c(paste0("chr", 1:22), "chrM", "chrX", "chrY")
+
 # let's use lapply with filter funciton to cannonical_chr
 peaks <- lapply(peaks, function(x) x %>% filter(chr %in% canonical_chr))
 
 
 # now that these are all nice and clean let's export:
-new_filenames <- paste0("analysis/00_consensus_peaks/", names(peaks), "_consensus.bed")
+new_filenames <- paste0("consensus_peaks/", names(peaks), "_consensus.bed")
+
 for(i in 1:length(peaks)) {
   write.table(peaks[[i]], new_filenames[[i]],
               sep = "\t", col.names = FALSE, row.names = FALSE,
               quote = FALSE, append = TRUE)
 }
-
 
 ```
 
