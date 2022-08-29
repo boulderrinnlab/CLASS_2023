@@ -14,9 +14,8 @@ library(GenomicRanges)
 library(tidyverse)
 library(IRanges)
 # library(Gviz)
+# source("../../util/my_class_functions.R")
 ```
-
-
 
 Today we will go over a "function" in R. This is a really nice feature of 
 defining a function for R that you may run frequently. 
@@ -54,7 +53,7 @@ does and the data types and expectation for the the parameters it takes.
 #' This function will multiply the input values of X and Y
 #' 
 #' @param x one number you'd like to multiply
-#' y the other number you'd like to multiply
+#' @param  y the other number you'd like to multiply
 fun <- function(x, y) {
   ans <- x * y
   return(ans)
@@ -70,25 +69,17 @@ fun <- function(x, y) {
 (4) go back to /04_R_basics and set as working directory.
 (5) Clear your environment -- let's start fresh
 
+#  source("../../util/my_class_functions.R")
 
-
-# Now let's source this function and run 
+# Now let's clean our environment - source this function & - run 
 ```{r clean env - load packages}
-
 library(GenomicRanges)
 library(tidyverse)
 library(IRanges)
-
-# let's make a path to our util as we will use this over and over again
-basepath <- "/scratch/Shares/rinnclass/CLASS_2023/<Your_folder>"
-filepath <- "CLASS_2023/util/my_class_functions.R"
-# pasting the two together so it can be read by source with file.path
-utilpath <- file.path(basepath,filepath)
-# Let's source our FUN
-source(utilpath)
-
+source("../../util/test_class_function.R")
+# cool we see it loaded in environment and ready to use!
 # now type fun(7,6) in console
-# cool we have a function sourced for our environment to use anytime.
+# We will store all our custom function in this .R script
 
 ```
 
@@ -103,7 +94,7 @@ local variables are mapped to outputs through a function, but only exist within 
 # Let's make a function to import our Chipseq peak files and extract information from the file name.
 This is a very common first step and now we can automate it with some functions!
 
-
+# CREATE "import_peaks" function
 ```{r base file path to peaks}
 
 # First let's set a file path to where all our peak files are.
@@ -127,25 +118,17 @@ fl
 fl_ep300 <- fl[grep("EP300", fl)]
 
 # cool now we can subset this to any protein of our choosing
-# if we want a few we can do:
-
-#TODO how to get more than one 
-fl <- fl[grep(c("EP300", "POLR2A"), fl)]
-
 
 ```
 
 # extracting text from file name (e.g., DBP name)
 
 Let's look at some indexing and ways we can extract file info.
-
 ```{R extraction and regular expression} 
 
 # We can index into our file list using [ ]
 # let's see what file path 7 is:
 fl[7]
-
-
 # now let's just get the end of the file name that contains the DBP name
 
 # regex is seperating by "/" in file path and taking end $
@@ -158,7 +141,7 @@ y <-  str_extract(fl[7], "([^\\/]+$)")
 fl[7]
 y
 
-# now we can furhter reduce this to just the DBP name
+# now we can further reduce this to just the DBP name
 # string split will split on _ and DBP name is in position 1 after split
 unlist(strsplit(y, "_"))[[1]]
 
@@ -169,7 +152,7 @@ y <-  str_extract(fl[28], "([^\\/]+$)") %>%
 
 # Error !! Why ?
 # This is because y is not a local variable. y is global and not set.
-# to fix this we need to set y as a local variable in a funciton
+# to fix this we need to set y as a local variable in a function
   
 ```
 
@@ -217,7 +200,7 @@ import_peaks <- function(consensus_file_path = peak_path) {
 # Nothing happened ?? Becuase we have simply made import peaks function available to us.
 # we did not actually run it and it's now in our local environment as a function to be called.
 # let's test it:
-test <- import_peaks(consensus_file_path = peak_path)
+test <- import_peaks(broadpeakfilepath)
 
 # nice that is working!
 ```
@@ -230,19 +213,15 @@ list of Granges for each peak file.
 
 ```{r full import peaks function}
 
-# setting up the function: @param is path to peaks
-
+# setting up the function: all what we just wrote above:
+# Get's consensus peak file path, select .broadPeak and then get dbp name from file name
 import_peaks <- function(consensus_file_path = broadpeakfilepath) {
-  # same as before getting a list of filepaths 
   peak_files <- list.files(consensus_file_path, full.names = T, pattern = ".broadPeak")
-  
-  # extracting DBP name from peak files
   dbp_name <- sapply(peak_files, function(x){
     y <-  str_extract(x, "([^\\/]+$)")
     paste(unlist(strsplit(y, "_"))[c(1,2)], collapse = "_") })
   
-  
-  
+# NOW FOR LOOP TO IMPORT FILES
 # setting an empty list "peak_list" to be filled by for loop
   peak_list <- c()
   
@@ -269,7 +248,7 @@ Let's run it
 ```{r}
 
 # look how nice and simply this is now!
-my_peaks <- import_peaks(broadpeakfilepath)
+my_peaks <- import_peaks(consensus_file_path = broadpeakfilepath)
 
 # voila all peak file are loaded 
 ```
@@ -277,19 +256,16 @@ my_peaks <- import_peaks(broadpeakfilepath)
 
 # Now let's make this a function in our util, clean env and start over !
 
-Here is how we will use this moving forward (or what start of session would include)
-
 ```{r import peaks function }
 
 library(GenomicRanges)
 library(tidyverse)
 library(IRanges)
+source("../../util/your-functions.R")
 
 basepath <- "/scratch/Shares/rinnclass/CLASS_2023/<your_folder>"
 peak_path <- "CLASS_2023/CLASSES/03_Nextflow/00_my_chipseq/results/bwa/mergedLibrary/macs/broadPeak/"
 broadpeakfilepath <- file.path(basepath, peak_path)
-
-source("../../util/my_class_functions.R")
 
 my_peaks <- import_peaks(consensus_file_path = broadpeakfilepath)
 
@@ -298,10 +274,14 @@ my_peaks <- import_peaks(consensus_file_path = broadpeakfilepath)
 num_peaks <- sapply(my_peaks, length) %>% as.data.frame()
 
 ```
-
-# Nice about 4 lines of code to import all desired peak files 
-# We will use this for thousands of peaks near the end of class
-
+Nice about 4 lines of code to import all desired peak files 
+We will use this for thousands of peaks near the end of class
 # Conratulations on your new functions :)
+
+*********************
+EXCERCISE
+*********************
+
+Create a function in your class_functions.R file
 
 
