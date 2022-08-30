@@ -53,7 +53,7 @@ consensus_peaks <- lapply(consensus_peaks_files, rtracklayer::import)
 
 # adding DBP name to each list of GRanges from the file name
 # note gsub requires no space around or argument ( | )
-names(consensus_peaks) <- gsub("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/05_R_analyses/00_consensus_peaks/|_consensus.bed","", consensus_peaks_files)
+names(consensus_peaks) <- gsub("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/05_R_analyses/00_consensus_peaks/consensus_peaks/|_consensus.bed","", consensus_peaks_files)
 
 ```
 
@@ -70,17 +70,20 @@ gencode_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2023/data/dat
 
 # now just type == gene annotations
 gencode_genes <- gencode_gr[gencode_gr$type == "gene"] 
-# table(gencode_gr$type)
+table(gencode_gr$type)
 
 # exporting all genes file (we will save all the .Rdata too at the end)
 rtracklayer::export(gencode_genes, "results/gene_annotations/gencode_genes.gtf")
 
 # mRNA genes (called "protein_coding") in this version of gencode changes sometimes !
 mrna_genes <- gencode_genes[gencode_genes$gene_type %in% "protein_coding"] 
+
 rtracklayer::export(mrna_genes, "results/gene_annotations/mrna_genes.gtf")
+table(gencode_genes$gene_type)
 
 # now doing a second index for lncRNA:
 lncrna_genes <- gencode_genes[gencode_genes$gene_type %in% "lncRNA"] 
+
 rtracklayer::export(lncrna_genes, "results/gene_annotations/lncrna_genes.gtf")
 
 # both mRNA and lncRNA annotations together.
@@ -117,6 +120,7 @@ rtracklayer::export(lncrna_mrna_promoters, "results/gene_annotations/lncrna_mrna
 
 # last handy annotation will be lncRNA and mRNA gene IDs to subset
 lncrna_gene_ids <- mrna_lncrna_genes$gene_id[mrna_lncrna_genes$gene_type == "lncRNA"]
+table(mrna_lncrna_genes$gene_type)
 # same for mRNAs
 mrna_gene_ids <-mrna_lncrna_genes$gene_id[mrna_lncrna_genes$gene_type == "protein_coding"]
 

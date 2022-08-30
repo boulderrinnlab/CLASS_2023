@@ -14,16 +14,11 @@ knitr::opts_chunk$set(echo = TRUE)
 options(stringsAsFactors = F)
 
 library(ggplot2)
-# install.packages("ggplot2")
-# install.packages("broom")
 library(ggpubr)
 library(tidyverse)
 
-source("../../../../util/plotting_functions.R")
-source("../../../../util/_setup.R")
-
-# source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/plotting_functions.R")
-# source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/_setup.R")
+source("../../../util/plotting_functions.R")
+source("../../../util/_setup.R")
 
 ```
 
@@ -56,7 +51,6 @@ Ok let's walk through some simple examples to more difficult figures using these
 Layer 1 : DATA (data types matter so good to label object accrodingly)
 
 # loading in num_peaks_df
-
 ```{r loading in num_peaks_df}
 # before we get started let's import that data we are going to plot from num_peaks_df. 
 num_peaks_df <- read_csv('../01_peak_features/results/num_peaks_df.csv')
@@ -64,38 +58,30 @@ num_peaks_df <- read_csv('../01_peak_features/results/num_peaks_df.csv')
 # this maybe a bit boring so we can try reading in the bigger dataset we will have at end of class
 big_num_peaks_df <- read_csv("/scratch/Shares/rinnclass/CLASS_2023/data/data/2022_num_peaks_df.csv")
 
-# num_peaks_df <- read_csv('/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/num_peaks_df.csv')
-# num_peaks_df <- num_peaks_df[1:12]
-# write_csv(num_peaks_df, "/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/class_exeRcises/analysis/12_peak_features/num_peaks_df.csv")
+# not in class you can download here:
+# wget https://www.dropbox.com/s/9mtzjpa1q79m1t6/2022_num_peaks_df.csv?dl=0
 
 ```
 
 # GGPLOT AES Layer and Geom : basic example
 Now let's start plotting in GGplot!
-
-
 ```{r ggplot basics}
 
-?ggplot
 # ggplot first wants the data parameter, then an 'aesthetics' layer (aes)
 # aes() layer needs everything you want to do with the data. The + adds the next layer.
-
+?ggplot
 
 # let's make this simple plot first: number of peaks -vs- total peak length
 ggplot(big_num_peaks_df, aes(x = num_peaks, 
                          y = total_peak_length)) +
   geom_point() 
 # We have a result! The more peaks the more genome space is covered.
-# Let's make a folder in "analysis" 14_ to put our figures in.
-
 
 # Same as :
-
 big_num_peaks_df %>%
 ggplot(aes(x = num_peaks,
            y = total_peak_length)) +
   geom_point()
-
 
 ```
 
@@ -105,10 +91,8 @@ Now let's change the shape of the points outside the aes() layer and in the geom
              
 ggplot(big_num_peaks_df, aes(x = num_peaks, 
                  y = total_peak_length)) +
-         
            geom_point(shape = 'square',
              color = 'purple')
-
 
 # Here are some good resources for other shapes and color vignettes:
 # http://www.sthda.com/english/wiki/ggplot2-point-shapes
@@ -277,7 +261,6 @@ We will also use this opportunity to look at level 3) STAT layer
 ggplot(big_num_peaks_df, aes(x = dbd)) + 
   geom_bar()
 
-
 # If the we want to provide the Y-axis for a specific DBP
 # we need to apply stat = identitiy in the geom_bar()
 
@@ -285,10 +268,8 @@ ggplot(big_num_peaks_df, aes(
       x = dbp,
       y = num_peaks)) +
         geom_bar(stat = "identity")
-
 # basically this allows you to command the y-axis 
 # but is very messy in this case
-
 
 # let's look at a more realistic example when there is categorical data
 
@@ -307,32 +288,6 @@ ggplot(big_num_peaks_df, aes(x = tf,
 ggplot(big_num_peaks_df, aes(x = num_peaks, y = total_peak_length)) +
   geom_point() +
   geom_smooth(method = "lm")
-
-# We can get the slope and intercept from making a lm variable:
-
-lm_fit <- lm(big_num_peaks_df$total_peak_length ~ big_num_peaks_df$num_peaks)
-summary(lm_fit)
-# slope = 1,000 
-# ORDER MATTERS: if reversed the slope is 8 e -3!
-lm_fit <- lm(big_num_peaks_df$num_peaks ~ big_num_peaks_df$total_peak_length)
-summary(lm_fit)
-
-
-# let's convert the lm_fit data to a data_frame using tidy()
-# it's in the library broom:
-library(broom)
-
-lm_df <- tidy(lm_fit)
-lm_df
-# so much easier to read than summary :)
-
-# plotting with the actual lm fit:
-#TODO geom_abline doesn't work
-ggplot(big_num_peaks_df, aes(x = num_peaks, y = total_peak_length)) +
-  geom_point() +
-  geom_abline(slope = lm_df$estimate[[2]], intercept = lm_df$estimate[[1]])
-
-# See how this changes if order is changed
 
 ```
 
@@ -546,3 +501,42 @@ ggplot(big_num_peaks_df, aes(x = num_peaks)) +
 
 
 ```
+
+
+
+
+
+
+
+# extra on linear models
+
+```{r}
+library(broom)
+# We can get the slope and intercept from making a lm variable:
+
+lm_fit <- lm(big_num_peaks_df$total_peak_length ~ big_num_peaks_df$num_peaks)
+summary(lm_fit)
+# slope = 1,000 
+# ORDER MATTERS: if reversed the slope is 8 e -3!
+lm_fit <- lm(big_num_peaks_df$num_peaks ~ big_num_peaks_df$total_peak_length)
+summary(lm_fit)
+
+
+# let's convert the lm_fit data to a data_frame using tidy()
+# it's in the library broom:
+library(broom)
+
+lm_df <- tidy(lm_fit)
+lm_df
+# so much easier to read than summary :)
+
+# plotting with the actual lm fit:
+
+ggplot(big_num_peaks_df, aes(x = num_peaks, y = total_peak_length)) +
+  geom_point() +
+  geom_abline(slope = lm_df$estimate[[1]], intercept = lm_df$estimate[[2]])
+
+# See how this changes if order is changed
+
+```
+
