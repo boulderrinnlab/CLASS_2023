@@ -18,6 +18,8 @@ library(Gviz)
 library(ggpubr)
 library(ggplot2)
 ```
+Accompanying youtube video:
+https://youtu.be/PWYfKUw3Xyw
 
 Goal: learn more plotting skills using our custom ChIPseq data set!
 We will start to make plots that present results about our DBPs binding features.

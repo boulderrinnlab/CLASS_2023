@@ -21,6 +21,10 @@ source("../../../util/plotting_functions.R")
 source("../../../util/_setup.R")
 
 ```
+Accompanying Youtube video:
+https://youtu.be/OhD7CqhqU9g
+
+Goal: Learn how to plot our data using GGPLOT !
 
 One of the best parts of R is the plotting abilities. You are, by analogy designing your own figures with code. You can run many stastical analyses and plot the outputs in the code to make a figure. Here we will focus on GGPLOT(GGPLOT2). The GG says it all:
 

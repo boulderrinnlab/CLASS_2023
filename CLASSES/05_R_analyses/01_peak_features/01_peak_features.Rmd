@@ -19,6 +19,8 @@ basepath <- "/scratch/Shares/rinnclass/CLASS_2023/JR"
 peak_path <- "CLASS_2023/CLASSES/05_R_analyses/00_consensus_peaks/consensus_peaks"
 consensusPeakPath <- file.path(basepath, peak_path)
 ```
+Accompanying Youtube Video:
+https://youtu.be/OhVcBOov2Go
 
 Goal: Here we are going to create a bunch of human genome annotation objects
 and how many peaks (consensus_peaks) over lap them. 
