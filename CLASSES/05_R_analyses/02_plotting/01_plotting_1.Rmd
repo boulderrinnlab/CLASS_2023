@@ -360,7 +360,8 @@ table(big_num_peaks_df$dbd)[order(table(big_num_peaks_df$dbd))]
 dbds <- c("C2H2 ZF", "Homeodomain", "bZIP")
 
 # Now the plotting beings and good example of running functions in aes()
-ggplot(big_num_peaks_df %>% filter(dbd %in% dbds),
+ggplot(big_num_peaks_df %>% 
+         filter(dbd %in% dbds),
        aes(x = num_peaks, y = total_peak_length )) +
   facet_grid(dbd ~ .) + 
   geom_point()
@@ -373,7 +374,8 @@ We can also facet grid another parameter -- let's say tf
 
 ```{R two facets}
 
-ggplot(big_num_peaks_df %>% filter(dbd %in% dbds),
+ggplot(big_num_peaks_df %>% 
+         filter(dbd %in% dbds),
        aes(x = num_peaks, y = total_peak_length )) +
   facet_grid(dbd ~ tf) + 
   geom_point()

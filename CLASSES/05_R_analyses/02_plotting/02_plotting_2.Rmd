@@ -12,9 +12,8 @@ knitr::opts_chunk$set(echo = TRUE)
 options(stringsAsFactors = F)
 library(tidyverse)
 library(GenomicRanges)
-# source("../../../util/intersect_functions.R")
-source("../../../../util/plotting_functions.R")
-source("../../../../util/_setup.R")
+source("../../../util/plotting_functions.R")
+source("../../../util/_setup.R")
 library(Gviz)
 library(ggpubr)
 library(ggplot2)
@@ -34,11 +33,9 @@ Now we can simply load the .Rdata file from before !!
 peak_features.RData
 
 load("../01_peak_features/results/peak_features.RData", verbose = T)
-# that is so nice to have everyhting laoded in stead of remaking everything !
+# that is so nice to have everything loaded in stead of remaking everything !
 
 ```
-
-
 
 # Peaks per dbp
 ```{r plotting peak features}
@@ -46,8 +43,7 @@ load("../01_peak_features/results/peak_features.RData", verbose = T)
 # First let's look at a histogram of peak#/DBP
 
  ggplot(num_peaks_df, aes(x = num_peaks)) + 
-  geom_histogram(bins = 70)
-
+  geom_histogram(bins = 10)
 
 ```
 
@@ -59,10 +55,6 @@ load("../01_peak_features/results/peak_features.RData", verbose = T)
 # Let's plot our result of num_peaks versus genome coverage.
 ggplot(num_peaks_df, aes(x = num_peaks, y = total_peak_length)) +
   geom_point() + 
-  geom_smooth(method = "gam", se = TRUE, color = "black", lty = 2)+
-              #formula = 'y ~ x') +
-  # after this line is just formatting figure - above is "functional"
-  #geom_text() +
   ylab("BP covered") +
   xlab("Number of peaks") +
   ggtitle("Peak count vs. total bases covered")
@@ -80,20 +72,21 @@ Let's did in a bit deeper and see how coverage on promoters.
 
 ggplot(num_peaks_df,
        aes(x = num_peaks, y = peaks_overlapping_promoters)) +
-  # just a resource for figure editing
-  xlab("Peaks per DBP") +
-  ylab("Number of peaks overlapping promoters") +
-  ggtitle("Relationship Between Number of DBP Peaks and Promoter Overlaps")+
   geom_point() +
   
-  # back to important statistical aspects
   geom_abline(slope = 1, linetype="dashed") +
   geom_smooth(method = "lm", se=FALSE, formula = 'y ~ x',
               color = "#a8404c") +
-  # adding a seconf
-  stat_regline_equation(label.x = 35000, label.y = 18000) +
+ # ggpubr prints equation
+  stat_regline_equation()+
+  # stat_regline_equation(label.x = 35000, label.y = 18000) +
   ylim(0,60100) +
-  xlim(0,60100)
+  xlim(0,60100) +
+
+  # adding labels
+xlab("Peaks per DBP") +
+  ylab("Number of peaks overlapping promoters") +
+  ggtitle("Relationship Between Number of DBP Peaks and Promoter Overlaps")
 
 ggsave("figures/3_peak_num_vs_promoter_coverage.pdf")
 
@@ -108,18 +101,20 @@ ggsave("figures/3_peak_num_vs_promoter_coverage.pdf")
 
 ggplot(num_peaks_df,
        aes(x = num_peaks, y = peaks_overlapping_genebody)) +
+ geom_point() +
   
-# code to make things pretty
-  xlab("Peaks per DBP") +
-  ylab("Number of peaks overlapping genes") +
-  ggtitle("Relationship Between Number of DBP Peaks and Gene Body Overlaps")+
-  geom_point() +
   geom_abline(slope = 1, linetype="dashed") +
   geom_smooth(method = "lm", se=F, formula = 'y ~ x',
               color = "#a8404c") +
   stat_regline_equation(label.x = 35000, label.y = 18000) +
+  
   ylim(0,60100) +
-  xlim(0,60100)
+  xlim(0,60100) +
+
+  # adding labels
+xlab("Peaks per DBP") +
+  ylab("Number of peaks overlapping genes") +
+  ggtitle("Relationship Between Number of DBP Peaks and Gene Body Overlaps")
 
 # Interesting result !! Gene bodies explain almost all the places of binding in 
 # the genome! Where as promoters had a non linear asymptope after a certain number 
@@ -164,13 +159,7 @@ geom_density(alpha = 0.2, color = "#424242", fill = "#424242") +
   ggtitle("Promoter binding events",
           subtitle = "mRNA and lncRNA genes") 
 
-# Wow what a result! Last year we only saw up to 111 binding events at a promoter
-# this is kind of validated where the first peak in the distribution falls at 100
-# binding events -- yet there is a second distribution of regions of 300 or more 
-# binding events -- wonder what those are :) ?
-
-# VERY COOL let's print out the figure
-
+# saving
 ggsave("figures/num_binding_events_per_promoter.pdf")
 
 ```
@@ -209,7 +198,6 @@ While we are at it let's do some deep dives into the aes layer
 This is required to make two plots in one :)
 
 ```{r}
-
 # Plotting lncRNA -vs mRNA promoter binding distribution
 # for more advanced figure making check out the code below.
 # it is not the best practice to do to many analyses in ggplot.
@@ -218,22 +206,29 @@ This is required to make two plots in one :)
 ggplot(num_peaks_df, aes(x = num_peaks)) +
   geom_point(aes(y = peaks_overlapping_lncrna_promoters), color = "red") +
   geom_point(aes(y = peaks_overlapping_mrna_promoters), color = "black") +
+  
   stat_regline_equation(aes(y = peaks_overlapping_lncrna_promoters), color = "red") +
   stat_regline_equation(aes(y = peaks_overlapping_mrna_promoters), color = "black", label.y = 20000) +
+  
   geom_smooth(aes(y = peaks_overlapping_lncrna_promoters), method = "lm", se = FALSE, formula = "y ~ x") +
   geom_smooth(aes(y = peaks_overlapping_mrna_promoters), method = "lm", se = FALSE, formula = "y ~ x")
 
+# saving
 ggsave("figures/lncRNA-mRNA-promoter_binding.pdf")
 
 # Nice we see that mRNA promoters have about 4x more binding (from slope)
 # Both follow a fairly linear trend except mRNA may have saturate quicker.
+```
 
+Fancier version of num_peaks vs promoter overlaps
+Using mutate to create gene-type of lncRNA and mRNA seperately
+Then plotting.
+```{r}
 
-# This is just a fancier version of the same thing -- note mutate to clean up names
-# this first part is manipulating the num peaks df with pivot longer
+# moving col "peaks_overlapping_promoters" to end of df
 num_peaks_dfl <- num_peaks_df %>%
   dplyr::select(-peaks_overlapping_promoters) %>%
-  # selecting these to cols to pivot longer
+  
   # We will discuss pivot longer in the next class (BUT IF YOUR INTERESTED ASK NOW IT'S WORTH IT!!)
   pivot_longer(cols = peaks_overlapping_lncrna_promoters:peaks_overlapping_mrna_promoters,
                names_to = "gene_type",
@@ -243,17 +238,23 @@ num_peaks_dfl <- num_peaks_df %>%
 # plotting
 ggplot(num_peaks_dfl, aes(x = num_peaks, y = peaks_overlapping_promoters, 
                          col = gene_type)) +
-         geom_point() +
+  geom_point() +
+  
          geom_abline(slope = 1, linetype="dashed") +
   geom_smooth(method = "lm", se = FALSE, formula = "y ~ x") +
+  
   stat_regline_equation() +
+  
   scale_color_manual(values = c("#a8404c", "#424242"))+
+  
   xlab("Peaks per DBP") +
   ylab("Peaks Overlapping Promoters") +
   ggtitle("Number of DBP Peaks and Promoter Overlaps")
+
+
 #ggsave("figures/peaks_overlaps_relationship_by_gene_type.png", height = 5, width = 8)
 ggsave("figures/peaks_overlaps_relationship_by_gene_type.pdf", height = 5, width = 8)
-``` 
+```
 
 ############
 exeRcise:
