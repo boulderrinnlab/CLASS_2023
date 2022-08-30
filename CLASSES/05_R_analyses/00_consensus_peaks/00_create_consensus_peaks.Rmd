@@ -20,6 +20,8 @@ basepath <- "/scratch/Shares/rinnclass/CLASS_2023/<your_folder>"
 peak_path <- "CLASS_2023/CLASSES/03_Nextflow/00_my_chipseq/results/bwa/mergedLibrary/macs/broadPeak/"
 broadpeakfilepath <- file.path(basepath, peak_path)
 ```
+Acompanying youtube video:
+https://youtu.be/BPHQAMAh5GE
 
 Goal: to create a consensus_peak file for each dbp, export and format for UCSC.
 The first step in analyses is looking at raw data :)
