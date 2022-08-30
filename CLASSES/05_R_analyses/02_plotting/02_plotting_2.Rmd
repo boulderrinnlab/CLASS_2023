@@ -51,6 +51,7 @@ load("../01_peak_features/results/peak_features.RData", verbose = T)
 # Let's plot our result of num_peaks versus genome coverage.
 ggplot(num_peaks_df, aes(x = num_peaks, y = total_peak_length)) +
   geom_point() + 
+
   ylab("BP covered") +
   xlab("Number of peaks") +
   ggtitle("Peak count vs. total bases covered")
@@ -58,12 +59,12 @@ ggplot(num_peaks_df, aes(x = num_peaks, y = total_peak_length)) +
 # saving MAKE SURE WORKING DIRECTORY IS CORRECT
 ggsave("figures/peak_num_vs_coverage.pdf")
 
-
 ```
 
 # plotting num peaks on promoters
 Let's did in a bit deeper and see how coverage on promoters.
 ```{r number of DBPS on promoters}
+
 # now let's plot x as num_peaks and y num overlapping promoters.
 
 ggplot(num_peaks_df,
@@ -71,7 +72,7 @@ ggplot(num_peaks_df,
   geom_point() +
   
   geom_abline(slope = 1, linetype="dashed") +
-  geom_smooth(method = "lm", se=FALSE, formula = 'y ~ x',
+  geom_smooth(method = "lm", se=F, formula = 'y ~ x',
               color = "#a8404c") +
  # ggpubr prints equation
   stat_regline_equation()+
@@ -172,7 +173,6 @@ unbound_promoters <- peak_occurence_df %>%
 
 # how many are there?
 nrow(unbound_promoters)
-# so there are only a few 6,720 promoters that don't have binding evetns (~10%)
 
 #  let's put it in a folder called results. We will always use this folder structure
 write_csv(unbound_promoters, "../01_peak_features/results/unbound_promoters.csv")
@@ -221,7 +221,7 @@ Using mutate to create gene-type of lncRNA and mRNA seperately
 Then plotting.
 ```{r}
 
-# moving col "peaks_overlapping_promoters" to end of df
+# removing col "peaks_overlapping_promoters" 
 num_peaks_dfl <- num_peaks_df %>%
   dplyr::select(-peaks_overlapping_promoters) %>%
   
