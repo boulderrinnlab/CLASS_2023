@@ -19,18 +19,14 @@ library(ggpubr)
 library(ggplot2)
 ```
 
+Goal: learn more plotting skills using our custom ChIPseq data set!
+We will start to make plots that present results about our DBPs binding features.
 
-Alright time to start digging into the data for new results !!
-We have made a consensus peak file for each DBP and 
-Moreover, we have a data frame of a bunch of peak overlap features for each DBP.
+Let's start making plots of our data !
 
-# Loading in filtered consensus peaks
-Now we can simply load the .Rdata file from before !!
-
-
+# Now we can simply load the .Rdata file from before !!
+we saved our environment in 01_peak_features -- let's load it in.
 ```{r loading in consensus peaks}
-
-peak_features.RData
 
 load("../01_peak_features/results/peak_features.RData", verbose = T)
 # that is so nice to have everything loaded in stead of remaking everything !
