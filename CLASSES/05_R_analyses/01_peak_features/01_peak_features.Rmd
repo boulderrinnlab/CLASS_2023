@@ -12,13 +12,23 @@ knitr::opts_chunk$set(echo = TRUE)
 options(stringsAsFactors = F)
 library(tidyverse)
 library(GenomicRanges)
-source("../../../../util/intersect_functions.R")
+source("../../../util/my_class_functions.R")
 
 # filepath to import peaks
-basepath <- "/scratch/Shares/rinnclass/CLASS_2023/<your_folder>"
-peak_path <- "CLASS_2023/CLASSES/05_R_analyses/00_consensus_peaks"
+basepath <- "/scratch/Shares/rinnclass/CLASS_2023/JR"
+peak_path <- "CLASS_2023/CLASSES/05_R_analyses/00_consensus_peaks/consensus_peaks"
 consensusPeakPath <- file.path(basepath, peak_path)
 ```
+
+Goal: Here we are going to create a bunch of human genome annotation objects
+and how many peaks (consensus_peaks) over lap them. 
+
+We are now going to start to create results on binding versus genome features!
+More importantly we are going to save our environment at the end for quick
+loading moving forward.
+
+In short we are on our way to analyzing our custom ChIPseq data !!
+
 
 # Exploring the genome features bound by DBPs
 Now that we have our consensus_peaks across replicates
@@ -60,8 +70,9 @@ gencode_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2023/data/dat
 
 # now just type == gene annotations
 gencode_genes <- gencode_gr[gencode_gr$type == "gene"] 
+# table(gencode_gr$type)
 
-# exporting all genes file
+# exporting all genes file (we will save all the .Rdata too at the end)
 rtracklayer::export(gencode_genes, "results/gene_annotations/gencode_genes.gtf")
 
 # mRNA genes (called "protein_coding") in this version of gencode changes sometimes !
@@ -115,8 +126,9 @@ mrna_gene_ids <-mrna_lncrna_genes$gene_id[mrna_lncrna_genes$gene_type == "protei
 Now that we have all the annotations we need let's start seeing
 what annotations overlap the peaks in our consensus peaks!
 
-# creating a data frame of peak overlaps.
-
+# How many peaks overlap gene annotations ??
+Let's analyze how many peaks overlap different genomic features
+we can start by creating a data frame of peak overlaps.
 ```{r creating an overlap features data.frame}
 
 # Let's start with loading in the number of peaks each DBP has -- using length.
@@ -151,7 +163,7 @@ occurence (matrix of 1 if overlap 0 if not)
 # counting promoter overlaps
 promoter_peak_counts <- count_peaks_per_feature(lncrna_mrna_promoters, consensus_peaks, type = "counts")
 
-# ok we see this is a large matrix of 1 and 0 for overlaps
+# ok we see this is a large matrix of the number of overlaps at each promoter
 # cols are promoters, rows are DBPS
 # so now we just row sum for each DBP !
 
