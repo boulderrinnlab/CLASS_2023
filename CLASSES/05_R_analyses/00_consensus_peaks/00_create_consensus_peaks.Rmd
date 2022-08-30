@@ -97,8 +97,10 @@ Let's use "analysis/00_consensus_peaks/
 ```{r exporting consensus peaks }
 # setting file path to export
 basepath <- "/scratch/Shares/rinnclass/CLASS_2023/<your_folder>"
-consensus_path <- "CLASS_2023/CLASSES/05_R_analyses/analysis/00_consensus_peaks/consensus_peaks"
+consensus_path <- "CLASS_2023/CLASSES/05_R_analyses/00_consensus_peaks/"
 exportpath <- file.path(basepath, consensus_path)
+
+# /scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/05_R_analyses/00_consensus_peaks/consensus_peaks
 
 # now we can export each as .bed file
 for(i in 1:length(consensus_list)) {
@@ -106,7 +108,7 @@ rtracklayer::export(consensus_list[[i]], paste0(exportpath, names(consensus_list
 
 # alternative local export:
 for(i in 1:length(consensus_list)) {
-rtracklayer::export(consensus_list[[i]], paste0("results/consensus_peaks/test", names(consensus_list)[i],"_consensus_peaks.bed")) }
+rtracklayer::export(consensus_list[[i]], paste0("results/consensus_peaks/", names(consensus_list)[i],"_consensus_peaks.bed")) }
 
 ```
 
@@ -116,7 +118,7 @@ Now let's read in one of these files and see what we see:
 
 ```{r reading .bed file from rtracklayer_export}
 # read in a given peak file 
-peak_1 <- read_tsv("analysis/00_consensus_peaks/EP300_consensus_peaks.bed", col_names = F)
+peak_1 <- read_tsv("EP300_consensus_peaks.bed", col_names = F)
 
 # ok we can see that rtracklayer did not keep qvalue sigvalue etc
 # we also see the odd contings etc.
@@ -127,7 +129,7 @@ peak_1 <- read_tsv("analysis/00_consensus_peaks/EP300_consensus_peaks.bed", col_
 Rtracklayer export does not keep the col names :( 
 ```{r reading .bed file from rtracklayer_export}
 # FIRST a file list:
-consensus_file_list <- list.files("analysis/00_consensus_peaks", full.names = T, pattern = ".bed")
+consensus_file_list <- list.files("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/05_R_analyses/00_consensus_peaks", full.names = T, pattern = ".bed")
 
 # lapply (for loop) across consensus file list to add colnames
 # The actual col names for .broadPeak are: chr, start, end, name, score, strand
@@ -179,7 +181,7 @@ headers <- paste0("track type=bedGraph name=", names(peaks))
 headers
 
 # creating a path to export after we add header in for loop below
-new_filenames <- paste0("analysis/00_consensus_peaks/ucsc_consensus_peaks/", names(peaks), ".bed")
+new_filenames <- paste0("ucsc_consensus_peaks/", names(peaks), ".bed")
 new_filenames
 ```
 

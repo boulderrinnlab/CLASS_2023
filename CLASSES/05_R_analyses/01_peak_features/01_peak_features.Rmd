@@ -16,7 +16,7 @@ source("../../../../util/intersect_functions.R")
 
 # filepath to import peaks
 basepath <- "/scratch/Shares/rinnclass/CLASS_2023/<your_folder>"
-peak_path <- "CLASS_2023/CLASSES/05_R_analyses/analysis/00_consensus_peaks"
+peak_path <- "CLASS_2023/CLASSES/05_R_analyses/00_consensus_peaks"
 consensusPeakPath <- file.path(basepath, peak_path)
 ```
 
@@ -26,19 +26,8 @@ we can start to explore where they are bound in the genome.
 Do they bind at promoters? How much of the genome do they cover?
 And many more questions.
 
-# Let's make a new directory for these analyses. 
-This is the structure we will be using moving forward.
--- Home base is /analysis
--- inside there we will make a folder from 00 to 0X
--- each folder will have the .Rmd file used to generate results
--- a results dir in each 0X_ folder for files generated that will be used in future analyses
--- a figure dir in each 0X_ folder 
-
 # set up working directory: 
-/analysis/01_peak_features/peak_features.Rmd
-/analysis/01_peak_features/results
-/analysis/01_peak_features/results
-set working directory to CLASS_2023/CLASSES/05_R_analyses/analysis/01_peak_features
+set working directory to CLASS_2023/CLASSES/05_R_analyses/01_peak_features
 
 
 # Let's start importing all the files we need:
@@ -54,7 +43,7 @@ consensus_peaks <- lapply(consensus_peaks_files, rtracklayer::import)
 
 # adding DBP name to each list of GRanges from the file name
 # note gsub requires no space around or argument ( | )
-names(consensus_peaks) <- gsub("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/05_R_analyses/analysis/00_consensus_peaks/|_consensus.bed","", consensus_peaks_files)
+names(consensus_peaks) <- gsub("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/05_R_analyses/00_consensus_peaks/|_consensus.bed","", consensus_peaks_files)
 
 ```
 
