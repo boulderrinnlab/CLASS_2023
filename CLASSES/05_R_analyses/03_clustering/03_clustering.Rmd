@@ -17,9 +17,6 @@ library(GenomicRanges)
 install.packages(pheatmap)
 library(pheatmap)
 
-source("path/CLASS_2022/util/intersect_functions.R")
-source("path/CLASS_2022/util/plotting_functions.R")
-source("path/CLASS_2022/JR/CLASS_2022/util/_setup.R")
 ```
 
 
