@@ -16,7 +16,7 @@ library(DESeq2)
 # install.packages("ggrepel")
 library(ggrepel)
 source("../../../../../util/plotting_functions.R")
-source("../../../../../util/_setup.R")
+source("../../../../util/_setup.R")
 
 ```
 
@@ -74,7 +74,8 @@ samplesheet_nuc_cyto$condition <- factor(samplesheet_nuc_cyto$condition,
                                                     "homo_sapiens_cytosolic_fraction"))
 
 # IMPORTANT : values returned will be nuclear/cytoplasmic !!
-#TODO double check this or understand why it ends up CYTO/NUCLEAR?
+# IMPORTANT : !! FIRST FACTOR is denominator !!
+
 
 # let's write out this samplesheet for future use
 write_rds(samplesheet_nuc_cyto, "results/samplesheet_nuc_cyto.rds")
@@ -109,6 +110,8 @@ scaled_counts <- t(scale(t(rlog_var_genes_all))) %>%
 # make heat map
 pheatmap(scaled_counts, show_rownames = FALSE)
 
+
+#TODO r set up file figure colors
 # saving
 pdf("figures/all_vs_total_genes_heatmap.pdf")
 pheatmap(scaled_counts, show_rownames = FALSE)
