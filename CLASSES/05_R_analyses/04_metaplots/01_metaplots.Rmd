@@ -67,7 +67,7 @@ Here we're going to create a GRanges object that contains 2kb promoter windows f
 
 We already loaded in these promoters created in 01_peak_features as :: lncrna_mrna_promoters.
 
-# Step 2: Transform chip-peaks into a coverage object over the 6Kb promooter window
+# Step 2: Transform chip-peaks into a coverage object over the 2Kb promooter window
 In order to calculate what the peak coverage across each promoter is we'll convert the peaks GRanges object which currently holds a range for each peak into a run-length encoded list where 0 represents the genomic coordinates where there is no peak present and 1 represents the locations where a peak is present. The reason for run length encoding is that storing this vector without this compression means that we would be storing a numeric value for each of the 3.2 billion base pairs. This would mean allocating a vector in memory that's ~180 GB -- instead with run-length encoding we're in the ~100 KB range. 
 
 ```{r transforming promoter windows into a coverage matrix}
@@ -104,7 +104,7 @@ names(coverage_length)
 # chromosome names
 
 length(coverage_length)
-# 24 chromosomes
+# 25 chromosomes
 
 # we can use the coverage length ranges to 
 # filter the promoters falling outside of these boundaries:
@@ -151,18 +151,20 @@ all_promoters_ir <- as(all_promoters_gr, "IntegerRangesList")[chromosomes]
 # nice now we have all the promoter windows as an Iranges object
 ```
 
-## Step 3: Subset the peak coverage vector to just the promoter windows
+## Step 3: Subset the peak coverage vector to just the promoter windows & find ChIPseq peak overlaps
 
 Here we'll use the Views function to mask the peak coverage object everywhere but in the windows of the promoters.
+We will also find where conesnsus ChIPseq peaks overlap the promoters windows.
 
+# Views: to find overlaps of chIPseq peaks (peak_coverage) & promoter windows (promoters_ir)
+Kind of like doing find overlaps for GRanges and Views is doing this to an integerRangeList.
 ```{r reducing data to jsut Iranges of promters and peak coverage }
 
 # let's look at views
 ?Views
 # ok so Views can store and access all the promoter vectors
-# We will end up with an index of all 'promoter windows'
-
-# indexing all the promter window vectors (6Kb)
+# We will end up with an index of all 'promoter windows' and peak ranges
+# >>> Thus we end up with 
 promoter_peak_view <- Views(peak_coverage, all_promoters_ir)
 
 #let's look at what we got
@@ -196,6 +198,7 @@ promoter_peak_view
 # turned into a vector.
 
 # Base R do.call to call "rbind" function
+# Right now each row is a chromosome !! so we need to bind them
 promoter_peak_matrix <- do.call("rbind", promoter_peak_view)
 # good to note in a matrix sometimes to use do.call and "rbind"
 
