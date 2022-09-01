@@ -282,7 +282,7 @@ ggplot(metaplot_df, aes(x = x, y = dens)) +
   geom_line(size = 1.5) + 
   ggtitle("HDAC2 Promoter Metaplot") + 
   scale_x_continuous(breaks = c(-3000, 0, 3000),
-                     labels = c("-3kb", "TSS", "+3kb"),
+                     labels = c("-1kb", "TSS", "+1kb"),
                      name = "") + 
   ylab("Peak frequency")
 ggsave("figures/HDAC2_promoter_metaplot.pdf")
@@ -292,7 +292,7 @@ ggsave("figures/HDAC2_promoter_metaplot.pdf")
 exeRcise 
 ###############################
 
-1) Make a metaplot for ecah protein
+1) Make a metaplot for each protein
 2) Try and make a function for creating meta_plots!
 
 # solution
