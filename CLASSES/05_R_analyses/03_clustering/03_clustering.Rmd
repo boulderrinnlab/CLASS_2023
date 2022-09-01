@@ -14,10 +14,12 @@ library(tidyverse)
 library(ggdendro)
 library(GenomicRanges)
 
-install.packages(pheatmap)
+# install.packages(pheatmap)
 library(pheatmap)
 
 ```
+Accompanying Youtube Video:
+https://youtu.be/MH92yILbbuo
 
 
 Today we are going to use hierarchical clustering to identify DBPs with similar binding patterns.
@@ -53,7 +55,7 @@ We will make a distance matrix of 437 x437 and then use that for clustering.
 
 # First let's take a look at the matrix
 # note the meta data
-promoter_peak_occurence_matrix[1:2,1:5]
+promoter_peak_occurence_matrix[1:2,19:24]
 # let's see if there are row and column names:
 
 # row.names
@@ -64,6 +66,7 @@ colnames(promoter_peak_occurence_matrix)
 # now we can calculate the distance of DBP (we could also do this for promoters)
 # let's do a small test first as this can 10 min to calculate 451x451!
 
+# NOTE : Type of distance is important -- euclidean not good for binary measurements
 test <- dist(promoter_peak_occurence_matrix[1:2,], method = "euclidean")
 test
 
@@ -78,10 +81,8 @@ test2 <- dist(promoter_peak_occurence_matrix[1:2,], method = "binary")
 test2
 
 # Now let's create distance matrix for each pairwise vector comparison for the whole matrix now.
-
-# This take 5 min or so
 peak_occurence_dist <- dist(promoter_peak_occurence_matrix, method = "binary")
-peak_occurence_dist[1:10]
+peak_occurence_dist
 ```
 
 # Clustering distance matrix
@@ -127,12 +128,10 @@ pdf("figures/dbp_hclust_dendro.pdf", height = 12, width = 70)
 plot(bin_hier)
 dev.off()
 
-
-
 ```
 
 
-# HEATMAPS
+# ggdendro function for clustwering
 Nice so we now have object "bin_hier" that will contain all the cross correlation values across all the samples. 
 
 Now let's use GGDENDRO (dendrogram) package that will plot the branch lengths that indicate how similar two samples are 
@@ -152,6 +151,7 @@ Now let's use GGDENDRO (dendrogram) package that will plot the branch lengths th
    # subsection to labels in order of clustering
    # ? seq_along
    scale_x_continuous(breaks = seq_along(bin_hier$labels[bin_hier$order]),
+                      
                       # adding labels that are in the order 'column'
              labels = bin_hier$labels[bin_hier$order], position = "top",
              expand = c(0,0)) +
@@ -172,11 +172,11 @@ ggsave("figures/ggdendro_plot.pdf", height = 50, width = 12, limitsize = F)
 ```
 
 
-# Heatmap of lncRNA and mRNA seperately
+# Clustering of lncRNA and mRNA seperately
 Now let's compare how lncRNAs and mRNAs cluster differnently?
 Strategy: load annotations then index peak_occurrence for specific annotations
 
-#lncRNA promoters
+# lncRNA promoters ggdendro
 ```{r lncRNA promoter clustering}
 
 # We first need to load the .GTF we made for lncRNAs and mRNAs.
@@ -199,7 +199,7 @@ lncrna_peak_occurence <- promoter_peak_occurence_matrix[,lncrna_promoters$gene_i
 bin_hier_lncrna <- hclust(dist(lncrna_peak_occurence, method = "binary"))
 
 # Now plot with ggdendro
-ggdendro::ggdendrogram(bin_hier_lncrna, rotate = TRUE,  size = 3)
+ggdendro::ggdendrogram(bin_hier_lncrna, rotate = T,  size = 3)
  
 # Now let's save this figure
 ggsave("figures/lncrna_hclust_binary_dist.pdf", height = 49, width = 6)
@@ -207,7 +207,7 @@ ggsave("figures/lncrna_hclust_binary_dist.pdf", height = 49, width = 6)
 
 ```
 
-# mRNA promter heatmap
+# mRNA promter ggdendro
 Now for mRNA
 
 ```{R mRNA promoter clustering}
@@ -247,30 +247,42 @@ ncol(high_binders)
 ```
 
 # Now let's make a heat map with pheatmap
-
+Pheatmap will do the clustering and make a heatmap for us!
 ```{r heatmap}
 
 # library(pheatmap)
 ?pheatmap
 
+# Pheatmap wants a matrix of values, a method of clustering are the main parameters.
+# This takes a minute !
+pheatmap(promoter_peak_occurence_matrix, show_colnames = F, clustering_distance_rows = "binary", clustering_distance_cols = "binary")
 
-# We don't need to be able to read the promoter names and it takes a long time to plot those.
-pheatmap(promoter_peak_occurence_matrix, show_colnames = FALSE, clustering_distance_rows = "binary", clustering_distance_cols = "binary")
+# Save heat map.
 
-# TODO how to save heatmap
-
-ggsave("figures/heatmap.pdf", height = 44, width = 6 )
+pdf("figures/heatmap.pdf", height = 12, width = 12)
+pheatmap(promoter_peak_occurence_matrix, show_colnames = F, clustering_distance_rows = "binary", clustering_distance_cols = "binary")
+dev.off()
 
 ```
 
+Excellent we can now make a heat map for all our DBPs and cluster them by 
+similarity of what promoters they bind. We can already learn which proteins
+are more similar in their binding to promoters!
 
-# Adding to num_peaks_df 
-While we have all these objects in our environment
-let's go ahead and make another data frame.
-This will be which DBPs are bound to which promoter.
+#### Bonus material on what we can do with peak occurence matrix !!! ####
+# Making a data frame of which proteins are bound on a given promoter 
+Currently peak occurrence matrix just tells us whether a DBP overlapped 
+a promoter. Promoters are cols and thus we can extract row name from
+values in a col. 
+
+To solve this we need to make a matrix that we can call a 
+specific promoter and then find the DBPs bound to that promoter.
+
 Thus you can simply look up your favorite promoter 
-and retreive all the DBPs bound to it.
+and retrieve all the DBPs bound to it.
 
+
+# Step 1: make a dataframe of gene ids and gene_names
 ```{r DBPs bound to a given promoter}
 # Let's make a data frame of gene_id and gene_name 
 # we will merge this into our dbp_on_promoters below
@@ -281,17 +293,21 @@ DBPs_on_promoter <- bind_rows(lncrna_promoters %>%
                  mrna_promoters %>% 
                     as.data.frame()) %>%
   dplyr::select(gene_id, gene_name)
+```
 
-
+# step 2: pivot longer and filter to only promoters a DBP binds
+```{r DBPs bound to a given promoter}
 # Here we will make a table to look up which DBPs are on a given promoter
 promoter_dbps <- promoter_peak_occurence_matrix %>%
   as.data.frame() %>%
-   # this adds "dbp" to the top left corner to make the rownames a column
+   # this adds "dbp" not as names but now a column
   rownames_to_column("dbp") %>%
 # here we just made a column that has the DBP name
 # currently it is a "meta" name
    
    # LET'S DISCUSS PIVOT WIDER and SHORTER - IT'S IMPORTANT
+   # takes col 2: all the rest of cols (col 1 is dbp name)
+   # now each DBP will have 30,000+ rows for values in all promoters
 pivot_longer(2:ncol(.), names_to = "gene_id", values_to = "occurrence") %>%
 # This now a very long matrix - let's get rid of all zero values
   filter(occurrence == 1) %>%
@@ -344,9 +360,6 @@ nrow(XIST_promoter)
 
 # Interesting, intuition was correct considering
 # this is a male cell line :)
-
-
-
 ```
 
 ################
