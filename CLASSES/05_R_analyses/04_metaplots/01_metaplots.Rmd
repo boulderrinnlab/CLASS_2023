@@ -13,26 +13,24 @@ knitr::opts_chunk$set(echo = TRUE)
 library(GenomicRanges)
 library(rtracklayer)
 library(tidyverse)
+source("../../../util/_setup.R")
+# # BiocManager::install("circlize")
+# library(circlize)
+# source("../../../util/intersect_functions.R")
 
-#ComplexHeatmap is BioConducter thus needing 
-BiocManager::install("ComplexHeatmap")
-library(ComplexHeatmap)
-
-# BiocManager::install("circlize")
-library(circlize)
-
-source("../../../../util/plotting_functions.R")
-source("../../../../util/intersect_functions.R")
-source("../../../../util/_setup.R")
 ```
+Introduction to Metaplot Video here:
+https://youtu.be/AObSCXMutLk
+
+Please see slides for the introduction video here:
+https://www.dropbox.com/s/v02r8eiu0a8nyg5/TSS%20Metaplot.key?dl=0
+
+Accompanying YouTube Video:
+
 
 Today our goal is to make "meta plots" of promoter binding profiles.
 In simpler terms: we are going to determine the average binding of:
 (A) a given DBP across our promoter windows.
-
-Please see slides on this process here:
-https://www.dropbox.com/s/v02r8eiu0a8nyg5/TSS%20Metaplot.key?dl=0
-
 
 We'll be using the consensus peaks we generated previously (MACS peak calls filtered to those that are overlapping across replicates) and the Gencode gene annotations. This is STEP 0 : loading in required files.
 
@@ -41,8 +39,6 @@ We'll be using the consensus peaks we generated previously (MACS peak calls filt
 
 # loading in needed files from 01_peak_features
 load("../01_peak_features/results/peak_features.RData", verbose = T)
-
-# Again so handy and we just saved a lot of time running code !
 
 ```
 
@@ -59,8 +55,6 @@ use this code to plot other aspects (expression etc) over similar windows. Final
 use this code to make windows around other features of the geneome (e.g., transposons).
 
 We can accomplish all this in the following 6 steps:
-
-
 # Step 1: Create promoter windows
 
 Here we're going to create a GRanges object that contains 2kb promoter windows for each gene in the Gencode annotation. First we'll need to filter the Gencode GRanges object to just the genes and then we can use the promoter function from GRanges that will allow us to specify how big of a window we want upstream and downstream of the TSS (you can have asymmetrical windows).
@@ -76,12 +70,12 @@ In order to calculate what the peak coverage across each promoter is we'll conve
 # at given entry of ,000 entries for each base of the 'promoter window
 ?coverage
 
-# random but there needs to be spaces before and after gene_id ??
+# creating a coverage object for HDAC2 ChIPseq consensus peaks
 peak_coverage <- coverage(consensus_peaks[["HDAC2"]]) 
-# ok now we have a 2,000 length vector with 1 for overlap or 0
+
 
 View(peak_coverage)
-# note each chromosome is a seperate list of ranges of overlaps or non-overlaps
+# note each chromosome is a separate list of ranges of overlaps or non-overlaps
 # this is also recorded in "run length encoding" commonly referred to "RLE"
 
 ```
@@ -90,6 +84,7 @@ View(peak_coverage)
 
 This step will accomplish two things: filter out promoters that fall outside the bounds of our coverage vectors and filter out chromosomes that are not in common between the promoters object and the peak coverage object. The reason we need to do this is because the peaks may not extend to the end of each chromosome and therefore there is likely to be promoters that fall outside of the peak coverage vectors -- since we know that there are no peaks on those promoters and therefore they don't give us any extra information about where peaks are relative to promoters we'll filter them out. Also, it creates problems for the Views command that we'll use to subset the coverage vectors to just the promoter windows.
 
+# Step 2.2 chromosome coverage vector (to be used to overlap promoters coverage)
 ```{r peak_coverage of all promoter windows : from GRanges to Iranges}
 
 # This is the length of each run-length encoded vector in the peak_coverage object
@@ -113,6 +108,10 @@ coverage_gr <- GRanges(seqnames = names(coverage_length),
                        IRanges(start = rep(1, length(coverage_length)), 
                                end = coverage_length))
 
+```
+
+# Step 2.3 Promoter coverage windows to intersect with chromosome coverage.
+```{R Promoter coverage IntegerRanges}
 # Okay, now we're all ready to filter out those promoters that fall beyond the bounds of the 
 # coverage vector. 
 
@@ -130,7 +129,8 @@ all_promoters_gr <- subsetByOverlaps(lncrna_mrna_promoters,
 names(peak_coverage)
 # with
 seqnames(all_promoters_gr)
-# note we would have lossed the mitochondrial chromosome!
+
+# now selecting those chromosomes that are in our coverage vector
 chromosomes <- intersect(names(peak_coverage), unique(as.character(seqnames(all_promoters_gr))))
 
 # We can also ensure they're in the same order and contain the same chromosomes
@@ -265,7 +265,7 @@ Plotting POLR2A binding coverage across all bound promoters
 ggplot(metaplot_df, aes(x = x, y = dens)) + 
   geom_line(size = 1.5)
 
-# Nice, POL2RA has normal distribution of binding events
+# Nice, HDAC2 has normal distribution of binding events
 # around the center of the promtoer window (TSS).
 
 # We have now done this for one DBP and can write the above as a function
