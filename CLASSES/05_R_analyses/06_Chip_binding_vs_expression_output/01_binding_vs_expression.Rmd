@@ -15,8 +15,6 @@ library(GenomicRanges)
 source("../../../../util/intersect_functions.R")
 source("../../../../util/_setup.R")
 library(ggpubr)
-
-
 ```
 
 Today we are going to be comparing how binding relates to expression output.
@@ -30,7 +28,7 @@ Let's get started by loading in our chipseq data
 
 ```{r loading in chipseq data}
 
-load("../01_peak_features/results/peak_features.RData", verbose = T)
+load("../../01_peak_features/results/peak_features.RData", verbose = T)
 
 ```
 
@@ -40,7 +38,7 @@ Next we want to load in our final_samplesheet from 01_DESEQ_counts.Rmd
 ```{r read in sample_sheet}
 
 # First let's read in the sample sheet to know what is what
-samplesheet <- read_rds("../05_RNAseq/01_differential_expression/results/final_samplesheet.rds")
+samplesheet <- read_rds("../../05_RNAseq/01_differential_expression/results/final_samplesheet.rds")
 
 ```
 
@@ -66,8 +64,8 @@ most other analyses.
 Now let's read in the TPMs from salmon
 ```{r reading in salmon Salmon TPMs}
 
-# reading in salmon counts TPM (note we previously read in counts)
-# TPM is transcripts per million read -- so is a normalized abundance value
+# reading in salmon counts TPM (from NF_COR_pipeline)
+
 salmon_tpm <- read.csv("../05_RNAseq/00_RNAseq_download_NF_core_pipeline/00_NF_CORE_RNAseq_Pipeline_run/results/salmon/salmon_merged_gene_tpm.csv")
 
 # since we have replicates we will take the mean TPM for each fractionation.

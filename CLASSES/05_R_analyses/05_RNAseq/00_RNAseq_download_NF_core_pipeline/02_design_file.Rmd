@@ -11,35 +11,36 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 options(stringsAsFactors = FALSE)
 library(tidyverse)
-
 # install.packages("httr")
 library(httr)
-
 # install.packages("janitor")
 library(janitor)
-
 # install.packages("purrr")
 library(purrr)
 
-source("../../../../../util/my_class_functions.R")
+source("../../../../util/my_class_functions.R")
 
 ```
 
-In the previous class we created a function that can go and get data from encode and 
-make it an object in our environment "encode_file_info". What we would ideally like to do
-is provide a list of experimenta_accessions from ENCODE and have encode info give us the data.
+Goal: Grab RNAseq from the internet, use the download to create sample sheet and 
+design file we need to run RNAseq NF_CORE pipeline.
 
-NOTE: using this approach we can make the design file from encode_file_info funciton. 
-Thus making the design file for NF_CORE 100% reproducible in code !
+# sample,fastq_1,fastq_2,strandedness
+https://nf-co.re/rnaseq/usage
+
+We almost always use a sample sheet in downstream analyses. The basic info can be really helpful for making groups and doing comparisons on those groups etc. So here we
+will create a sample sheet that we can use for our analyses and design file for input into NF_CORE RNAseq pipeline.
+
+Thus we can use our encode_file_info function to both retreive data and 
+create sample_sheet and design file right from that code. Thus our design and samplesheet will be 100% reproducible! The modern NF_CORE RNAseq pipelines require this information in design file:
+
 
 FIRST, we need to learn a really awesome and powerful function called "MAP" in the "PURR" package.
 
 # Introduction to map
 Since one encode experimental accession has multiple files we can "MAP" 
 all the files to a single entry for each experiment accession. This would 
-be similar to putting a bunch of file paths in one excel "cell" 
-
-Let's start with the basics.
+be similar to putting a bunch of file paths in one excel "cell" Let's start with the basics of MAP.
 
 # Using MAP
 ```{r MAP example}
@@ -67,14 +68,13 @@ map_example[[1]][[1]]
 
 ```
 
-# MAP encode_file_info function output
+# MAP encode_file_info function output to sample_sheet
 
 We can use map to call this encode_file_info function for each experiment accession
 and return each experimental_accession as an entry in a data.frame 
 Specifically one row associated with experiment acession (ENCSR) will have all the encode files (ENCFF)
-So one row will have many files in it -- similar to have a bunch of files in a single excel "cell"
 
-First let's read in the RNAseq samples we downloaded from ENCODE.
+So one row will have many files in it -- similar to have a bunch of files in a single excel "cell". First let's read in the RNAseq samples we downloaded from ENCODE.
 
 ```{r reading in sample sheet}
 
@@ -244,6 +244,7 @@ NICE all files are documented as properly downloaded (towards that 100% reproduc
 
 
 # finalizing sample sheet for NF_CORE
+
 Finally, we can write out a nicely formatted sample sheet 
 that we will use downstream for further analysis of the read counts in R.
 
