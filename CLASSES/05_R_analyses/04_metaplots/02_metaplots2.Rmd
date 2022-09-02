@@ -11,6 +11,7 @@ editor_options:
 options(stringsAsFactors = FALSE)
 knitr::opts_chunk$set(echo = TRUE)
 library(GenomicRanges)
+library(ggplot2)
 library(rtracklayer)
 library(tidyverse)
 library(ComplexHeatmap)
@@ -18,6 +19,8 @@ library(circlize)
 source("../../../util/my_class_functions.R")
 source("../../../util/_setup.R")
 ```
+Accompanying YouTube Video:
+https://youtu.be/MQnvp8C3si8
 
 Goal: to use profile_tss to make metaplots of how each of DBPs
 bind across promoter windows (+/- 1Kb). We will further cluster 
@@ -170,9 +173,6 @@ to group into smaller groups etc.
 clusters <- cutree(metaplot_hclust, k=4)
 table(clusters)
 
-# Let's shrink to 4 clusters based on table
-clusters <- cutree(metaplot_hclust, k = 4)
-table(clusters)
 ```
 Result: I see that one cluster has three DBPs most have 1
 and cluster 4 has 2. Let's make a heatmap to investigate further.
@@ -206,7 +206,7 @@ Result: H3K27me3 and H3K36 are more in gene bodies and depleted at TSS.
 
 
 
-# STRATEGY 2 : Metaplots seperated by lncRNA and mRNA promoters
+#  Metaplots seperated by lncRNA and mRNA promoters
 The above strategy works just fine, however we would have to make
 a lot of plots if there were 480dbps in our dataset -- which there will be :)
 So a second strategy is to:
@@ -259,29 +259,14 @@ ggplot(combined_metaplot_profile,
   geom_vline(xintercept = 0, lty = 2) + 
   geom_line(size = 1.5) + 
   facet_wrap(dbp ~ ., scales = "free_y") +
+  
+  
   ggtitle("Combined Promoter Metaplot") + 
   scale_x_continuous(breaks = c(-1000, 0, 1000),
                      labels = c("-1kb", "TSS", "+1kb"),
                      name = "") + 
   ylab("Peak frequency") +
   scale_color_manual(values = c("#424242","#a8404c"))
-
-
-
-ggplot(combined_metaplot_profile, 
-       aes(x = x, y = dens, color = gene_type )) +
-  geom_vline(xintercept = 0, lty = 2) + 
-  geom_line(size = 1.5) + 
-  facet_wrap(dbp ~ ., scales = "free_y") +
-  ggtitle("Promoter Metaplot") + 
-  scale_x_continuous(breaks = c(-1000, 0, 1000),
-                     labels = c("-1kb", "TSS", "+1kb"),
-                     name = "") + 
-  ylab("Peak frequency") +
- scale_color_manual(values = c("#424242","#a8404c"))
-
-
-
 
 ```
 Result: H3K27me3 looks almost inverse between lncrna and mrna
