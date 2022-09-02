@@ -10,6 +10,8 @@ knitr::opts_chunk$set(echo = TRUE)
 options(stringsAsFactors = FALSE)
 
 ```
+Accompanying YouTube Video:
+https://youtu.be/vUcO0lDwM2I
 
 # Run NF_CORE RNaseq pipeline
 Goal: run NF_CORE RNAseq pipeline on the HEPG2 RNAseq from ENCODE. The pipeline will
