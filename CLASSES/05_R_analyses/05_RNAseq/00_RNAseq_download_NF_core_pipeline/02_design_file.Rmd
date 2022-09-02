@@ -22,6 +22,7 @@ source("../../../../util/my_class_functions.R")
 
 ```
 Accompanying YouTube Video
+https://youtu.be/rAw0jIYfuMw
 
 Goal: Grab RNAseq from the internet, use the download to create sample sheet and 
 design file we need to run RNAseq NF_CORE pipeline.
