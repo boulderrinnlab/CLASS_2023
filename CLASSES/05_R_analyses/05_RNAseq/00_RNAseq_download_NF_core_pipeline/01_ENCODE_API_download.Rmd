@@ -11,78 +11,25 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 options(stringsAsFactors = FALSE)
 library(tidyverse)
-
 # install.packages("httr")
 library(httr)
-
 # install.packages("janitor")
 library(janitor)
-
 # install.packages("purrr")
 library(purrr)
-
-source("../../../../../util/class_functions.R")
-
+# source("../../../../../util/class_functions.R")
 # source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/encode_functions.R")
 ```
 
-Goal: to downlaod a RNAseq data from HEPG2 that is fractionated by cellular compartment
-(nuc, cyto, total etc). We can then we can integrate our ChIPseq data and look at how 
+Goal: To lear what an API is and apply these skills to downloading 
+data from the ENCODE API. We will downlaod a RNAseq data from HEPG2 that is 
+fractionated by cellular compartment(nuc, cyto, total etc).
+We can then we can integrate our ChIPseq data and look at how 
 DNA binding affects RNA expression.
 
 Let's go check out what is available from ENCODE:
-https://www.encodeproject.org/matrix/?type=Experiment&control_type!=*&status=released&perturbed=false
+https://www.encodeproject.org/
 
-
-Here is a documented URL for the data retrival:
-
-[Encode Query]("https://www.encodeproject.org/search/?type=Experiment&status=released&assay_slims=Transcription&assay_slims=Transcription&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&biosample_ontology.classification=cell+line&files.read_length=50&limit=all&advancedQuery=date_released:%5B2009-01-01+TO+2021-12-31%5D&biosample_ontology.term_name=HepG2&assay_title=total+RNA-seq&biosample_ontology.classification=cell%20line")
-
-# MAKE A NEW WORKING DIRECTORY
-Nice, we can get all the data we need. First we need to think about where to put this :)
-we are now moving into "05_RNAseq" in the class directory. So let's make a sub directory 
-for our downloaded files and NF_core RNAseq pipeline run.
-
-Let's first download the fastq files into DATA:
-"CLASS_2023/CLASSES/05_R_analyses/analysis/05_RNAseq/00_RNAseq_download_NF_core_pipeline/data"
-
-
-# Downloading RNAseq fastq files from ENCODE portal
-We need two things:
-(1) experimental_report.tsv from encode. a samples file with information on samples.
-we can get this on encode portal by clicking "Experimental report" tab on top and "download TSV"
-
-(2) a path to download the fastq files. This is on the "experimental list" tab
-click the "download" button and you will get a file called "files.txt"
-
-You can download these files directly and file transfer - or right click and wget (as below)
-
-
-```{bash}
-
-# open terminal here:
-# <your_folder>/CLASS_2023/CLASSES/05_R_analyses/analysis/05_RNAseq/00_RNAseq_download_NF_core_pipeline/data
-
-wget -O samples.txt "https://www.encodeproject.org/report.tsv?type=Experiment&status=released&assay_slims=Transcription&assay_slims=Transcription&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&biosample_ontology.term_name=HepG2&biosample_ontology.classification=cell+line&assay_title=total+RNA-seq&files.read_length=50&limit=all&advancedQuery=date_released:[2009-01-01%20TO%202021-12-31]"
-
-# This will give us a text file of the file names. We will use this to download the files.
-# open terminal (in working dir) and paste this in
-
-wget -O files.txt "https://www.encodeproject.org/batch_download/?type=Experiment&status=released&assay_slims=Transcription&assay_slims=Transcription&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&biosample_ontology.term_name=HepG2&biosample_ontology.classification=cell+line&assay_title=total+RNA-seq&files.read_length=50&limit=all&advancedQuery=date_released:[2009-01-01%20TO%202021-12-31]"
-
-# Now we need to copy files.txt into a new dir called "fastq"
-mkdir fastq
-
-# now copy files.txt to fastq and change dir to fastq
-cp files.txt fastq
-cd fastq
-
-# To download the fastq files for RNAseq we run this below (screen session recommended):
-xargs -L 1 curl -O -J -L < files.txt
-
-# Cool we have all the data we need for the NF_CORE RNAseq pipeline !
-
-```
 
 # Introduction to APIs (Application Programming Interface) 
  
@@ -100,7 +47,12 @@ Now, we will use ENCODE's API to retrieve additional file information from their
 The main reason we need to do this is to retrieve md5sum values for files -- 
 these are essential, but currently unavailable from the web based version of downloading :( 
 
+# Exploring ENCODE API
 ```{r examining encode API}
+
+# URL to HEPG2 RNAseq data information
+# https://www.encodeproject.org/report.tsv?type=Experiment&control_type!=*&status=released&perturbed=false&assay_title=total+RNA-seq&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&biosample_ontology.term_name=HepG2&files.run_type=paired-ended
+
 
 # ENCODE base url: https://www.encodeproject.org/report.tsv?
 
@@ -111,35 +63,27 @@ request_url <- "https://www.encodeproject.org/report.tsv?type=File&status=releas
 
 # the field parameter is where we tell it which columns or which pieces of data we want to get.
 # this retrieves read_count, md5sum, controlled_by, paired_end, paired_with, replicate, and target
-
-
 # NOTE API language use :
 #   (1) file_format=fastq&dataset=%2Fexperiments%2FENCSR541TIG%2F&field=accession&
 #   (2) dataset=%2F
 #  (3) experiments%2 "experimental_accession .....
 
 # So we could change this by changing the experimental accession to "ENCSR061SFU" for example 
-
 request_url <- "https://www.encodeproject.org/report.tsv?type=File&status=released&file_format=fastq&dataset=%2Fexperiments%2FENCSR061SFU%2F&field=accession&field=read_count&field=md5sum&field=controlled_by&field=paired_end&field=paired_with&field=replicate&field=target"
 
-
-# Thus now this one URL can download any encode experiment acession -- and provide md5sum :)
-
+# Thus now this one URL can download any encode experiment accession -- and provide md5sum :)
 
 ```
 
- We will use this API logic to make a custom inquiry with everything we need !
-
 # writting custom function to retreive specific data from encode
 
-We've written some custom helper functions specific to the ENCODE API to request exactly the information we want, 
-since we'll make these requests multiple times -- for each experiment accession. We will make two functions:
+We've written some custom helper functions specific to the ENCODE API to request exactly the information we want, since we'll make these requests multiple times -- for each experiment accession. We will make two functions:
 
-(1) construct_query
+(1) construct_query:
 function that will make a URL we can then wget this url and get all the data downloaded.
 However we will still be missing file information we need (e.g., md5sum)
 
-(2) encode file info 
+(2) encode file info: 
 This will get us all the information associated with the files in URL above.
 
 # FUNCTION 1: construct_query
@@ -166,6 +110,8 @@ construct_query <- function(experiment_accession,
   # Now we will populate this structure above, 
   # NOTE experiment_accession is the only parameter we need to populate
   # In sum, we are copying the terminology used in REQUEST_URL or communicate with API
+  
+# request_url <- "https://www.encodeproject.org/report.tsv?type=File&status=released&file_format=fastq&dataset=%2Fexperiments%2FENCSR061SFU%2F&field=accession&field=read_count&field=md5sum&field=controlled_by&field=paired_end&field=paired_with&field=replicate&field=target"
   
   query <- paste(list(paste0("type=", type),
                       paste0("status=", status),
@@ -276,18 +222,58 @@ dat <- encode_file_info("ENCSR541TIG")
 
 # Nice we just retrieved all the information we wanted for this experiment accession!
 ```
-
 Moving forward we can use this function to download over 400 experimental acessions !
 We will do this later in calss but would be way to cumbersome to do on the web.
 Thus this funciton should be pretty handy in the future !
 
+# Now that we have the file info we can dowload 
 
+# Downloading RNAseq fastq files from ENCODE portal
+We need two things:
+(1) experimental_report.tsv from encode. a samples file with information on samples.
+we can get this on encode portal by clicking "Experimental report" tab on top and "download TSV"
+
+(2) a path to download the fastq files. This is on the "experimental list" tab
+click the "download" button and you will get a file called "files.txt"
+
+You can download these files directly and file transfer - or right click and wget (as below)
+
+
+```{bash}
+
+# Let's download the RNAseq fastq files into a new dir called "fastq"
+
+# Now we need to copy files.txt into a new dir called "fastq"
+mkdir fastq
+
+# now change dir to fastq
+cd fastq
+
+# This will give us a text file of the file names. We will use this to download the files.
+# open terminal (in working dir) and paste this in (same as web file download list)
+
+wget -O files.txt "https://www.encodeproject.org/batch_download/?type=Experiment&status=released&assay_slims=Transcription&assay_slims=Transcription&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&biosample_ontology.term_name=HepG2&biosample_ontology.classification=cell+line&assay_title=total+RNA-seq&files.read_length=50&limit=all&advancedQuery=date_released:[2009-01-01%20TO%202021-12-31]"
+
+# this is the same as:
+# https://www.encodeproject.org/matrix/?type=Experiment&control_type!=*&status=released&perturbed=false&assay_title=total+RNA-seq&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&biosample_ontology.term_name=HepG2&files.run_type=paired-ended
+
+
+# To download the fastq files for RNAseq we run this below (screen session recommended):
+xargs -L 1 curl -O -J -L < files.txt
+
+# Cool we have all the data we need for the NF_CORE RNAseq pipeline !
+
+```
 
 ######################
 ExeRcise
 ######################
 
-Create a for loop to use encode_file_info on a list of experimental_accessions.
+(1) Create a function in my_class_functions.R for "encode_file_info"
+
+(2) Create a for loop to use encode_file_info on a list of experimental_accessions.
+
+We will use "encode_file_info" in the next class to make a sample sheet that has md5sums !
 
 
 SOLUTION
@@ -311,4 +297,14 @@ for(i in 1:length(encode_experiment_accession_list)) {
 
 ```
 
+
+# ARCHIVING
+Here is a documented URL for the data retrival:
+
+[Encode Query]("https://www.encodeproject.org/search/?type=Experiment&status=released&assay_slims=Transcription&assay_slims=Transcription&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&biosample_ontology.classification=cell+line&files.read_length=50&limit=all&advancedQuery=date_released:%5B2009-01-01+TO+2021-12-31%5D&biosample_ontology.term_name=HepG2&assay_title=total+RNA-seq&biosample_ontology.classification=cell%20line")
+
+# open terminal here:
+# <your_folder>/CLASS_2023/CLASSES/05_R_analyses/analysis/05_RNAseq/00_RNAseq_download_NF_core_pipeline/data
+
+wget -O samples.txt "https://www.encodeproject.org/report.tsv?type=Experiment&status=released&assay_slims=Transcription&assay_slims=Transcription&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&biosample_ontology.term_name=HepG2&biosample_ontology.classification=cell+line&assay_title=total+RNA-seq&files.read_length=50&limit=all&advancedQuery=date_released:[2009-01-01%20TO%202021-12-31]"
 

@@ -106,7 +106,7 @@ samples <- samples %>%
   # note function inside a function being called.
   # the "experiment_acession" col will be read into encode_file_info function
   # ~ means pass the experiment_accession value into encode_file_info
-  # (.x) is a generic symbol meaning pass what is in memory == experiment_acession
+  # (.x) is a generic symbol meaning pass what is in memory == experiment_accession
   mutate(file_info = map(experiment_accession, ~ encode_file_info(.x)))
 
 # Thus for each accession in experiment_accession mutate will use the function MAP
