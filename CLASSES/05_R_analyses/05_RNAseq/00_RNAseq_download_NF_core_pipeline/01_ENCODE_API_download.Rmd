@@ -20,6 +20,8 @@ library(purrr)
 # source("../../../../../util/class_functions.R")
 # source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/encode_functions.R")
 ```
+Accompanying YouTube Video:
+https://youtu.be/4qO4UsxQp8s
 
 Goal: To lear what an API is and apply these skills to downloading 
 data from the ENCODE API. We will downlaod a RNAseq data from HEPG2 that is 
@@ -298,12 +300,15 @@ for(i in 1:length(encode_experiment_accession_list)) {
 
 
 # ARCHIVING
+Web interface of experiments selected:
+https://www.encodeproject.org/matrix/?type=Experiment&control_type!=*&status=released&perturbed=false&assay_title=total+RNA-seq&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&biosample_ontology.term_name=HepG2&files.run_type=paired-ended
+
+
 Here is a documented URL for the data retrival:
 
 [Encode Query]("https://www.encodeproject.org/search/?type=Experiment&status=released&assay_slims=Transcription&assay_slims=Transcription&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&biosample_ontology.classification=cell+line&files.read_length=50&limit=all&advancedQuery=date_released:%5B2009-01-01+TO+2021-12-31%5D&biosample_ontology.term_name=HepG2&assay_title=total+RNA-seq&biosample_ontology.classification=cell%20line")
 
 # open terminal here:
 # <your_folder>/CLASS_2023/CLASSES/05_R_analyses/analysis/05_RNAseq/00_RNAseq_download_NF_core_pipeline/data
-
 wget -O samples.txt "https://www.encodeproject.org/report.tsv?type=Experiment&status=released&assay_slims=Transcription&assay_slims=Transcription&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&biosample_ontology.term_name=HepG2&biosample_ontology.classification=cell+line&assay_title=total+RNA-seq&files.read_length=50&limit=all&advancedQuery=date_released:[2009-01-01%20TO%202021-12-31]"
 

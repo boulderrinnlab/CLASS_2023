@@ -85,6 +85,14 @@ samples <- read.table("data/samples.txt",
 
 # It's seems mundane but starting here is the best way to make a "reproducible" sample sheet.
 # Bottom line: the download to code to analysis is the way to reproducibility (this worked a year later :)
+
+# If you don't already have the samples.txt you can get it here:
+
+# wget -O samples.txt "https://www.encodeproject.org/report.tsv?type=Experiment&status=released&assay_slims=Transcription&assay_slims=Transcription&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&biosample_ontology.term_name=HepG2&biosample_ontology.classification=cell+line&assay_title=total+RNA-seq&files.read_length=50&limit=all&advancedQuery=date_released:[2009-01-01%20TO%202021-12-31]"
+
+# sample site to get report:
+# https://www.encodeproject.org/matrix/?type=Experiment&control_type!=*&status=released&perturbed=false&assay_title=total+RNA-seq&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&biosample_ontology.term_name=HepG2&files.run_type=paired-ended
+
 ```
 
 # Mapping each experiment to the experiment_accession
@@ -132,7 +140,8 @@ samples <- samples %>%
 
 ```
 
-# cleaning up sample sheet
+# creating replicate number
+# rep number and sample_id col changes
 Now we have all the information we neeed in this data.frame and we just need to clean it up.
 
 ```{r sample sheet curration: adding replicate number for each RNAseq experiment}
@@ -149,7 +158,7 @@ samples <- samples %>%
   # This is a handy handle for the data to access later
 ```
 
-# getting rid of non essential data
+# Cleaning up: getting rid of non essential data
 Now let's get rid of all that data we don't need! 
 
 ```{r removing data from sample sheet}
@@ -202,15 +211,14 @@ rename_script <- samples %>%
 ```
 
 # run rename script
-NOTE : MAKE SURE TO MOVE TO FASTQ FOLDER TO RUN THIS
-
+# NOTE : MAKE SURE TO MOVE TO FASTQ FOLDER TO RUN THIS
+# cd /data/fastq/
 ```{r rename fastq files to samplesheet id}
 # We can write this out as a bash script with ?write_lines 
 # We include a shebang header line so that the script is interpreted by bash.
 ?write_lines
 
 write_lines(c("#!/bin/bash", rename_script$command), "rename.sh")
-
 # Now cd fastq and "chmod u+x rename.sh
 # then ./rename.sh
 
@@ -261,7 +269,8 @@ samples <- samples %>%
 
 ```
 
-# final organization of sample sheet
+# Reducing samples > sample sheet
+# Final Sample Sheet !
 
 Now that we have it cleaned up, let's create one line for each replicate
 where the fastq read 1 and read 2 are in the same row.
@@ -290,7 +299,7 @@ separate(sample_id, into = c("experiment_accession", "replicate"),
 # we want to remove the "rep" with gsub to "R" and iterative using mutate
 mutate(replicate = gsub("rep", "R", replicate)) %>%
   
-# we are writting over the sample_name col and uniting condition and replicate info 
+# we are writing over the sample_name col and uniting condition and replicate info 
 # into the previous sample_name col. syntax: (data frame - implied from tidy, new_col_name, what to unite)
 unite(sample_name, condition, replicate, sep = "_", remove = FALSE)
 ```
@@ -313,7 +322,7 @@ samplesheet <- samplesheet %>%
 ```{bash }
 
 # navigate to this path:
-cd <your_folder>/CLASS_2023/CLASSES/05_R_analyses/analysis/05_RNAseq/00_RNAseq_download_NF_core_pipeline
+cd <your_folder>/CLASS_2023/CLASSES/05_R_analyses/05_RNAseq/00_RNAseq_download_NF_core_pipeline
 
 mkdir 00_NF_CORE_RNAseq_Pipeline_run
 
@@ -387,4 +396,6 @@ write_csv(samples, "samples.csv")
 Now we have the raw files downloaded and the samplesheet needed for downstream analyses 
 (ex, differential expression). So the next step is to run nf-core/rnaseq on these samples.
 We'll do this in the RNAseq II.
+
+
 
