@@ -8,21 +8,18 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 options(stringsAsFactors = FALSE)
-library(tidyverse)
-# library(tximport)
-library(DESeq2)
-library(ggrepel)
-library(pheatmap)
+
 ```
 
-
 # Run NF_CORE RNaseq pipeline
-Let's do some RNAseq !
+Goal: run NF_CORE RNAseq pipeline on the HEPG2 RNAseq from ENCODE. The pipeline will
+give us a bunch of good output files and counts for how much each gene is expressed!
 
-Goal: Align reads and get the number of reads in each gene in the genome using nf-core/rnaseq 
+NF_CORE RNA seq has a few parameters we need.
+It's always good to read documentation first:
+https://nf-co.re/rnaseq/usage
 
-To use this new version of the nf-core/rnaseq pipeline (v3.4) 
-So what we need is
+Basically what you need is:
 
 design.csv
 nextflow.config file
@@ -38,11 +35,6 @@ process {
   memory='16 GB'
   maxForks=10
 }
-
-# go to correct working directory .../analysis/18_running_RNA_seq
-nano nextflow.config
-
-# paste in text above
 
 ```
 
@@ -84,7 +76,7 @@ nextflow run nf-core/rnaseq -r 1.4.2 \
 -profile singularity \
 
 # wher is the data :)
---reads '/scratch/Shares/rinnclass/CLASS_2023/<your_folder>/CLASS_2023/CLASSES/05_R_analyses/analysis/05_RNAseq/00_RNAseq_download_NF_core_pipeline/data/fastq/*{_read1,_read2}.fastq.gz' \
+--reads '/scratch/Shares/rinnclass/CLASS_2023/<your_folder>/CLASS_2023/CLASSES/05_R_analyses/05_RNAseq/00_RNAseq_download_NF_core_pipeline/data/fastq/*{_read1,_read2}.fastq.gz' \
 
 # genome file
 --fasta /scratch/Shares/rinnclass/CLASS_2023/data/data/genomes/GRCh38.p13.genome.fa \
@@ -136,7 +128,7 @@ module load singularity/3.1.1
 nextflow run nf-core/rnaseq -r 1.4.2 \
 -resume \
 -profile singularity \
---reads 'your_path/17_API_RNASEQ/fastq/*{_read1,_read2}.fastq.gz' \
+--reads 'your_path/fastq/*{_read1,_read2}.fastq.gz' \
 --fasta /scratch/Shares/rinnclass/CLASS_2023/data/data/genomes/GRCh38.p13.genome.fa \
 --gtf /scratch/Shares/rinnclass/CLASS_2023/data/data/genomes/gencode.v32.annotation.gtf \
 --pseudo_aligner salmon \
@@ -186,7 +178,8 @@ tail -f nextflow.out
 Voila you are doing RNAseq!
 
 
-```{r}
+# archive of my design
+```{bash }
 #!/bin/bash
 #SBATCH -p long
 #SBATCH --job-name=2023_HEPG2_rna_seq
@@ -207,7 +200,7 @@ module load singularity/3.1.1
 nextflow run nf-core/rnaseq -r 1.4.2 \
 -resume \
 -profile singularity \
---reads '/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/05_R_analyses/analysis/05_RNAseq/00_RNAseq_download_NF_core_pipeline/data/fastq/*{_read1,_read2}.fastq.gz' \
+--reads '/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/05_R_analyses/05_RNAseq/00_RNAseq_download_NF_core_pipeline/data/fastq2/*{_read1,_read2}.fastq.gz' \
 --fasta /scratch/Shares/rinnclass/CLASS_2023/data/data/genomes/GRCh38.p13.genome.fa \
 --gtf /scratch/Shares/rinnclass/CLASS_2023/data/data/genomes/gencode.v32.annotation.gtf \
 --pseudo_aligner salmon \

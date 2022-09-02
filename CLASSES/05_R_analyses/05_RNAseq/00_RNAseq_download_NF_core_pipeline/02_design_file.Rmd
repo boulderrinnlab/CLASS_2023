@@ -21,6 +21,7 @@ library(purrr)
 source("../../../../util/my_class_functions.R")
 
 ```
+Accompanying YouTube Video
 
 Goal: Grab RNAseq from the internet, use the download to create sample sheet and 
 design file we need to run RNAseq NF_CORE pipeline.
@@ -243,7 +244,7 @@ write_lines(md5$line, "md5.txt")
 
 # Now let's run it from R to BASH with "system()" function
 # NOTE THIS TAKES A FEW MINUTES 
-md5_results <- system("cd fastq; md5sum -c md5.txt")
+md5_results <- system("md5sum -c md5.txt")
 
 # NOTE that we changed the file name but this isn't checked by md5sum
  
@@ -341,8 +342,8 @@ Let's create a sample column using mutate -- and we'll clean up the names
 
 ```{r creating design file}
 # adding path to fastq files so NF_CORE knows where to get them
-base_path <- "/scratch/Shares/rinnclass/CLASS_2023/<your_folder>"
-fastq_path <- "CLASS_2023/CLASSES/05_R_analyses/analysis/05_RNAseq/00_RNAseq_download_NF_core_pipeline/data/fastq/"
+base_path <- "/scratch/Shares/rinnclass/CLASS_2023/JR"
+fastq_path <- "CLASS_2023/CLASSES/05_R_analyses/05_RNAseq/00_RNAseq_download_NF_core_pipeline/data/fastq2/"
 final_path <- c(file.path(base_path, fastq_path))
 
 # There's spaces in the names currently and we need to get rid of those.
