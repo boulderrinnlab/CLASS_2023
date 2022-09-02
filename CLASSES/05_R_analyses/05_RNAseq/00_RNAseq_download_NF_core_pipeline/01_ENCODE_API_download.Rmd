@@ -166,7 +166,7 @@ encode_file_info <- function(experiment_accession,
   # Now we are creating a url that encode will understand
   path <- "report.tsv?"
   base_url <- modify_url("https://www.encodeproject.org/", path = path)
-  url <- contstruct_query(experiment_accession,
+  url <- construct_query(experiment_accession,
                           base_url = base_url,
                           file_format,
                           type,
@@ -278,7 +278,6 @@ We will use "encode_file_info" in the next class to make a sample sheet that has
 
 SOLUTION
 ```{r}
-
 
 # create a list of acessions
 encode_experiment_accession_list <- c("ENCSR061SFU", "ENCSR813BDU", "ENCSR887ZSY", "ENCSR862HPO", "ENCSR181ZGR" )
