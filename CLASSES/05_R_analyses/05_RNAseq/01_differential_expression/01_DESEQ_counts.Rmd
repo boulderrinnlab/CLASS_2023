@@ -11,15 +11,10 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 options(stringsAsFactors = FALSE)
 library(tidyverse)
-# library(tximport)
-# library(ggrepel)
-library(pheatmap)
-source("../../../../../util/plotting_functions.R")
-source("../../../../../util/_setup.R")
+library(DESeq2)
 
 # DEseq2 needs a specific package of 'locfit' that has to be installed first
 install.packages("https://cran.r-project.org/src/contrib/Archive/locfit/locfit_1.5-9.4.tar.gz", repos=NULL, type="source")
-
 # Now we can install DEseq2
 BiocManager::install("DESeq2")
 
@@ -33,16 +28,10 @@ We noted a mistake in encode labeling :) so we will fix that and create a final
 samplesheet for differential expression analyses by DESEQ in the next class.
 
 GOAL: to understand how to convert the output counts from Salmon to rlog normalized counts.
-We will also generate all the needed files we need to do differnetial expression analyses with DESEQ.
-
-# FIRST, we need copy our samplesheet and design file into our 01_differential_expression dir.
-USe the terminal to "cp" the folder to the current working directory:
-<your_folder>/CLASS_2023/CLASSES/05_R_analyses/analysis/05_RNAseq/01_differential_expression
-
-# cp samplesheet.csv ../../01_differential_expression/results
-# cp design.csv ../../01_differential_expression/results
+We will also generate all the needed files we need to do differential expression analyses with DESEQ.
 
 It is always good to look at the raw data (bigWig in IGV etc)
+
 # We discovered ENCODE swapped the labels on two samples !!
 This was discovered two differnet ways that are good starting points:
 
@@ -70,6 +59,13 @@ We have concluded that:
 
 
 Let's start by fixing our sample_sheet!
+# FIRST, we need copy our samplesheet and design file into our 01_differential_expression dir.
+USe the terminal to "cp" the folder to the current working directory:
+<your_folder>/CLASS_2023/CLASSES/05_R_analyses/analysis/05_RNAseq/01_differential_expression
+
+# cp samplesheet.csv ../../01_differential_expression/results
+# cp design.csv ../../01_differential_expression/results
+
 
 ```{r import sample sheet}
 
@@ -77,10 +73,28 @@ Let's start by fixing our sample_sheet!
 samplesheet <- read_csv("results/samplesheet.csv")
 
 # First changing the total sample to homo_sapiens_insoluble_fraction
-samplesheet[which(samplesheet$sample_name == "homo_sapiens_hepg2"), "condition"] <- "homo_sapiens_insoluble_cytoplasmic_fraction"
+samplesheet[which(samplesheet$sample_name == "homo_sapiens_hepg2_R1"), "condition"] <- "homo_sapiens_insoluble_cytoplasmic_fraction"
 
 # same for changing insoluble_cytoplasmic_fraction condition to homo_sapiens_hepg2
-samplesheet[which(samplesheet$sample_name == "hepg2_insoluble_cytoplasmic_fraction"), "condition"] <- "homo_sapiens_hepg2"
+samplesheet[which(samplesheet$sample_name == "homo_sapiens_hepg2_insoluble_cytoplasmic_fraction_R2"), "condition"] <- "homo_sapiens_hepg2"
+
+
+# rewriting sample name
+samplesheet[which(samplesheet$sample_name == "homo_sapiens_hepg2_R1"), "sample_name"] <- "homo_sapiens_hepg2_insoluble_cytoplasmic_fraction_RX"
+
+
+# rewrite sample name
+samplesheet[which(samplesheet$sample_name == "homo_sapiens_hepg2_insoluble_cytoplasmic_fraction_R2"), "sample_name"] <- "homo_sapiens_hepg2_R1"
+
+# change RX back
+samplesheet[which(samplesheet$sample_name == "homo_sapiens_hepg2_insoluble_cytoplasmic_fraction_RX"), "sample_name"] <- "homo_sapiens_hepg2_insoluble_cytoplasmic_fraction_R2"
+
+# finally change replicate numbers -- NOT IDEAL!
+samplesheet[which(samplesheet$sample_name == "homo_sapiens_hepg2_R1"), "replicate"] <- "R1"
+
+# finally change replicate numbers -- NOT IDEAL!
+samplesheet[which(samplesheet$sample_name == "homo_sapiens_hepg2_insoluble_cytoplasmic_fraction_R2"), "replicate"] <- "R2"
+
 
 # saving this to sample_sheets folder
 write.csv(samplesheet, "results/corrected_samplesheet.csv")

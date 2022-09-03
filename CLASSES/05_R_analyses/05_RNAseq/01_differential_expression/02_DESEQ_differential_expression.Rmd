@@ -83,7 +83,7 @@ write_rds(samplesheet_nuc_cyto, "results/samplesheet_nuc_cyto.rds")
 ```
 
 
-# Heatmap of all samples
+# Heatmap of all samples (Rlog Counts)
 First let's cluster all the data to see how the samples relate.
 ```{r heatmap of all data}
 
@@ -118,7 +118,7 @@ pheatmap(scaled_counts, show_rownames = FALSE)
 dev.off()
 ```
 
-# Principal component analysis
+# Principal component analysis (Rlog Counts)
 Now let's use Principle Component Analysis to determine sample similarity
 
 ```{r PCA analysis}
@@ -152,7 +152,7 @@ ggsave("figures/PCA_plot.pdf")
 
 ```
 
-# Nuclear versus cytoplasmic differential expression
+# Nuclear versus cytoplasmic differential expression (Salmon Counts input)
 Next we will reduce out counts_matrix to just the values of nuc/cyto
 
 ```{r nuc/cyto  counts}
@@ -188,7 +188,7 @@ nuc_cyto_counts_filtered <- counts_nuc_cyto[rowSums(counts_nuc_cyto) > 1,]
 
 ```
 
-# Differential expression of nuc -vs- cyto DEseq2
+# Differential expression of nuc -vs- cyto DEseq2 (Counts)
 Now let's look deeper into the results held in dds object
 
 ```{r DEseq2 nuc versus cyto}
@@ -320,169 +320,12 @@ hist(res_df$padj)
 
 ```
 
-# DESeq with all subcellular fractions
-Now we will compare all condition to each other and find those 
-genes that are significantly enriched in a specific fraction.
 
-```{r organizing sample sheet for comparison to total RNA for each fraction}
+# let's save our key environment variables 
 
-# We will use total RNA (whole cell) condition to compare everything back to.
-# we will want to set the factor levels with "total" first
+```{r}
 
-samplesheet$condition <- factor(samplesheet$condition, levels = c("homo_sapiens_hepg2", "homo_sapiens_membrane_fraction", "homo_sapiens_insoluble_cytoplasmic_fraction", "homo_sapiens_cytosolic_fraction", "homo_sapiens_nuclear_fraction"))
-
-
-# creating dds based on the factors above
-dds <- DESeqDataSetFromMatrix(countData = counts,
-                              colData = samplesheet,
-                              design = ~ condition)
-
-
-# Run the DESeq stats
-dds <- DESeq(dds)
+save(counts, counts_filtered, rlog, g2s, gencode_genes, rlog_counts, rlog_counts_matrix, samplesheet, file = "results/DESEQ_RLOG.RData")
 
 ```
 
-# What is in DDS
-Let's look a little deeper into the dds results from total vs all
-```{r looking at results from dds }
-
-# We now have a bunch more results embedded in the dds object
-resultsNames(dds)
-
-# let's take this name to return one set of the results from DeSeq
-# all comparisions are in our dds so we can select one at a time.
-
-# Let's just look at one of the results
-res <- results(dds, name = "condition_homo_sapiens_membrane_fraction_vs_homo_sapiens_hepg2")
-
-# We can further index the information for just this sample:
-res_df <- res %>% as.data.frame() %>%
-  rownames_to_column("gene_id") %>%
-  merge(g2s) %>%
-  mutate(result_name = "condition_membrane_fraction_vs_total")
-
-# Looking to see log2 fold change range
-summary(res_df$log2FoldChange)
-
-```
-
-
-Ok that was a lot of RNAseq !!
-Let's save the results:
-```{r compiling all the results}
-
-# A good starting point would be to use a for loop to make a data.frame 
-# with all the results
-results_names <- resultsNames(dds)
-
-# let's look
-results_names
-
-# We don't care about the intercept, so we can leave that out
-results_names <- results_names[-1]
-
-# as usual for for-loops we make an empty DF populated by for loop
-# First we set up a data frame for logFC results.
-res_df <- data.frame("gene_id" = character(), 
-                     "baseMean" = numeric(), 
-                     "log2FoldChange" = numeric(), 
-                     "lfcSE" = numeric(),
-                     "stat" = numeric(),
-                     "pvalue" = numeric(),
-                     "padj" = numeric(),
-                     "gene_name" = character(),
-                     "result_name" = character())
-
-# in parallel we can make the same results with "shrunken"
-# logFC this normalizes low expressed genes to be less significant.
-
-res_shrunken_df <- data.frame("gene_id" = character(), 
-                              "baseMean" = numeric(), 
-                              "log2FoldChange" = numeric(), 
-                              "lfcSE" = numeric(),
-                              "stat" = numeric(),
-                              "pvalue" = numeric(),
-                              "padj" = numeric(),
-                              "gene_name" = character(),
-                              "result_name" = character())
-
-# Now we will make a forloop to populate these data.frames with each DeSeq result !
-# We will also apply a shrunken log fold change 
-
-for(i in 1:length(results_names)) {
-  # grabbing the name of the result file i
-  results_name <- results_names[i]
-  # populating the res_df with results(dds)
-  # x <- results(dds, name = results_name)
-  res <- results(dds, name = results_name)
-  # populating res shrunken lfc with flcShrink
-  # Y <- lfcShrink(dds, coef = results_name,  res = res)
-  res_shrunken <- lfcShrink(dds, coef = results_name,  res = res)
-  
-  # populating data.frame 1 : temp_res_df
-  tmp_res_df <- res %>% as.data.frame() %>%
-    rownames_to_column("gene_id") %>%
-    merge(g2s) %>%
-    mutate(result_name = results_name)
-  
-  # populating data.frame 1 : temp_res_shrunken
-  tmp_res_shrunken_df <- res_shrunken %>% as.data.frame() %>%
-    rownames_to_column("gene_id") %>%
-    merge(g2s) %>%
-    mutate(result_name = results_name)
-  
-  # Append to full data.frame
-  res_df <- bind_rows(res_df, tmp_res_df)
-  res_shrunken_df <- bind_rows(res_shrunken_df, tmp_res_shrunken_df)
-}
-
-# Let's save these res_df
-write_rds(res_df, "results/deseq_results_df.rds")
-
-# shrunken log fold change results
-write_rds(res_shrunken_df, "results/deseq_results_shrunken_lfc_df.rds")
-
-```
-
-Cool now we have two great data frames to move forward with.
-Normally we would just move forward with shrunken logFC.
-Let's add a couple more fun colums to this res_shrunken_df
-
-```{r signigicant nuclear and cyto}
-
-# reading in nuc_cyto results df
-nuc_cyto_res_df <- read_rds("results/nuclear_cyto_results_df.rds")
-
-# Let's make list of all SIG gnees with  P <0.01 and FC > 2 in nuc-vs-cyto
-nuc_cyto_sig_genes <- nuc_cyto_res_df %>%
-  filter(padj < 0.001, abs(log2FoldChange) >1)
-
-# Now we filter res_shrunken for gene_id column and subcellular fraction column 
-nuc_cyto_genes_to_plot <- res_shrunken_df %>%
-  filter(gene_id %in% nuc_cyto_sig_genes$gene_id, result_name %in% c("condition_homo_sapiens_nuclear_fraction_vs_homo_sapiens_hepg2", "condition_homo_sapiens_cytosolic_fraction_vs_homo_sapiens_hepg2"))
-  
-# We need a matrix for heatmap and converting nuc_cyto_genes/values from lines above to matrix
-lfc_matrix <- nuc_cyto_genes_to_plot %>% 
-  dplyr::select(gene_id, log2FoldChange, result_name) %>% 
-  pivot_wider(names_from = "result_name", values_from = "log2FoldChange") %>%
-  column_to_rownames("gene_id") %>%
-  as.matrix()
-
-# Let's plot it with pheatmap
-pheatmap::pheatmap(lfc_matrix, show_rownames = FALSE, breaks = seq(-3, 3, length.out = 100))
-
-# saving
-pdf("figures/nuc_vs_cyto_genes_heatmap.pdf")
-pheatmap::pheatmap(lfc_matrix, show_rownames = FALSE, breaks = seq(-3, 3, length.out = 100))
-dev.off()
-
-```
-
-Cool so over the past two classes we have learned how to take salmon counts
-and prepare them as input to DESEQ (make a matrix of rounded counts).
-
-Then we made rlog counts from DESEQ and used them as input for differential expression.
-Comparisons are made by factoring samplesheet. 
-
-Next we are going to compare binding versus expression using rlog_counts.
