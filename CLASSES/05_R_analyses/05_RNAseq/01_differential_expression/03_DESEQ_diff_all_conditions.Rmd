@@ -3,6 +3,8 @@ title: "03_Deseq_all_conditions"
 author: "JR"
 date: "9/2/2022"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -13,11 +15,11 @@ library(pheatmap)
 library(DESeq2)
 # install.packages("ggrepel")
 library(ggrepel)
-source("../../../../../util/plotting_functions.R")
 source("../../../../util/_setup.R")
 
 ```
-
+Accompanying YouTube Video:
+https://youtu.be/nDwnxMzd65E
 
 # DESeq with all subcellular fractions
 Now we will compare all condition to each other and find those 
