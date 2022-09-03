@@ -99,15 +99,6 @@ samplesheet[which(samplesheet$sample_name == "homo_sapiens_hepg2_insoluble_cytop
 # saving this to sample_sheets folder
 write.csv(samplesheet, "results/corrected_samplesheet.csv")
 
-# A FACTOR LEVEL is critical for DEseq2 to know which samples is which
-# We will take the condition from sample sheet to compare for differential expression
-# In this case it doesn't matter which comes first the "control"
-samplesheet$condition <- as.factor(samplesheet$condition)
-
-# Now that the samplesheet is ready to used in DESeq2, 
-# we'll write it out for future use.
-write_rds(samplesheet, "results/final_samplesheet.rds")
-
 ```
 
 # Loading in Gencode annotations & making gene_id to gene_symbol object 
@@ -214,8 +205,24 @@ low abundance genes inflating significant differential expression.
 
 # goal: to get rlog normalized counts 
 Let's officially run DeSeq2 these are the steps we will take
+
 (1) create an "design" for Deseq as input to create a 
-"dds" (DESeqDataSet) :: "DESeqDataSetFromMatrix"
+"dds" (DESeqDataSet) :: "DESeqDataSetFromMatrix".
+This comes from sample sheet.
+
+# --- sample sheet needs to be factored! ----
+
+```{R factor sample sheet}
+# A FACTOR LEVEL is critical for DEseq2 to know which samples is which
+# We will take the condition from sample sheet to compare for differential expression
+# In this case it doesn't matter which comes first the "control"
+samplesheet$condition <- as.factor(samplesheet$condition)
+
+# Now that the samplesheet is ready to used in DESeq2, 
+# we'll write it out for future use.
+write_rds(samplesheet, "results/final_samplesheet.rds")
+```
+
 
 (2) run deseq to create a dds (DESeqDataSet) 
 this requires a matrix of rounded counts (made above)
@@ -223,6 +230,9 @@ this requires a matrix of rounded counts (made above)
 
 (3) normalize the counts to "rlog_counts" ::
 rlog(dds, blind = TRUE)
+
+# Important info on this here:
+https://compbiocore.github.io/deseq-workshop-1/assets/deseq_workshop_1.html
 
 (4) retreive rlog counts using :: assay(rlog_counts)
 
