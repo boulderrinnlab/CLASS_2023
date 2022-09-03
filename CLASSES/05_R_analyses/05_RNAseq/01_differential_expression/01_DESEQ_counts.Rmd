@@ -22,6 +22,9 @@ BiocManager::install("DESeq2")
 library(DESeq2)
 
 ```
+Accompanying YouTube Video:
+https://youtu.be/czZoz4JUWdE
+
 
 Today we will be exploring the results of our NF_CORE rnaseq pipeline run.
 We noted a mistake in encode labeling :) so we will fix that and create a final 

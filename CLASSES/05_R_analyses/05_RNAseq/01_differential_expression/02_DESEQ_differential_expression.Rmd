@@ -19,6 +19,9 @@ source("../../../../../util/plotting_functions.R")
 source("../../../../util/_setup.R")
 
 ```
+Accompanying YouTube Video
+https://youtu.be/fwcuRmVWpOM
+
 
 # Differential Expression (nuclear versus cytoplasmic)
 In the last class we created normalized counts that are ready to compared across
@@ -98,7 +101,7 @@ hist(rowVars(rlog_counts_matrix), breaks = 100, xlim = c(0,4))
 # let's look at this as an object
 x <- rowVars(rlog_counts_matrix)
 
-# Filterting out genes that don't have variance of more than 1 log2 of variance
+# Filtering out genes that don't have variance of more than 1 log2 of variance
 rlog_var_genes_all <- rlog_counts_matrix[rowVars(rlog_counts_matrix) > 1,]
 
 # row center the counts -- we need to flip the matrix
