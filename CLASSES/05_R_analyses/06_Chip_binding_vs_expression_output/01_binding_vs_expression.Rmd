@@ -28,7 +28,7 @@ Let's get started by loading in our chipseq data
 
 ```{r loading in chipseq data}
 
-load("../../01_peak_features/results/peak_features.RData", verbose = T)
+load("../01_peak_features/results/peak_features.RData", verbose = T)
 
 ```
 
@@ -38,7 +38,7 @@ Next we want to load in our final_samplesheet from 01_DESEQ_counts.Rmd
 ```{r read in sample_sheet}
 
 # First let's read in the sample sheet to know what is what
-samplesheet <- read_rds("../../05_RNAseq/01_differential_expression/results/final_samplesheet.rds")
+samplesheet <- read_rds("../05_RNAseq/01_differential_expression/results/final_samplesheet.rds")
 
 ```
 
@@ -67,6 +67,7 @@ Now let's read in the TPMs from salmon
 # reading in salmon counts TPM (from NF_COR_pipeline)
 
 salmon_tpm <- read.csv("../05_RNAseq/00_RNAseq_download_NF_core_pipeline/00_NF_CORE_RNAseq_Pipeline_run/results/salmon/salmon_merged_gene_tpm.csv")
+# salmon_tpm <- column_to_rownames(salmon_tpm, "gene_id")
 
 # since we have replicates we will take the mean TPM for each fractionation.
 # while we are at it we will add more intuitive row and col names 
@@ -78,16 +79,20 @@ tpm <- salmon_tpm %>%
   # TPM will be TPM 
   pivot_longer(cols = 2:ncol(.), names_to = "sample_id", values_to = "tpm") %>%
   # This will merge the sample sheet by sample_id column
-  merge(samplesheet) %>%
   # we group the data by gene_id condition thus there are 2 values in 5 condition
+  merge(samplesheet) %>%
+  # merging in sample sheet so we can group by condition
   group_by(gene_id, condition) %>%
   # taking the mean by using summarize function (this is the mean of 2 res in each condition)
   summarize(tpm = mean(tpm, na.rm = T)) %>%
+  pivot_wider(names_from = condition, values_from = tpm, names_prefix = "tpm_")
+  merge(samplesheet) %>%
+  
   # bringing the table back to "normal" with pivot wider
   # the condition will be come the cols with names_from = with a prefix tpm_condition name
   # So we are back to 5 columns since each condition has only one mean value now
   # Those TPM mean values are populating the rows now
-  pivot_wider(names_from = condition, values_from = tpm, names_prefix = "tpm_")
+  
 
 ```
 
@@ -98,6 +103,7 @@ how many DBPs are bound at each promoter
 ```{r loading in peak features data frame }
 
 # peak_occurence_df is loaded in our environment and contains how many DBPs bind to each promoter (rows)
+peak_occurence_df <- read_csv("../01_peak_features/results/num_peaks_df.csv")
 View(peak_occurence_df)
 
 # Now we can merge in the TPM data to this data.frame

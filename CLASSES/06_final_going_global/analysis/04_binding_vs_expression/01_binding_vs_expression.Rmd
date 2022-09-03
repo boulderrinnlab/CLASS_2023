@@ -20,7 +20,7 @@ library(ggpubr)
 # load in chipseq data from analysis/01_peak_feautres
 
 ```{r loading in chipseq data}
-load("../01_create_consensus_peaks/results/peak_features.RData", verbose = T)
+load("../01_peak_features/results/peak_features.RData", verbose = T)
 ```
 
 Next we want to load in our final_samplesheet from 01_DESEQ_counts.Rmd
@@ -47,30 +47,11 @@ tpm <- salmon_tpm %>%
   pivot_wider(names_from = condition, values_from = tpm, names_prefix = "tpm_")
 ```
 
-# determining how many DBPs are bound at each promoter
-
-```{r loading in peak features data frame }
-
-# peak_occurence_df is loaded in our environment and contains how many DBPs bind to each promoter (rows)
-promoter_features_df <- merge(peak_occurence_df, tpm)
-
-# DBP density plot
-ggplot(promoter_features_df, aes(x = number_of_dbp)) +
-  geom_density() 
-
-# saving
-  ggsave("figures/DBP_binding_density_plot.pdf")
-
-```
-result: There appears to be a bimodal distribution of binding at promoters.
-those with less than 100dbps and those with more than 250
-
 
 # Abundance of genes in each cellular fraction
 
 ```{r TPM of genes in each fraction}
 # First we need to the tpm DF into a matrix
-
 
 tpm_matrix <- tpm %>% 
   column_to_rownames("gene_id") %>%
@@ -79,6 +60,7 @@ tpm_scaled <- t(scale(t(tpm_matrix)))
 tpm_scaled <- tpm_scaled[complete.cases(tpm_scaled),]
 
 
+# WARNING TAKES 5 min
 # plotting
 new.env()
 pdf("figures/heatmap_expression.pdf", height =49, width = 12)
@@ -107,6 +89,9 @@ geom_point(data = promoter_features_df %>% filter(tpm_homo_sapiens_hepg2 > 0.001
   geom_smooth(method = 'gam', formula = y ~ s(x, bs = "cs")) +
   stat_cor() +
   geom_smooth(method = "lm") +
+  
+  
+  # just making look pretty
   scale_x_continuous(expand = c(0,0)) +
   scale_color_manual(values = c("#a8404c", "#424242"), name = "Gene type") + 
   ggtitle("Expression vs. promoter binding events") + 
@@ -131,11 +116,15 @@ ggplot(promoter_features_df,
              shape = 17, alpha = 0.7) +
   geom_smooth(method = 'gam', formula = y ~ s(x, bs = "cs")) +
   stat_cor() +
+  
+  
+  #making look nice
   scale_x_continuous(expand = c(0,0)) +
   scale_color_manual(values = c("#a8404c", "#424242"), name = "Gene type") + 
   ggtitle("Nuclear Expression vs. promoter binding events") + 
   xlab(expression('Number of TFs')) +
   ylab(expression(log[2](TPM))) 
+
   # saving figure
   ggsave("figures/nuclear_expression-vs-promoter_binding.pdf")
 ```
@@ -154,6 +143,9 @@ ggplot(promoter_features_df,
              shape = 17, alpha = 0.7) +
   geom_smooth(method = 'gam', formula = y ~ s(x, bs = "cs")) +
   stat_cor() +
+  
+  
+  # making look nice
   scale_x_continuous(expand = c(0,0)) +
   scale_color_manual(values = c("#a8404c", "#424242"), name = "Gene type") + 
   ggtitle("Cytoplasmic Expression vs. promoter binding events") + 
@@ -199,11 +191,11 @@ that are not expressed. We termed them 'reservoirs' as they are a reservoir
 for many Dna-protein interaction sites. Based on the plot above we observed that
 this phenomena also exists in hepG2 cells as well. 
 
+# Reservoirs : prelim code (we don't have enough DBPs yet -- next set of classes :)
 Based on this we next wanted to identify the 'reservoirs' in hepG2 cells.
 ```{r defining HEPG2 reservoirs}
 
-
-# first we will use a cutoff of 100 DBPs.
+# first we will use a cutoff of 5 DBPs.
 promoter_features_df$hepg2_reservoir <- 
   as.numeric(promoter_features_df$number_of_dbp > 5 & 
                promoter_features_df$tpm_homo_sapiens_hepg2 < 0.001)
@@ -213,7 +205,7 @@ table(promoter_features_df$hepg2_reservoir)
 
 ```
 RESULT:
-(1) There are 2,360 reservoirs in this largert data set in HEPG2
+(1) There are no promoters with 5 elements bound
 
 
 Now that we have defined reservoirs in hepG2 cells, we next want to determine how many 
@@ -243,7 +235,8 @@ write_csv(k562_df,"results/k562_df.csv")
 # renaming promoter_features_df to hepg2_df
 hepg2_df <- promoter_features_df %>%
   dplyr::select(gene_id, gene_name, tpm_homo_sapiens_hepg2, tpm_homo_sapiens_cytosolic_fraction, tpm_homo_sapiens_nuclear_fraction, tpm_homo_sapiens_insoluble_cytoplasmic_fraction, tpm_homo_sapiens_membrane_fraction, number_of_dbp, hepg2_reservoir) %>%
-   dplyr::rename( tpm_total = tpm_homo_sapiens_hepg2,
+   
+  dplyr::rename( tpm_total = tpm_homo_sapiens_hepg2,
                  tpm_cytosolic_fraction =  tpm_homo_sapiens_cytosolic_fraction,
                  tpm_nuclear_fraction = tpm_homo_sapiens_nuclear_fraction ,
                  tpm_insoluble_cytoplasmic_fraction = tpm_homo_sapiens_insoluble_cytoplasmic_fraction ,
