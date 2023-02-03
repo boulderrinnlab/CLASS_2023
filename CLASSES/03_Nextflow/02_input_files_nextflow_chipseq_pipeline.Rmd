@@ -102,7 +102,7 @@ nano run.sh
 #SBATCH -p short
 #SBATCH --job-name=Hepg2_Pol_test
 #SBATCH --mail-type=END,FAIL
-#SBATCH --mail-user=john.rinn@colorado.edu
+#SBATCH --mail-user=your_email
 #SBATCH --output=nextflow.out
 #SBATCH --error=nextflow.err
 #SBATCH --nodes=1
