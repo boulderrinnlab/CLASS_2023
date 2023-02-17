@@ -60,8 +60,9 @@ Solution: figure out more about read_tsv
 ?read_tsv
 
 # cool so there is a col_names = F we can use -- let's try it.
-Pol2_peak1 <- read_tsv("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/03_Nextflow/00_Pol2_NF_CORE_RUN/results/bwa/mergedLibrary/macs/broadPeak/POLR2A_R1_peaks.broadPeak", col_names = F)
+Pol2_peak1 = read_tsv("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/03_Nextflow/00_Pol2_NF_CORE_RUN/results/bwa/mergedLibrary/macs/broadPeak/POLR2A_R1_peaks.broadPeak", col_names = F)
 
+write_tsv(Pol2_peak1, "test_pol2.csv")
 # Nice so now we have X1-X9 as col names
 ```
 
