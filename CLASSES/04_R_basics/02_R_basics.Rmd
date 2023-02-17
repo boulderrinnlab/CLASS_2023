@@ -34,18 +34,18 @@ Since that is a lot of path typing each time let's shorten it my using file.path
 
 # we will first need to set an object name to load into the environment (what we are calling this file.path)
 # we assign it the values in the file using the assignment opperator " <- " 
-basepath <- "/scratch/Shares/rinnclass/CLASS_2023/<your_folder>"
-# basepath <- "/scratch/Shares/rinnclass/CLASS_2023/JR"
+basepath = "/scratch/Shares/rinnclass/CLASS_2023/<your_folder>"
+#basepath <- "/scratch/Shares/rinnclass/CLASS_2023/JR"
 
 # we can then add the rest of the path as such:
 Pol2_peak1 <- read_tsv(file.path(basepath, " rest of file path"))
+
 
 
 # now we can read in the peak file using file.path() function , rest of path
 # we will use the "read_tsv" baseR function and assign it ( <- ) to Pol2_peak1
 
 Pol2_peak1 <- read_tsv(file.path(basepath, "CLASS_2023/CLASSES/03_Nextflow/00_Pol2_NF_CORE_RUN/results/bwa/mergedLibrary/macs/broadPeak/POLR2A_R1_peaks.broadPeak"))
-
 # cool, let's take a look at what we got by clicking the object in the env window.
 ```
 
@@ -61,6 +61,8 @@ Solution: figure out more about read_tsv
 
 # cool so there is a col_names = F we can use -- let's try it.
 Pol2_peak1 = read_tsv("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/03_Nextflow/00_Pol2_NF_CORE_RUN/results/bwa/mergedLibrary/macs/broadPeak/POLR2A_R1_peaks.broadPeak", col_names = F)
+
+Pol2_peak2 <- read.table("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/03_Nextflow/00_Pol2_NF_CORE_RUN/results/bwa/mergedLibrary/macs/broadPeak/POLR2A_R1_peaks.broadPeak", header = F)
 
 write_tsv(Pol2_peak1, "test_pol2.csv")
 # Nice so now we have X1-X9 as col names
