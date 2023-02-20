@@ -91,6 +91,10 @@ names(Pol2_peak1)[1] <- 'chromosome'
 # here we used names and then outside that indexed col 2 with [] 
 names(Pol2_peak1)[2] <- 'start'
 
+
+# Load your peak file 
+read_tsv("/scratch/Shares/rinnclass/CLASS_2023/...........")
+
 # This will get really repetitive but works. Here is a better solution:
 names(Pol2_peak1) <- c('chromosome', 'start', 'end', 'name', 'score', 'strand', 
                        'signalValue', 'pValue', 'qValue')
