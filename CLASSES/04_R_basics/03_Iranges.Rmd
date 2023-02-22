@@ -96,7 +96,7 @@ ir3
 # for example we may want to name these replicate 1 and replicate 2
 # let's give it a try
 
-names(ir1) <- paste("replicate_1", 1:3, sep = " ")
+names(ir1) <- paste("replicate_1", "peak", 1:3, sep = " ")
 ir1
 
 # Nice we now have a new "level" to index that is the name of the range
@@ -131,7 +131,8 @@ ir2 <- IRanges(start = c(17,100, 1100), end = c(49, 199, 1201))
 # union (Iranges function) 
 # note: forces the union even if not overlapping!
 ov1 <- union(ir1, ir2)
-
+ir1
+ir2
 # example: 1 is "union" with 17 and is 49 long
 # example: 200 and 100 are forced to overlap and length of 200 etc
 

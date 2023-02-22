@@ -95,6 +95,8 @@ table(gencode_gr@elementMetadata$gene_name) %>%
 table(gencode_gr@elementMetadata$transcript_name) %>%
   head()
 
+# transcript_id
+
 # it's basically memorization of what is a gene name or gene id 
 
 # if you wanted to look at this more expanisvely (instead of just head lines)

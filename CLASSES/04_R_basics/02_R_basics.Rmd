@@ -229,6 +229,7 @@ hist(Pol2_peak1$peak_width, breaks = 50, xlim = c(0,3000))
 
 density <- density(Pol2_peak1$peak_width)
 
+
 # now we can use plot to see the values of density
 plot(density, xlim = c(0,3000))
 
@@ -244,11 +245,12 @@ Now let's see how pval correlates with peak size using ggplot
 
 # first pipe in the dataframe to GGplot
 Pol2_peak1 %>%
-  # set the aes(x= , y= ) 
-ggplot(aes(x = peak_width, y = qValue)) +
+  # set the aes(x= , y= )
+ggplot(aes(x = score, y = qValue)) +
   # + tells ggplot to add another aspect to plot (points)
   geom_point()
 
+?ggplot
 # Interesting, we see that the smaller the peak the lower the qValue tends to be 
 
 ```

@@ -107,6 +107,7 @@ peaks_1_tsv <- read_tsv(file.path(basepath,path, "POLR2A_R1_peaks.broadPeak"), c
 ?import
 
 ovf <- findOverlaps(peaks1, peaks2)
+
 length(peaks1)
 length(peaks2)
 length(ovf)
@@ -224,6 +225,8 @@ crazy_ovf2 <-countOverlaps(crazy_peaks1, crazy_peaks2)
 # NOTE - INTEGER VALUE IN ENVIRONMENT 
 # There as many enteries as peaks in crazy_peaks1 (subject)
 # each entry has number of times that peak had an overlaps
+
+
 sum(crazy_ovf2)
 # cool this get's us to our 11,042 overlaps!
 
