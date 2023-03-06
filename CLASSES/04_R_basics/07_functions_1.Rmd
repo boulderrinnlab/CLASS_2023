@@ -14,7 +14,7 @@ library(GenomicRanges)
 library(tidyverse)
 library(IRanges)
 # library(Gviz)
-# source("../../util/my_class_functions.R")
+source("in_class_functions.R")
 ```
 Accompanying Youtube video:
 https://youtu.be/56ZI6htKFns
@@ -151,7 +151,7 @@ unlist(strsplit(y, "_"))[[1]]
 
 # what happens if we try and run together:
 
-y <-  str_extract(fl[28], "([^\\/]+$)") %>%
+y <-  str_extract(fl[7], "([^\\/]+$)") %>%
   unlist(strsplit(y, "_"))[[1]]
 
 # Error !! Why ?
