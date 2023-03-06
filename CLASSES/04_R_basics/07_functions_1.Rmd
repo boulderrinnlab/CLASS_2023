@@ -79,7 +79,8 @@ fun <- function(x, y) {
 library(GenomicRanges)
 library(tidyverse)
 library(IRanges)
-source("../../util/my_class_functions.R")
+# Note to KNOW YOUR WORKING DIRECTORY FOR THIS TO WORK
+source("util/my_class_functions.R")
 # cool we see it loaded in environment and ready to use!
 # now type fun(7,6) in console
 # We will store all our custom function in this .R script
@@ -102,7 +103,7 @@ This is a very common first step and now we can automate it with some functions!
 
 # First let's set a file path to where all our peak files are.
 # This is very helpful in the long run to not have huge filepaths everywhere :)
-basepath <- "/scratch/Shares/rinnclass/CLASS_2023/JR"
+basepath <- "/scratch/Shares/rinnclass/CLASS_2023/<your_folder>"
 peak_path <- "CLASS_2023/CLASSES/03_Nextflow/00_my_chipseq/results/bwa/mergedLibrary/macs/broadPeak"
 broadpeakfilepath <- file.path(basepath, peak_path)
 

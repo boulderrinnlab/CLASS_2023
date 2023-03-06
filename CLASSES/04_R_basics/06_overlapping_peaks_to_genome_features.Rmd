@@ -55,6 +55,7 @@ gencode_promoters <- promoters(gencode_gr[gencode_gr$type == "gene"],
 
 
 length(gencode_promoters)
+length(gencode_gr[gencode_gr$type == "gene"])
 # there are ~60,000 promoters in the $type == gene
 
 ```
@@ -69,6 +70,7 @@ Now we have promoter ranges and peak ranges let's use findOverlaps function
 promoter_overlaps_pol2_peaks1 <- findOverlaps(peaks1, gencode_promoters)
 # Let's look
 promoter_overlaps_pol2_peaks1
+length(peaks1)
 
 # nice we see that 19,063 promoters overlap with Pol2 replicate 1.
 # Let's try the same for replicate 2:
