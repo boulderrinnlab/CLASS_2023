@@ -73,6 +73,8 @@ dbps <- unique(sapply(names(peak_list), function(x) {
 consensus_list <- lapply(dbps, consensus_from_reduced, peak_list)
 names(consensus_list) <- dbps
 
+sapply(consensus_list, length)
+
 ```
 
 # let's gather some data about peak numbers and save
