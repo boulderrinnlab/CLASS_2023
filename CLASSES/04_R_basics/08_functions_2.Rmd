@@ -13,11 +13,11 @@ options(stringsAsFactors = F)
 library(GenomicRanges)
 library(tidyverse)
 library(IRanges)
-source("../../util/my_class_functions.R")
+source("../../util/BCHM5631_functions.R")
 
 
 # setting file paths
-basepath <- "/scratch/Shares/rinnclass/CLASS_2023/<your_folder>"
+basepath <- "/scratch/Shares/rinnclass/CLASS_2023/JR"
 peak_path <- "CLASS_2023/CLASSES/03_Nextflow/00_my_chipseq/results/bwa/mergedLibrary/macs/broadPeak/"
 broadpeakfilepath <- file.path(basepath, peak_path)
 
@@ -36,7 +36,7 @@ Let's first run import_peaks
 # import peaks to get peak_list
 peak_list <- import_peaks(consensus_file_path = broadpeakfilepath)
 # This will be the input into our intersect_peaks function
-
+?sapply
 # quick check of peak numbers per file
 num_peaks <- sapply(peak_list, length) 
 num_peaks
@@ -77,7 +77,7 @@ The parameters are peak_list and dbp which will be made in the funtion
 
 # Now we can make a function to find peaks in all samples!!
 # setting up function and parameters (dbp and peak_list)
-consensus_from_reduced <- function(dbp, peak_list) {
+consensus_from_reduced <- function(dbps, peak_list) {
   
 # index into list of Granges for each replicate for each dbp: dbp looks like:
   # grep instead of string split for dbp name in peak list
@@ -91,7 +91,7 @@ consensus_from_reduced <- function(dbp, peak_list) {
   # Make a matrix of all peaks and the cols will be the replicate for each DBP
   
   # let's see what we need to do to make a matrix
-  # ?matrix
+?matrix
   peak_exists <- matrix(NA, nrow = length(all_peaks), ncol = length(dbp_peaks))
   
   # for loop to "countOverlaps" for each replicate
@@ -106,7 +106,7 @@ consensus_from_reduced <- function(dbp, peak_list) {
   # row sum of peak exist has to be greater than nDBPs and thus n enteries in peak exists
   dbp_consensus <- all_peaks[rowSums(peak_exists) == ncol(peak_exists)]
   # Required only two replicates
-  # dbp_consensus <- all_peaks[rowSums(peak_exists) > 1]
+  # dbp_consensus <- all_peaks[rowSums(peak_exists) > 5]
   return(dbp_consensus)
 }
 ```
