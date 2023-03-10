@@ -49,6 +49,8 @@ names(peak_num) <- c("num_peaks")
 
 peak_num <- peak_num %>%
   rownames_to_column(var = "dbp") %>%
+  
+  # This is pretty similar to text to columns in excel
   separate(col = dbp,  into = c('dbp', 'replicate'), sep = "_")
   # peak_num <- separate(peak_num, col = dbp,  into = c('dbp', 'replicate'), sep = "_")
 
@@ -82,7 +84,7 @@ sapply(consensus_list, length)
 # nice let's see the num_peaks for consensus 
 num_consensus_peaks <- sapply(consensus_list, length) %>% 
   as.data.frame() %>%
-  rownames_to_column( var = "dbp") %>%
+  rownames_to_column(var = "dbp") %>%
   dplyr::rename(number_consensus_peaks = ".")
 
 
@@ -291,6 +293,42 @@ ucsc_formating(consensusFilePath = consensusFilePath, export_path = export_path)
 
 
 
+```{r}
+
+bigwig_1 <- list.files("/scratch/Shares/rinnclass/CLASS_2021/NEXTFLOW_RUN/batch_1/results/bwa/mergedLibrary/bigwig")
+
+y <-  str_extract(bigwig_1, "([^\\/]+$)") %>%
+ noquote()
+
+write.table(y, "batch_1.csv" )
+
+write.table(bigwig_1, "file_path_1.csv")
+
+
+bigwig_2 <- list.files("/scratch/Shares/rinnclass/CLASS_2021/NEXTFLOW_RUN/batch_2/results/bwa/mergedLibrary/bigwig")
+
+write.table(bigwig_2, "file_path_2.csv")
+
+
+bigwig_3 <- list.files("/scratch/Shares/rinnclass/CLASS_2021/NEXTFLOW_RUN/batch_3/results/bwa/mergedLibrary/bigwig")
+
+write.table(bigwig_3, "file_path_3.csv")
+
+
+bigwig_4 <- list.files("/scratch/Shares/rinnclass/CLASS_2021/NEXTFLOW_RUN/batch_4/results/bwa/mergedLibrary/bigwig/")
+
+write.table(bigwig_4, "file_path_4.csv")
+
+
+bigwig_5 <- list.files("/scratch/Shares/rinnclass/CLASS_2021/NEXTFLOW_RUN/batch_5/results/bwa/mergedLibrary/bigwig/")
+
+write.table(bigwig_5, "file_path_5.csv")
+
+
+bigwig_6 <- list.files("/scratch/Shares/rinnclass/CLASS_2021/NEXTFLOW_RUN/batch_6/results/bwa/mergedLibrary/bigwig/")
+
+write.table(bigwig_6, "file_path_6.csv")
+```
 
 
 
