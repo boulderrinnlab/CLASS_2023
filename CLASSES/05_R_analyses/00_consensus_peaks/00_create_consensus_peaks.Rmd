@@ -16,7 +16,7 @@ library(IRanges)
 source("../../../util/my_class_functions.R")
 
 # filepath to import peaks
-basepath <- "/scratch/Shares/rinnclass/CLASS_2023/<your_folder>"
+basepath <- "/scratch/Shares/rinnclass/CLASS_2023/JR"
 peak_path <- "CLASS_2023/CLASSES/03_Nextflow/00_my_chipseq/results/bwa/mergedLibrary/macs/broadPeak/"
 broadpeakfilepath <- file.path(basepath, peak_path)
 ```
@@ -41,7 +41,8 @@ lines up with raw data on the UCSC genome browser. We will do this in these step
 peak_list <- import_peaks(consensus_file_path = broadpeakfilepath)
 
 # let's get a list of how many peaks are in each file before we create consensus peaks.
-peak_num <- sapply(peak_list, length) %>% as.data.frame(row.names = T)
+peak_num <- sapply(peak_list, length) %>% 
+  as.data.frame(row.names = T)
 # label column
 names(peak_num) <- c("num_peaks")
 
@@ -103,7 +104,7 @@ Let's use "analysis/00_consensus_peaks/
 ```{r exporting consensus peaks }
 # setting file path to export
 basepath <- "/scratch/Shares/rinnclass/CLASS_2023/<your_folder>"
-consensus_path <- "CLASS_2023/CLASSES/05_R_analyses/00_consensus_peaks/"
+consensus_path <- "CLASS_2023/CLASSES/05_R_analyses/00_consensus_peaks/in_class_test/"
 exportpath <- file.path(basepath, consensus_path)
 
 # /scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/05_R_analyses/00_consensus_peaks/consensus_peaks
@@ -124,7 +125,7 @@ Now let's read in one of these files and see what we see:
 
 ```{r reading .bed file from rtracklayer_export}
 # read in a given peak file 
-peak_1 <- read_tsv("EP300_consensus_peaks.bed", col_names = F)
+peak_1 <- read.table("EP300_consensus_peaks.bed", col_names = F)
 
 # ok we can see that rtracklayer did not keep qvalue sigvalue etc
 # we also see the odd contings etc.
@@ -135,7 +136,7 @@ peak_1 <- read_tsv("EP300_consensus_peaks.bed", col_names = F)
 Rtracklayer export does not keep the col names :( 
 ```{r reading .bed file from rtracklayer_export}
 # FIRST a file list:
-consensus_file_list <- list.files("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/05_R_analyses/00_consensus_peaks", full.names = T, pattern = ".bed")
+consensus_file_list <- list.files("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/05_R_analyses/00_consensus_peaks/in_class_test", full.names = T, pattern = ".bed")
 
 # lapply (for loop) across consensus file list to add colnames
 # The actual col names for .broadPeak are: chr, start, end, name, score, strand
@@ -183,11 +184,11 @@ The header we need is : track type=broadPeak name="
 # we are using paste0 to print the header text
 # then we are adding the names as the value the header equals with 'names' function
 
-headers <- paste0("track type=bedGraph name=", names(peaks))
+headers <- paste0("track type=bed name=", names(peaks))
 headers
 
 # creating a path to export after we add header in for loop below
-new_filenames <- paste0("ucsc_consensus_peaks/", names(peaks), ".bed")
+new_filenames <- paste0("test_ucsc_consensus_peaks/", names(peaks), ".bed")
 new_filenames
 ```
 
@@ -198,7 +199,7 @@ Let's use a for loop to print each file out separately and append the header.
 # let's do so more indexing and only print out the first two of the three files.
 
 for(i in 1:length(peaks)) {
-  # Write the header line
+  # Write the header linej
   writeLines(headers[[i]], new_filenames[[i]])
   # Append the broadPeak table data
   

@@ -17,8 +17,8 @@ source("../../util/BCHM5631_functions.R")
 
 
 # setting file paths
-basepath <- "/scratch/Shares/rinnclass/CLASS_2023/JR"
-peak_path <- "CLASS_2023/CLASSES/03_Nextflow/00_my_chipseq/results/bwa/mergedLibrary/macs/broadPeak/"
+basepath <- "/scratch/Shares/rinnclass/CLASS_2023/chipseqprofs"
+peak_path <- "CLASS_2023/CLASSES/03_Nextflow/00_my_chipseq/results/bwa/mergedLibrary/macs/broadPeak_good_files/"
 broadpeakfilepath <- file.path(basepath, peak_path)
 
 ```

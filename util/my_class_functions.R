@@ -13,6 +13,9 @@ fun <- function(x, y) {
 }
 
 
+
+
+
 #' IMPORT_PEAKS Function
 #' set's file path to peak files and extracts DBP name
 #' @description 
@@ -35,7 +38,6 @@ import_peaks <- function(consensus_file_path = broadpeakfilepath) {
   }
   return(peak_list)
 }
-
 
 #' CREATE CONSENSUS PEAKS
 #' this function will take multiple replicate .broadPeak files (also narrow)

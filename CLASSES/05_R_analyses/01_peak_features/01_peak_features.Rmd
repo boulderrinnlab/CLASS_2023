@@ -104,7 +104,8 @@ This loads in much faster and can be made into readable dataframe pretty easily.
 lncrna_mrna_genes <- rtracklayer::import("results/gene_annotations/mrna_lncrna_genes.gtf")
 
 # Nice that loaded so much faster -- lets see as DF
-lncrna_mrna_genes_df <- lncrna_mrna_genes %>% as.data.frame()
+lncrna_mrna_genes_df <- lncrna_mrna_genes %>% 
+  as.data.frame()
 # easy to read and tons of info !
 ```
 
@@ -119,7 +120,7 @@ lncrna_mrna_promoters <- promoters(lncrna_mrna_genes, upstream = 1000, downstrea
 width(lncrna_mrna_promoters)
 rtracklayer::export(lncrna_mrna_promoters, "results/gene_annotations/lncrna_mrna_promoters.gtf")
 
-
+lncrna_mrna_promoters_df <- lncrna_mrna_promoters %>% as.data.frame()
 # last handy annotation will be lncRNA and mRNA gene IDs to subset
 lncrna_gene_ids <- mrna_lncrna_genes$gene_id[mrna_lncrna_genes$gene_type == "lncRNA"]
 table(mrna_lncrna_genes$gene_type)
