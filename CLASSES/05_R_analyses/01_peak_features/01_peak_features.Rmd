@@ -57,6 +57,7 @@ consensus_peaks <- lapply(consensus_peaks_files, rtracklayer::import)
 # note gsub requires no space around or argument ( | )
 names(consensus_peaks) <- gsub("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/05_R_analyses/00_consensus_peaks/consensus_peaks/|_consensus.bed","", consensus_peaks_files)
 
+?gsub
 ```
 
 # Loading in Gencode annotation of genomic features
@@ -118,12 +119,15 @@ Now let's make a promoter annotation file and gene_body for future use.
 lncrna_mrna_promoters <- promoters(lncrna_mrna_genes, upstream = 1000, downstream = 1000)
 # check right size
 width(lncrna_mrna_promoters)
+table(table(lncrna_mrna_promoters))
+
 rtracklayer::export(lncrna_mrna_promoters, "results/gene_annotations/lncrna_mrna_promoters.gtf")
 
 lncrna_mrna_promoters_df <- lncrna_mrna_promoters %>% as.data.frame()
 # last handy annotation will be lncRNA and mRNA gene IDs to subset
 lncrna_gene_ids <- mrna_lncrna_genes$gene_id[mrna_lncrna_genes$gene_type == "lncRNA"]
 table(mrna_lncrna_genes$gene_type)
+length(lncrna_gene_ids)
 # same for mRNAs
 mrna_gene_ids <-mrna_lncrna_genes$gene_id[mrna_lncrna_genes$gene_type == "protein_coding"]
 
@@ -218,7 +222,7 @@ num_peaks_df$peaks_overlapping_mrna_genebody <-
 
 # let's take a look.
 # cool lots of info let's save:
-write_csv(num_peaks_df, "num_peaks_df.csv")
+write_csv(num_peaks_df, "results/num_peaks_df.csv")
 
 ```
 
