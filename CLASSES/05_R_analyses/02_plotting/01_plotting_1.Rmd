@@ -14,7 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 options(stringsAsFactors = F)
 
 library(ggplot2)
-library(ggpubr)
+# library(ggpubr)
 library(tidyverse)
 
 source("../../../util/plotting_functions.R")
@@ -112,7 +112,7 @@ We can even index and run functions in aes()
 
 ggplot(big_num_peaks_df, aes(x = num_peaks, 
                  y = total_peak_length,
-                 color = dbd == "C2H2 ZF")) +
+                 color = dbd == 'C2H2 ZF')) +
   geom_point()
 
 ```
@@ -136,8 +136,7 @@ Let's plot three plots for if DBP is a TF, is not or NA.
 ```{R facet by TF annotation}
 
 ggplot(big_num_peaks_df, aes(x = num_peaks, 
-                 y = total_peak_length
-                )) +
+                 y = total_peak_length)) +
   facet_wrap(tf ~ .) +
   geom_point() 
 
@@ -162,7 +161,7 @@ ggplot(big_num_peaks_df, aes(x = num_peaks)) +
 # let's add more bins
 
 ggplot(big_num_peaks_df, aes(x = num_peaks)) +
-  geom_histogram(bins = 30)
+  geom_histogram(bins = 300)
 
 # Let's chage the color of the bars in histogram by number of peaks.
 # again we need to do this inside aes() since the data needs to read.
@@ -323,7 +322,7 @@ alos other outputs need to be scaled such as scale values to the "mean" etc.
 ggplot(big_num_peaks_df, aes(x = log10(num_peaks), y =log10(total_peak_length), color = tf)) +
   geom_point()+
   scale_x_continuous(breaks = c(1, 2, 3, 4)) +
-  scale_color_brewer(palette = 3) 
+  scale_color_brewer(palette = "Set1") 
 
 # scale_x_continious (same for y) is calling the scale layer specifically
 # We are giving it where to put values on X-axis      
@@ -339,7 +338,7 @@ We can use 'xlim' & 'ylim' in scale layer.
 
 ggplot(big_num_peaks_df, aes(x = num_peaks, y = total_peak_length, color = tf)) +
   geom_point() +
-  xlim(1e3, 1e5) +
+  xlim(0, 5e3) +
   ylim(5e5, 6e7) +
   scale_color_brewer(palette =  2) 
 
@@ -381,7 +380,7 @@ We can also facet grid another parameter -- let's say tf
 ggplot(big_num_peaks_df %>% 
          filter(dbd %in% dbds),
        aes(x = num_peaks, y = total_peak_length )) +
-  facet_grid(dbd ~ tf) + 
+  facet_wrap(dbd ~ tf) + 
   geom_point()
 
 
@@ -543,6 +542,32 @@ ggplot(big_num_peaks_df, aes(x = num_peaks, y = total_peak_length)) +
   geom_abline(slope = lm_df$estimate[[1]], intercept = lm_df$estimate[[2]])
 
 # See how this changes if order is changed
+
+```
+
+
+
+
+
+
+
+
+
+```{r}
+
+
+peak_occurrence_df <- read_csv("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/06_final_going_global/analysis/05_THE_BIG_KNIT/results/peak_occurence_dataframe.csv")
+
+
+ggplot(peak_occurrence_df, aes(x = number_of_dbp)) +
+geom_density(alpha = 0.2, color = "#424242", fill = "#424242") +
+  theme_paperwhite() +
+  xlab(expression("Number of DBPs")) +
+  ylab(expression("Density")) +
+  ggtitle("Promoter binding events",
+          subtitle = "mRNA and lncRNA genes") 
+
+
 
 ```
 

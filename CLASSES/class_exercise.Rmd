@@ -2,7 +2,7 @@
 title: "Class_exercise"
 author: "Your Name"
 date: "3/16/2023"
-output: html_document
+output: github_document
 ---
 
 
