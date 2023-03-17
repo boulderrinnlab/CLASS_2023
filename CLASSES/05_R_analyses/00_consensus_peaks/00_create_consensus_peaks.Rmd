@@ -54,7 +54,7 @@ peak_num <- peak_num %>%
   # This is pretty similar to text to columns in excel
   separate(col = dbp,  into = c('dbp', 'replicate'), sep = "_")
   # peak_num <- separate(peak_num, col = dbp,  into = c('dbp', 'replicate'), sep = "_")
-
+peak_num
 # let's save this for our records 
 write_csv(peak_num, "results/num_peaks_df.csv")
 

@@ -1,0 +1,152 @@
+---
+title: "Class_exercise"
+author: "Your Name"
+date: "3/16/2023"
+output: html_document
+---
+
+
+# Load the libraries you need
+# Load functions you need "my_class_functions"
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+```
+
+
+# load in your peak files for each replicate of each protein
+# Here I am starting to analyze my data for my proteins of interest:
+# proteinX, Y, Z .....
+# First I will read in each replicate file
+```{r load in peak files}
+
+
+
+# printing out a table of the number of peaks in each file:
+objectname
+
+```
+
+
+# Now I am going to create consensus peaks for each protein
+```{r consensus peaks}
+
+
+# export consensus peaks to results folder
+
+```
+
+# Now I am going to make my consensus peaks compatable with UCSC genome browser
+```{r}
+
+
+# print out consensus peak files in a results/UCSC directory
+
+```
+
+# I am curious if my proteins are transcription factors so I will use the annotations
+# in a cell paper I found and see
+
+```{r}
+
+# if you leave the object name you just created in the environment
+# it will print out in the knit. For example :
+objectname
+```
+
+
+
+
+# Now I want to compare a protein with a previous analysis 
+```{r}
+
+# goto UCSC genome browser and load in a peak file for a given protein
+# load in the data for the same protein from the previous analysis
+# compare how your consensus peaks are similar or different to previous analyses
+
+
+
+```
+
+
+# Now I am going to determine how my peaks for each protein overlap annotations of the genome
+# First I will find the overlaps between my consensus peaks with promoters of lncRNA and mRNA promoters
+
+```{r}
+
+
+# find overlaps of promoters for each protein
+
+```
+
+## results: 
+#1) What can you determine from these overlaps?
+
+
+
+# Now I want to compare the overlaps with lncRNA and mRNA promoters seperately 
+```{r}
+
+```
+## results:
+# 1) What is the difference in overlaps between mRNA and lncRNA promoters
+
+
+# Now I am going to test if there is more binding over gene bodies than promoters
+# I will seperate lncRNA and mRNA gene bodies to find the overlaps 
+
+```{r}
+
+
+
+```
+## results: 
+# 1) Do my proteins have more overlaps with promoters or genebodies?
+
+
+
+# It is nice and all to find overlaps, but I am interested in how many proteins
+# bind a specific promoter. I will use my handy "occurence" parameter in 
+# " count peaks per feature" 
+
+```{r}
+
+```
+## results: I find the max number of proteins on a promoter to be X
+
+
+# Now I want to start plotting my results
+# First I will see if there is a realtionship between peak number and total DNA covered
+```{r}
+
+
+ggplot ()
+```
+
+# Now I want to color my plot by wether the protein is a TF or not.
+```{r}
+
+
+ggplot
+```
+
+# I want to make a histogram of the number of peaks for each of my proteins
+
+```{r}
+
+
+
+hist
+```
+
+
+# Now I want to facet this by the type of DNA binding domain my protein has.
+```{r}
+
+```
+
+
+# Cool now I am ready to send my result to my collaborator as a
+# Knitted document
+

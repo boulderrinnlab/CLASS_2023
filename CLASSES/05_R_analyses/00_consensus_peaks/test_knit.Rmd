@@ -1,0 +1,57 @@
+---
+title: "01_test_knit"
+author: "JR"
+date: "3/17/2022"
+output: github_document 
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(stringsAsFactors = F)
+library(GenomicRanges)
+library(tidyverse)
+library(IRanges)
+source("../../../util/my_class_functions.R")
+
+# filepath to import peaks
+basepath <- "/scratch/Shares/rinnclass/CLASS_2023/JR"
+peak_path <- "CLASS_2023/CLASSES/03_Nextflow/00_my_chipseq/results/bwa/mergedLibrary/macs/broadPeak/"
+broadpeakfilepath <- file.path(basepath, peak_path)
+```
+Acompanying youtube video:
+https://youtu.be/BPHQAMAh5GE
+
+Goal: to create a consensus_peak file for each dbp, export and format for UCSC.
+The first step in analyses is looking at raw data :)
+Here we will take our functions to create a consensus peak file and see how it 
+lines up with raw data on the UCSC genome browser. We will do this in these steps:
+
+1) Import peaks
+2) create consensus peaks
+3) export named GRanges list to .bed files
+4) format the file to be uploaded into UCSC
+5) inspect raw data to see if consensus peaks make sense.
+
+# STEP1: import peaks 
+```{r import peaks}
+
+# import peaks
+peak_list <- import_peaks(consensus_file_path = broadpeakfilepath)
+
+# let's get a list of how many peaks are in each file before we create consensus peaks.
+peak_num <- sapply(peak_list, length) %>% 
+  as.data.frame(row.names = T)
+# label column
+names(peak_num) <- c("num_peaks")
+
+# make dbp name a col.
+
+peak_num <- peak_num %>%
+  rownames_to_column(var = "dbp") %>%
+  
+  # This is pretty similar to text to columns in excel
+  separate(col = dbp,  into = c('dbp', 'replicate'), sep = "_")
+  # peak_num <- separate(peak_num, col = dbp,  into = c('dbp', 'replicate'), sep = "_")
+peak_num
