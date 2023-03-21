@@ -12,6 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 options(stringsAsFactors = F)
 library(tidyverse)
 library(ggdendro)
+
 library(GenomicRanges)
 
 # install.packages(pheatmap)
@@ -365,8 +366,7 @@ nrow(XIST_promoter)
 ################
 ExeRcise
 ################
-
-hint:
+Let's see what happens if we use a bigger promoter window?
 
 All you need to do is go into 01_peak_features and export lncrna_mrna_promoters with larger window
 
