@@ -134,10 +134,12 @@ ggplot
 # I want to make a histogram of the number of peaks for each of my proteins
 
 ```{r}
+ggplot(num_peaks_df, aes(x = num_peaks, 
+                         y = total_peak_length)) +
+  geom_point() 
 
 
 
-hist
 ```
 
 
@@ -149,4 +151,5 @@ hist
 
 # Cool now I am ready to send my result to my collaborator as a
 # Knitted document
+?render
 

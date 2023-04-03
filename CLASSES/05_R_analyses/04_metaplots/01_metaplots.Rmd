@@ -40,6 +40,9 @@ We'll be using the consensus peaks we generated previously (MACS peak calls filt
 # loading in needed files from 01_peak_features
 load("../01_peak_features/results/peak_features.RData", verbose = T)
 
+
+# /scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/05_R_analyses/01_peak_features/results/peak_features.RData
+
 ```
 
 Overall our goal is to define a "promoter" window of a certain distance
@@ -98,8 +101,6 @@ coverage_length <- elementNROWS(peak_coverage)
 names(coverage_length)
 # chromosome names
 
-length(coverage_length)
-# 25 chromosomes
 
 # we can use the coverage length ranges to 
 # filter the promoters falling outside of these boundaries:
@@ -132,6 +133,9 @@ seqnames(all_promoters_gr)
 
 # now selecting those chromosomes that are in our coverage vector
 chromosomes <- intersect(names(peak_coverage), unique(as.character(seqnames(all_promoters_gr))))
+
+# reminder of what peak_coverage is :
+# peak_coverage <- coverage(consensus_peaks[["HDAC2"]]) 
 
 # We can also ensure they're in the same order and contain the same chromosomes
 # by indexing with this vector

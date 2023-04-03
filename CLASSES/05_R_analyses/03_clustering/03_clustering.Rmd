@@ -12,10 +12,10 @@ knitr::opts_chunk$set(echo = TRUE)
 options(stringsAsFactors = F)
 library(tidyverse)
 library(ggdendro)
-
+#install.packages("ggdenro")
 library(GenomicRanges)
 
-# install.packages(pheatmap)
+# install.packages("pheatmap")
 library(pheatmap)
 
 ```
@@ -117,7 +117,7 @@ bin_hier$labels[bin_hier$order]
 
 # let's look at the order - environment shows smallest numbers first
 # let's see the last one:
-bin_hier$height[[4]]
+bin_hier$height[[1]]
 
 
 # print out figure
@@ -195,7 +195,7 @@ mrna_promoters <- lncrna_mrna_promoters[lncrna_mrna_promoters$gene_type == "prot
 # Now we will use indexing to separate peak_occurrence_matrix in lncRNA and mRNA.
 # note we are indexing and using indexing in indexing to get what we want.
 lncrna_peak_occurence <- promoter_peak_occurence_matrix[,lncrna_promoters$gene_id]
-
+# length(lncrna_peak_occurence)
 # we do the clutering the same as above or we can combine the dist and hclust:
 bin_hier_lncrna <- hclust(dist(lncrna_peak_occurence, method = "binary"))
 
@@ -239,7 +239,7 @@ Let's make a heatmap of the promoters -- since it will take a long long time to 
 # let's, find the promoters that bind to many of our dbps
 # a bit of trial and error but 5 of 7 dbps works for me.
 high_binders <- promoter_peak_occurence_matrix[,colSums(promoter_peak_occurence_matrix) > 5]
-
+length(high_binders)
 # let's find out how many high binder promoters there are
 ncol(high_binders)
 

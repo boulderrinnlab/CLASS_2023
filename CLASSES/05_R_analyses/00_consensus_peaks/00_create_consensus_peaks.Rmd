@@ -187,6 +187,8 @@ The header we need is : track type=broadPeak name="
 headers <- paste0("track type=bed name=", names(peaks))
 headers
 
+
+knitr::include_graphics("/results/ucsc_screenshot.jpg")
 # creating a path to export after we add header in for loop below
 new_filenames <- paste0("test_ucsc_consensus_peaks/", names(peaks), ".bed")
 new_filenames
