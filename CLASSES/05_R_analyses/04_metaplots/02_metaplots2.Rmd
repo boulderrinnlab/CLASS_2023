@@ -14,9 +14,10 @@ library(GenomicRanges)
 library(ggplot2)
 library(rtracklayer)
 library(tidyverse)
-#library(ComplexHeatmap)
+library(ComplexHeatmap)
 library(circlize)
 source("../../../util/my_class_functions.R")
+# source("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/util/my_class_functions.R")
 source("../../../util/_setup.R")
 ```
 Accompanying YouTube Video:
