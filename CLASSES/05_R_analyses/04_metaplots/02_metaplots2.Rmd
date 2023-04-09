@@ -90,7 +90,7 @@ When we move to all DBPs (480) it can take 4 hours !
 metaplot_df <- data.frame(x = integer(), dens = numeric(), dbp = character())
 
 # refresh what the output of profile_tss is:
-test <- profile_tss(consensus_peaks[["HDAC2"]], lncrna_mrna_promoters)
+# est <- profile_tss(consensus_peaks[["HDAC2"]], lncrna_mrna_promoters)
 
 # Writting a for loop to calculate promoter coverage for all consensus_peaks:
 for(i in 1:length(consensus_peaks)) {
@@ -125,7 +125,7 @@ metaplot_df <- read_rds("results/metaplot_df_final.rds")
 # X = position
 # dens = denisty at position
 # -> cols become position -values dens
-
+?pivot_wider
 metaplot_filtered_matrix <- metaplot_df %>% 
   pivot_wider(names_from = x, values_from = dens) %>%
   column_to_rownames("dbp") %>%
@@ -142,7 +142,7 @@ mm_scaled <- t(scale(t(metaplot_filtered_matrix)))
 
 # clustering
 metaplot_hclust <- hclust(dist(mm_scaled), method = "complete")
-
+?hclust
 # plotting
 plot(metaplot_hclust)
 

@@ -51,6 +51,9 @@ be similar to putting a bunch of file paths in one excel "cell" Let's start with
 map_example <- 1:10 %>%
   map(rnorm, n = 1000) 
 
+hist(map_example[[1]])
+
+
 # It returns a nested list, let's look:
 summary(map_example)
 
@@ -66,7 +69,7 @@ hist(map_example[[1]])
 map_example[[2]]
 
 # indexing to the first component of map vector
-map_example[[1]][[1]]
+map_example[[1]][[80]]
 
 ```
 
@@ -81,9 +84,10 @@ So one row will have many files in it -- similar to have a bunch of files in a s
 ```{r reading in sample sheet}
 
 # We'll also rename this Accession column to clarify between experiment_accession and file_accession.
-samples <- read.table("data/samples.txt",
+samples <- read.table("samples.txt",
                       sep = "\t", skip = 1, header = T) %>%
   dplyr::rename(experiment_accession = Accession) 
+
 
 # It's seems mundane but starting here is the best way to make a "reproducible" sample sheet.
 # Bottom line: the download to code to analysis is the way to reproducibility (this worked a year later :)
@@ -393,7 +397,56 @@ write_csv(design, "design.csv")
 write_csv(samples, "samples.csv")
 
 ```
-# We now have everything we need to do some RNAseq analyses !!
+# We now have everything we need to do some RNAseq 
+
+# here are the remaining things you need to run:
+
+#1) Config File
+```{r}
+
+process {
+  executor='slurm'
+  queue='long'
+  memory='16 GB'
+  maxForks=10
+}
+
+```
+
+
+# shell script for SBATCH (run.sh)
+```{r}
+#!/bin/bash
+#SBATCH -p long
+#SBATCH --job-name=2023_HEPG2_rna_seq
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=youremail
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --mem=6gb
+#SBATCH --time=20:00:00
+#SBATCH --output=nextflow.out
+#SBATCH --error=nextflow.err
+
+# Nextflow parameters : please read documentation and 
+# fill in the rest from what you learned with the ChIPseq pipeline
+
+#1: the version of RNaseq pipeline:
+nextflow run nf-core/rnaseq -r 1.4.2 \
+
+#2: you will need is a path to where your reads are:
+--reads '/scratch/Shares/rinnclass/CLASS_2023/...../fastq/*{_read1,_read2}.fastq.gz'
+
+
+
+
+
+
+```
+
+
+
+analyses !!
 
 Now we have the raw files downloaded and the samplesheet needed for downstream analyses 
 (ex, differential expression). So the next step is to run nf-core/rnaseq on these samples.

@@ -16,7 +16,7 @@ library(httr)
 # install.packages("janitor")
 library(janitor)
 # install.packages("purrr")
-library(purrr)
+# library(purrr)
 # source("../../../../../util/class_functions.R")
 # source("/scratch/Shares/rinnclass/CLASS_2022/JR/CLASS_2022/util/encode_functions.R")
 ```
