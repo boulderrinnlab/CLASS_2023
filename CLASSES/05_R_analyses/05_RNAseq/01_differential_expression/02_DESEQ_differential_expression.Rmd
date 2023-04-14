@@ -47,6 +47,7 @@ load("results/DESEQ_RLOG.RData", verbose = T)
 ```
 
 Let's specialize sample sheet we can use to compare nuc/cyto samples.
+##### FACTORING IS CRITICAL #####
 ```{R nuclear and cytoplasmic samplesheet}
 
 # Now we will filter the sample sheet to just nuclear and cytoplasmic
@@ -56,7 +57,7 @@ samplesheet_nuc_cyto <- samplesheet %>%
 
 # Next, let's triple check that the counts data
 # contains the counts for the samples in the reduced sample sheet 
-samplesheet_nuc_cyto$sample_name %in% colnames(counts)
+all(samplesheet_nuc_cyto$sample_name %in% colnames(counts))
 # Cool, the 4 samples in filtered are same as counts
 
 # Again we need to think about "rownames" we will convert 
@@ -100,6 +101,7 @@ hist(rowVars(rlog_counts_matrix), breaks = 100, xlim = c(0,4))
 
 # let's look at this as an object
 x <- rowVars(rlog_counts_matrix)
+hist(x)
 
 # Filtering out genes that don't have variance of more than 1 log2 of variance
 rlog_var_genes_all <- rlog_counts_matrix[rowVars(rlog_counts_matrix) > 1,]
@@ -132,7 +134,7 @@ Now let's use Principle Component Analysis to determine sample similarity
 
 # First we need to flip the counts matrix as PCA needs to be across rows (samples)
 rld_pca <- prcomp(t(rlog_counts_matrix))
-
+rld_pca
 # setting up a data frame with column x 
 rld_prcomps <- rld_pca$x %>% as.data.frame() %>%
   # note that x is in rld_pca as the PCA values
@@ -244,7 +246,7 @@ QC plot: Volcano
 # Plotting volcano plot of nuclear vs cytoplasmic
 
 ggplot(res_df, aes(x = log2FoldChange, y = -log10(padj), color = -log10(res_df$padj) > 90)) + 
-  geom_point()
+  geom_point() 
 
 # saving volcano plot
 ggsave("figures/nuc_cyto_volcano.pdf")

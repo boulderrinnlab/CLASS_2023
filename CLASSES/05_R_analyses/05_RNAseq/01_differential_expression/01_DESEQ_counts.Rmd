@@ -6,6 +6,30 @@ output: html_document
 editor_options: 
   chunk_output_type: console
 ---
+Michael Solution
+```{r}
+install.packages("https://cran.r-project.org/src/contrib/Archive/locfit/locfit_1.5-9.4.tar.gz", repos=NULL, type="source")
+install.packages("https://cran.r-project.org/src/contrib/Archive/latticeExtra/latticeExtra_0.6-29.tar.gz", repos=NULL, type="source")
+install.packages("https://cran.r-project.org/src/contrib/Archive/Hmisc/Hmisc_3.6-0.tar.gz", repos=NULL, type="source")
+```
+Kurt solution
+```{r}
+install.packages("https://cran.r-project.org/src/contrib/Archive/RcppEigen/RcppEigen_0.3.3.7.0.tar.gz", repos=NULL, type="source")
+install.packages("https://cran.r-project.org/src/contrib/Archive/interp/interp_1.0-33.tar.gz", repos=NULL, type="source")
+install.packages("latticeExtra")
+install.packages("https://cran.r-project.org/src/contrib/Archive/Hmisc/Hmisc_4.7-0.tar.gz", repos=NULL, type="source")
+
+
+
+packageurl <- "https://github.com/tidyverse/tidyverse/archive/refs/tags/v1.3.1.tar.gz"
+install.packages(packageurl, repos=NULL, type="source")
+
+
+# DEseq2 needs a specific package of 'locfit' that has to be installed first
+install.packages("https://cran.r-project.org/src/contrib/Archive/locfit/locfit_1.5-9.4.tar.gz", repos=NULL, type="source")
+# Now we can install DEseq2
+```
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -13,13 +37,6 @@ options(stringsAsFactors = FALSE)
 library(tidyverse)
 library(DESeq2)
 
-# DEseq2 needs a specific package of 'locfit' that has to be installed first
-install.packages("https://cran.r-project.org/src/contrib/Archive/locfit/locfit_1.5-9.4.tar.gz", repos=NULL, type="source")
-# Now we can install DEseq2
-BiocManager::install("DESeq2")
-
-# now load the package
-library(DESeq2)
 
 ```
 Accompanying YouTube Video:
@@ -102,6 +119,8 @@ samplesheet[which(samplesheet$sample_name == "homo_sapiens_hepg2_insoluble_cytop
 # saving this to sample_sheets folder
 write.csv(samplesheet, "results/corrected_samplesheet.csv")
 
+samplesheet <- read_csv("corrected_samplesheet.csv")
+
 ```
 
 # Loading in Gencode annotations & making gene_id to gene_symbol object 
@@ -115,7 +134,9 @@ gencode_gtf <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2023/data/da
 # making genocde_genes GRanges to save in .Rdata session.
 gencode_genes <- gencode_gtf[gencode_gtf$type == "gene"]
 
-# It is really handy to convert gene_id (long number) to gene_name (more intuitive). 
+g2s <- read_csv("g2s.csv")
+g2s <- g2s[-1]
+ # It is really handy to convert gene_id (long number) to gene_name (more intuitive). 
 # We are making G2S file that we can use in future to convert between the two.
 g2s <- gencode_genes %>% as.data.frame() %>%
   dplyr::select(gene_id, gene_name)
@@ -148,6 +169,8 @@ https://salmon.readthedocs.io/en/latest/file_formats.html
 # reading in salmon counts:
 counts <- read_csv("../00_RNAseq_download_NF_core_pipeline/00_NF_CORE_RNAseq_Pipeline_run/results/salmon/salmon_merged_gene_counts.csv")
 
+
+# counts_g2s <- merge(counts, g2s)
 # adding rownames and converting to a matrix
 counts <- column_to_rownames(counts, "gene_id") %>%
 as.matrix()
@@ -195,7 +218,7 @@ counts_filtered <- counts[rowSums(counts) > 1,]
 
 # In order to cache this and read it in later we'll
 # save it as an RDS
-write_rds(counts_filtered, "results/counts_matrix.rds")
+write_rds(counts_filtered, "counts_matrix.rds")
 
 ```
 
@@ -223,7 +246,7 @@ samplesheet$condition <- as.factor(samplesheet$condition)
 
 # Now that the samplesheet is ready to used in DESeq2, 
 # we'll write it out for future use.
-write_rds(samplesheet, "results/final_samplesheet.rds")
+write_rds(samplesheet, "final_samplesheet.rds")
 ```
 
 

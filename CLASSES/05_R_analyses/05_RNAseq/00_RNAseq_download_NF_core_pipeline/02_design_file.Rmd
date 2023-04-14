@@ -351,6 +351,8 @@ base_path <- "/scratch/Shares/rinnclass/CLASS_2023/JR"
 fastq_path <- "CLASS_2023/CLASSES/05_R_analyses/05_RNAseq/00_RNAseq_download_NF_core_pipeline/data/fastq2/"
 final_path <- c(file.path(base_path, fastq_path))
 
+final_path <- "/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/05_R_analyses/05_RNAseq/00_RNAseq_download_NF_core_pipeline/fastq2/"
+
 # There's spaces in the names currently and we need to get rid of those.
 design <- samplesheet %>%
   

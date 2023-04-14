@@ -33,7 +33,7 @@ Let's start with the config file -- very similar to nf-core/chipseq
 
 process {
   executor='slurm'
-  queue='short'
+  queue='long'
   memory='16 GB'
   maxForks=10
 }
@@ -130,7 +130,7 @@ module load singularity/3.1.1
 nextflow run nf-core/rnaseq -r 1.4.2 \
 -resume \
 -profile singularity \
---reads 'your_path/fastq/*{_read1,_read2}.fastq.gz' \
+--reads '/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/05_R_analyses/05_RNAseq/00_RNAseq_download_NF_core_pipeline/fastq/*{_read1,_read2}.fastq.gz' \
 --fasta /scratch/Shares/rinnclass/CLASS_2023/data/data/genomes/GRCh38.p13.genome.fa \
 --gtf /scratch/Shares/rinnclass/CLASS_2023/data/data/genomes/gencode.v32.annotation.gtf \
 --pseudo_aligner salmon \
