@@ -38,6 +38,8 @@ load("results/DESEQ_RLOG.RData", verbose = T)
 # We will use total RNA (whole cell) condition to compare everything back to.
 # we will want to set the factor levels with "total" first
 
+# the first one is the total RNA, so this acts as a baseline to compare the other ones to - see if they are more or less enriched than average
+
 samplesheet$condition <- factor(samplesheet$condition, levels = c("homo_sapiens_hepg2", "homo_sapiens_membrane_fraction", "homo_sapiens_insoluble_cytoplasmic_fraction", "homo_sapiens_cytosolic_fraction", "homo_sapiens_nuclear_fraction"))
 
 
@@ -73,6 +75,7 @@ res_df <- res %>% as.data.frame() %>%
 
 # Looking to see log2 fold change range
 summary(res_df$log2FoldChange)
+hist(res_df$log2FoldChange)
 
 ```
 
