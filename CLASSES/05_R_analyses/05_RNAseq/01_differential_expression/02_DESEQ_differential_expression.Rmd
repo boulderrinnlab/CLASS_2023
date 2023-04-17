@@ -157,9 +157,41 @@ ggsave("figures/PCA_plot.pdf")
 
 ```
 
-# Nuclear versus cytoplasmic differential expression (Salmon Counts input)
-Next we will reduce out counts_matrix to just the values of nuc/cyto
+```{R}
+samplesheet_nuc_cyto <- samplesheet %>%
+  filter(condition %in% c("homo_sapiens_cytosolic_fraction", "homo_sapiens_nuclear_fraction"))
+# Nice now we have a reduced sample sheet that is well organized.
 
+# Next, let's triple check that the counts data
+# contains the counts for the samples in the reduced sample sheet 
+all(samplesheet_nuc_cyto$sample_name %in% colnames(counts))
+# Cool, the 4 samples in filtered are same as counts
+
+# Again we need to think about "rownames" we will convert 
+# samplesheet_nuc_cyto to df and add rownames by indexing
+samplesheet_nuc_cyto <- samplesheet_nuc_cyto %>%
+  as.data.frame()
+
+# adding row names
+rownames(samplesheet_nuc_cyto) <- samplesheet_nuc_cyto$sample_name
+
+# NOTE: DeSeq wants the control as a factor (fct), currently (chr)
+# The first factor level is the "control" and all the other levels
+# will be compared back to it.
+
+# Let's make the condition a factor:
+samplesheet_nuc_cyto$condition <- factor(samplesheet_nuc_cyto$condition, 
+                                         levels = c("homo_sapiens_nuclear_fraction",
+                                                    "homo_sapiens_cytosolic_fraction"))
+
+# IMPORTANT : values returned will be nuclear/cytoplasmic !!
+# IMPORTANT : !! FIRST FACTOR is denominator !!
+
+
+# Nuclear versus cytoplasmic differential expression (Salmon Counts input)
+
+```
+# Next we will reduce out counts_matrix to just the values of nuc/cyto
 ```{r nuc/cyto  counts}
 
 # first reduce the counts matrix to just nuc and cyto samples.
@@ -278,7 +310,8 @@ write_csv(nuclear_genes, "results/nuclear_genes.csv")
 
 # Cytoplasmic genes:
 cyto_genes <- res_df %>%
-  filter(log2FoldChange > 1, padj < 0.05)
+  filter(log2FoldChange > 1, padj < 0.05) %>%
+  as.data.frame()
 
 # saving file
 write_csv(cyto_genes, "cyto_genes.csv")
@@ -325,8 +358,62 @@ hist(res_df$padj)
 
 ```
 
+```{R}
 
-# let's save our key environment variables 
+
+nuc_cyto_sig_genes <- merge(nuclear_genes, cyto_genes)
+
+combined_nuc_cyto_sig <- bind_rows(nuclear_genes, cyto_genes)
+
+
+nuc_cyto_counts_filtered <-counts_filtered[rownames(counts_filtered) %in% combined_nuc_cyto_sig$gene_id , ]
+
+nuc_cyto_sig_scaled_counts <- t(scale(t(nuc_cyto_counts_filtered))) %>%
+  as.matrix()
+
+# make heat map
+pheatmap(nuc_cyto_sig_scaled_counts, show_rownames = FALSE)
+
+#reducing to just nuc and cyto counts
+
+just_nuc_cyto_counts_sig <-  nuc_cyto_sig_scaled_counts[, samplesheet_nuc_cyto$sample_name]
+
+
+pheatmap(just_nuc_cyto_counts_sig, show_rownames = FALSE)
+
+
+
+
+```
+
+# More stringent log2 FC
+```{r}
+
+# filtering more on fold change
+stringent_cyto_nuclear <- combined_nuc_cyto_sig %>%
+  filter(log2FoldChange > 2, padj < 0.05) %>%
+  as.data.frame()
+
+
+# getting counts
+stringent_nuc_cyto_counts_filtered <-counts_filtered[rownames(counts_filtered) %in% stringent_cyto_nuclear$gene_id , ]
+
+# reducing to just nuclear cyto
+stringent_just_nuc_cyto_counts_sig <-  stringent_nuc_cyto_sig_scaled_counts[, samplesheet_nuc_cyto$sample_name]
+
+
+stringent_nuc_cyto_sig_scaled_counts <- t(scale(t(stringent_just_nuc_cyto_counts_sig))) %>%
+  as.matrix()
+
+
+
+# make heat map
+pheatmap(stringent_nuc_cyto_sig_scaled_counts, show_rownames = FALSE)
+
+
+
+```
+
 
 ```{r}
 
