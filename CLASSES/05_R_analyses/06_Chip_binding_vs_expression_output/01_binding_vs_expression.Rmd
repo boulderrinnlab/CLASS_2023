@@ -206,6 +206,29 @@ big_dat <- read_csv("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/
 
 hist(big_dat$number_of_dbp)
 
+# cool result
+ggplot(big_dat, aes(x = number_of_dbp)) +
+geom_density(alpha = 0.2, color = "#424242", fill = "#424242") +
+  theme_paperwhite() +
+  xlab(expression("Number of DBPs")) +
+  ylab(expression("Density")) +
+  ggtitle("Promoter binding events",
+          subtitle = "mRNA and lncRNA genes") 
+
+
+# cool result with high binding no expression
+
+ggplot(big_dat, aes(x = number_of_dbp)) +
+geom_density(alpha = 0.2, color = "#424242", fill = "#424242") +
+  theme_paperwhite() +
+  xlab(expression("Number of DBPs")) +
+  ylab(expression("Density")) +
+  ggtitle("Promoter binding events",
+          subtitle = "mRNA and lncRNA genes") 
+
+
+
+# Merging in TPM we just made
 big_promoter_features_df <- merge(big_dat, tpm)
 
 ggplot(big_promoter_features_df, 
@@ -228,7 +251,6 @@ ggplot(big_promoter_features_df,
   # labeling axes
   xlab(expression('Number of TFs')) +
   ylab(expression(log[2](TPM)))
-
 
 ```
 
