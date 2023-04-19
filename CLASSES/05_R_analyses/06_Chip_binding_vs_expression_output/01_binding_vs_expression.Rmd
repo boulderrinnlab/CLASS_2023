@@ -86,7 +86,8 @@ tpm <- salmon_tpm %>%
   # taking the mean by using summarize function (this is the mean of 2 res in each condition)
   summarize(tpm = mean(tpm, na.rm = T)) %>%
   pivot_wider(names_from = condition, values_from = tpm, names_prefix = "tpm_")
-  merge(samplesheet) %>%
+  
+# merge(samplesheet) 
   
   # bringing the table back to "normal" with pivot wider
   # the condition will be come the cols with names_from = with a prefix tpm_condition name
@@ -103,7 +104,7 @@ how many DBPs are bound at each promoter
 ```{r loading in peak features data frame }
 
 # peak_occurence_df is loaded in our environment and contains how many DBPs bind to each promoter (rows)
-peak_occurence_df <- read_csv("../01_peak_features/results/num_peaks_df.csv")
+peak_occurence_df <- read_csv("../01_peak_features/results/peak_occurence_df.csv")
 View(peak_occurence_df)
 
 # Now we can merge in the TPM data to this data.frame
@@ -114,7 +115,7 @@ promoter_features_df <- merge(peak_occurence_df, tpm)
 write.csv(promoter_features_df, "results/promoter_feature_df_tpm.csv")
 
 # let's plot the number of DBPs bound as a densuty plot.
-ggplot(promoter_features_df, aes(x = number_of_dbp)) +
+ggplot(peak_occurence_df, aes(x = number_of_dbp)) +
   geom_density() 
 
 # Let's save
@@ -124,6 +125,8 @@ ggplot(promoter_features_df, aes(x = number_of_dbp)) +
 
 ```
 
+
+###### 5 min to generate heatmap - maybe skip until later #####
 # Abundance of genes in each cellular fraction
 Plotting the abundance of genes in each cellular fraction.
 ```{r TPM of genes in each fraction}
@@ -196,25 +199,60 @@ Result: there is a large range of expression values from 1- 6 DBPs bound.
 There is a slight linear trend that the more DBPs (5) have less values below 0.
 
 
+### CLUE for final .RMD
+```{r}
 
+big_dat <- read_csv("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/06_final_going_global/analysis/01_create_consensus_peaks/results/peak_occurence_dataframe.csv")
+
+hist(big_dat$number_of_dbp)
+
+big_promoter_features_df <- merge(big_dat, tpm)
+
+ggplot(big_promoter_features_df, 
+            aes(y = log2(tpm_homo_sapiens_hepg2 + 0.001), x = number_of_dbp, color = gene_type)) + 
+  
+#geom_point(data = big_promoter_features_df %>% filter(tpm_homo_sapiens_hepg2 > 0.001),
+            # shape = 17, alpha = 0.7) +
+  
+  # Adding a generative additive model 
+  geom_smooth(method = 'gam', formula = y ~ s(x, bs = "cs")) +
+  # this adds the statistics from the gam to the figure
+  stat_cor() +
+  geom_smooth(method = "lm") +
+  # this is just to make it look nice.
+  scale_x_continuous(expand = c(0,0)) +
+  # adding colors manually
+  scale_color_manual(values = c("#a8404c", "#424242"), name = "Gene type") + 
+  # title
+  ggtitle("Expression vs. promoter binding events") + 
+  # labeling axes
+  xlab(expression('Number of TFs')) +
+  ylab(expression(log[2](TPM)))
+
+
+```
+
+
+
+#### Possible for final resutls --SKIP ####
 # Binding versus nuclear expression
 Let's see if the binding versus expression holds in the nuclear fraction
 ```{r binding versus nuclear expression}
-
-# Now let's make a similar plot for nuclear RNA abundance versus #DBPs bound to their promoter
-ggplot(promoter_features_df, 
-            aes(y = log2(tpm_homo_sapiens_nuclear_fraction + 0.001), x = number_of_dbp, color = gene_type)) + 
-  geom_point(data = promoter_features_df %>% filter(tpm_homo_sapiens_nuclear_fraction > 0.001),
-             shape = 17, alpha = 0.7) +
-  geom_smooth(method = 'gam', formula = y ~ s(x, bs = "cs")) +
-  stat_cor() +
-  scale_x_continuous(expand = c(0,0)) +
-  scale_color_manual(values = c("#a8404c", "#424242"), name = "Gene type") + 
-  ggtitle("Nuclear Expression vs. promoter binding events") + 
-  xlab(expression('Number of TFs')) +
-  ylab(expression(log[2](TPM))) 
-  # saving figure
-  ggsave("figures/nuclear_expression-vs-promoter_binding.pdf")
+# 
+# # Now let's make a similar plot for nuclear RNA abundance versus #DBPs bound to their promoter
+# ggplot(promoter_features_df, 
+#             aes(y = log2(tpm_homo_sapiens_nuclear_fraction + 0.001), x = number_of_dbp, color = gene_type)) + 
+#   geom_point(data = promoter_features_df %>% filter(tpm_homo_sapiens_nuclear_fraction > 0.001),
+#              shape = 17, alpha = 0.7) +
+#   geom_smooth(method = 'gam', formula = y ~ s(x, bs = "cs")) +
+#   stat_cor() +
+#   scale_x_continuous(expand = c(0,0)) +
+#   scale_color_manual(values = c("#a8404c", "#424242"), name = "Gene type") + 
+#   ggtitle("Nuclear Expression vs. promoter binding events") + 
+#   xlab(expression('Number of TFs')) +
+#   ylab(expression(log[2](TPM))) 
+#   # saving figure
+#   ggsave("figures/nuclear_expression-vs-promoter_binding.pdf")
 
 ```
 RESULT: looks very similar to total RNA binding versus expression
@@ -224,25 +262,25 @@ RESULT: looks very similar to total RNA binding versus expression
 
 Next we will determine the DBP binding versus cytoplasmic expression
 ```{Binding versus cytoplasmic expression}
-
-# Same thing just seeing if there is a difference of cyto RNAs versus DBPs on promoter
-ggplot(promoter_features_df, 
-            aes(y = log2(tpm_homo_sapiens_cytosolic_fraction + 0.001), x = number_of_dbp, color = gene_type)) + 
-            # note if we take off the log2 everything is very lowly expressed
-  geom_point(data = promoter_features_df %>% filter(tpm_homo_sapiens_cytosolic_fraction > 0.001),
-             shape = 17, alpha = 0.7) +
-  geom_smooth(method = 'gam', formula = y ~ s(x, bs = "cs")) +
-  stat_cor() +
-  scale_x_continuous(expand = c(0,0)) +
-  scale_color_manual(values = c("#a8404c", "#424242"), name = "Gene type") + 
-  ggtitle("Cytoplasmic Expression vs. promoter binding events") + 
-  xlab(expression('Number of TFs')) +
-  ylab(expression(log[2](TPM))) 
-
-  # saving figure
-  ggsave("figures/cytoplasmic_expression-vs-promoter_binding.pdf")
-  
-  # slightly fuzzier !
+# 
+# # Same thing just seeing if there is a difference of cyto RNAs versus DBPs on promoter
+# ggplot(promoter_features_df, 
+#             aes(y = log2(tpm_homo_sapiens_cytosolic_fraction + 0.001), x = number_of_dbp, color = gene_type)) + 
+#             # note if we take off the log2 everything is very lowly expressed
+#   geom_point(data = promoter_features_df %>% filter(tpm_homo_sapiens_cytosolic_fraction > 0.001),
+#              shape = 17, alpha = 0.7) +
+#   geom_smooth(method = 'gam', formula = y ~ s(x, bs = "cs")) +
+#   stat_cor() +
+#   scale_x_continuous(expand = c(0,0)) +
+#   scale_color_manual(values = c("#a8404c", "#424242"), name = "Gene type") + 
+#   ggtitle("Cytoplasmic Expression vs. promoter binding events") + 
+#   xlab(expression('Number of TFs')) +
+#   ylab(expression(log[2](TPM))) 
+# 
+#   # saving figure
+#   ggsave("figures/cytoplasmic_expression-vs-promoter_binding.pdf")
+#   
+#   # slightly fuzzier !
 
 ```
 RESULTS:
@@ -280,6 +318,10 @@ RESULT:
 
 
 
+##### FUN MATERIAL FOR FINAL .RMD ######
+
+
+
 We have previously observed that k562 cells also exhibit high binding promoters
 that are not expressed. We termed them 'reservoirs' as they are a reservoir
 for many Dna-protein interaction sites. Based on the plot above we observed that
@@ -303,6 +345,8 @@ table(promoter_features_df$hepg2_reservoir)
 # to do this in the larger dataset. 
 
 ```
+
+
 
 Now that we have defined reservoirs in hepG2 cells, we next want to determine how many 
 are similar genomic regions in k562 and hepG2.
