@@ -139,6 +139,8 @@ tpm_matrix <- tpm %>%
 # And z-scale each row.
 tpm_scaled <- t(scale(t(tpm_matrix)))
 
+pheatmap::pheatmap(tpm_scaled, show_rownames = FALSE)
+
 # We want to be sure that we're not removing rows that have NA in only one fraction.
 # And right now we're not sure.
 summary(is.na(tpm_matrix))
@@ -235,12 +237,12 @@ ggplot(big_promoter_features_df,
             aes(y = log2(tpm_homo_sapiens_hepg2 + 0.001), x = number_of_dbp, color = gene_type)) + 
   
 #geom_point(data = big_promoter_features_df %>% filter(tpm_homo_sapiens_hepg2 > 0.001),
-            # shape = 17, alpha = 0.7) +
+            #shape = 17, alpha = 0.7) +
   
   # Adding a generative additive model 
   geom_smooth(method = 'gam', formula = y ~ s(x, bs = "cs")) +
   # this adds the statistics from the gam to the figure
-  stat_cor() +
+   stat_cor() +
   geom_smooth(method = "lm") +
   # this is just to make it look nice.
   scale_x_continuous(expand = c(0,0)) +
