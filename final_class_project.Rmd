@@ -1,0 +1,123 @@
+---
+title: "Final_class_project"
+author: "JR"
+date: "4/21/2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+
+```
+/scratch/Shares/rinnclass/CLASS_2023/data/data/peaks
+
+# Your mission should you choose to accept it 
+There is an enormous amount of data in ENCODE that 
+needs to be analyzed. This includes 480 unique DBP
+ChIPseq datasets. To facilitate your mission we provide you
+1,066 peak files that have been run through the NF_CORE chipseq
+pipeline. 
+
+You will find all the .broadPeak peak files here:
+/scratch/Shares/rinnclass/CLASS_2023/data/data/peaks
+
+Use what you have learned in class to uncover
+new results from this daunting data set. 
+# Good luck the genome depends on you!
+
+
+# first you might want to think about your organization
+# 1) create a directory in your class folder for these analyses
+    # -> folder name
+          -> util/
+            -> scripts.R
+          -> analysis/
+            -> 01_consensus_peaks
+              -> .RMD
+              -> results/
+              -> figures
+            -> 02_clustering etc....
+  
+  
+# Consensus peaks
+# Num_peaks_df
+# Peak_occurence_df
+# lncRNA and or mRNA promoters / gene annotations
+# SAVE THIS !! save(object_name, nextobject, ...., file = "where you save this.Rdata")
+# load(file.Rdata)
+
+
+# First I want to analyze the large data for general properties 
+```{r}
+
+# Filter out any chip data less 1,000 peaks == filtered consensus peaks
+
+
+# How does peak number and genome coverage compare
+
+# What is the distribution of promoter overlaps versus gene-bodies (hint hist)
+
+# Make a list of genes that are "super binders" 
+
+# Is there a type of gene ontology associated with them versus the others?
+
+# Is there a difference in mRNA and lncRNA promoter overlaps?
+
+# Do lncRNAs also have super-binding promoters?
+
+# How many of these proteins are TFs? What is the most represented type of DBD?
+
+
+```
+# Results: I find that super-binders are more associated with mRNAs
+# Results: I found X,000 mRNA superbinding promoters and Y lncRNA super-promoters
+
+
+# Let's see how similar our genes are to each other
+# Clustering 
+```{r}
+
+# What genes make sense to cluster together create an image (hint Pol II makes RNA)
+
+# Find a cluster of genes your interested in and can figure out what those genes do -- are there unknown genes i there too? If so maybe one could hypothesize they have a similar function to the known genes (Hint ZNFs)
+
+# if we cluster by lncRNA and mRNA separately what are some similarities and differences?
+
+```
+# Result: ZNFX seems to be similar to geneY and I hypothesize it might involved in A
+
+# Metaplots
+```{r}
+
+# Let's look at the metaplot for all DBPs on lncRNA and mRNA promoters seperately (hint facet wrap).
+
+# Which genes seem to have a difference in where they bind on promoters between lncRNA and mRNA promoters
+
+
+# Make a metaplot of DBPS only on Super-binders versus regular promoters ...
+```
+
+
+# RNAseq expression
+
+```{r}
+
+# What is the relationship between number of DBPS bound on a promoter versus RNA output (hint TPM)
+
+# Let's make a heatmap of genes that are variable across samples 
+
+# Which subfraction of the cell has the highest expression.
+
+# Let's make a heatmap of nuclear versus cytoplasmic expression
+
+# How many lncRNA and mRNA genes are sig in nuclear or cyto
+
+# What is/are the most nuclear mRNA(s) -- is there a type of gene ontology associated with them?
+
+# If we zoom in on high binding promoters (> 200 DBPs) are there any that don't have any expression?
+
+```
+# Result in file.csv I have all the super binders that don't express RNA
+
