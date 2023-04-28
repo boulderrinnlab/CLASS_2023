@@ -1,0 +1,89 @@
+---
+title: "Untitled"
+author: "JR"
+date: "4/28/2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{R}
+# filter to super binders
+peak_occurrence_df <- peak_occurrence_df %>%
+  mutate(superbinders = peak_occurrence_df$number_of_dbp > 200)
+
+
+# setting col of superbinders
+peak_occurrence_df <- peak_occurrence_df %>%
+  mutate(superbinder2 = ifelse(peak_occurrence_df$superbinders ==T, "Superbinder", "notsuperbinder"))
+
+# superbinder promoters
+super_proms <- subset(peak_occurrence_df, superbinder2 == "Superbinder")
+super_proms <- dplyr::select(super_proms, "gene_id")
+
+
+# non super binder proms
+non_super_proms <- subset(peak_occurrence_df, superbinder2 == "notsuperbinder")
+non_super_proms  <- dplyr::select(non_super_proms, "gene_id")
+
+
+# subet mRNA and lncRNA promoters by super binders
+super_gr <- lncrna_mrna_promoters[lncrna_mrna_promoters$gene_id %in% super_proms$gene_id]
+non_super_gr <- lncrna_mrna_promoters[lncrna_mrna_promoters$gene_id %in% non_super_proms$gene_id]
+
+
+
+# setting up superbinders metaplot_Df
+
+superbinder_metaplot_df <- data.frame(x = integer(), dens = numeric(), dbp = character())
+
+i=1
+# for loop to populate super binder _metaplot
+for(i in 1:length(filtered_consensus_list)) {
+ print(names(filtered_consensus_list)[[i]])
+  tmp_df <- profile_tss(filtered_consensus_list[[i]], lncrna_mrna_promoters = super_gr)
+  tmp_df$dbp <- names(filtered_consensus_list)[[i]]
+  superbinder_metaplot_df <- bind_rows(superbinder_metaplot_df, tmp_df)
+  
+}
+
+# non super binder meta_df
+
+non_superbinder_metaplot_df <- data.frame(x = integer(), dens = numeric(), dbp = character())
+
+i= 1
+# for loop to populate mRNA_metaplot
+for(i in 1:length(filtered_consensus_list)) {
+ print(names(filtered_consensus_list)[[i]])
+  tmp_df <- profile_tss(filtered_consensus_list[[i]], lncrna_mrna_promoters = non_super_gr)
+  tmp_df$dbp <- names(filtered_consensus_list)[[i]]
+  non_superbinder_metaplot_df <- bind_rows(non_superbinder_metaplot_df, tmp_df)
+}
+
+
+
+
+
+# now adding the information of gene type
+non_superbinder_metaplot_df$gene_type <- "non_super_binder"
+superbinder_metaplot_df$gene_type <- "superbinder"
+combined_super_binder_metaplot_profile <- bind_rows(non_superbinder_metaplot_df, superbinder_metaplot_df)
+
+ggplot(combined_super_binder_metaplot_profile, 
+       aes(x = x, y = dens, color = gene_type )) +
+  geom_vline(xintercept = 0, lty = 2) + 
+  geom_line(size = 1.5) + 
+  facet_wrap(dbp ~ ., scales = "free_y") +
+  ggtitle("Promoter Metaplot") + 
+  scale_x_continuous(breaks = c(-1000, 0, 1000),
+                     labels = c("-1kb", "TSS", "+1kb"),
+                     name = "") + 
+  ylab("Peak frequency") +
+ scale_color_manual(values = c("#424242","#a8404c"))
+
+
+
+
+```

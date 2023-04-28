@@ -20,7 +20,7 @@ library(ggpubr)
 # load in chipseq data from analysis/01_peak_feautres
 
 ```{r loading in chipseq data}
-load("../01_peak_features/results/peak_features.RData", verbose = T)
+load("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/05_R_analyses/01_peak_features/results/peak_features.RData", verbose = T)
 ```
 
 Next we want to load in our final_samplesheet from 01_DESEQ_counts.Rmd
