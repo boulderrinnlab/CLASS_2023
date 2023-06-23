@@ -27,7 +27,7 @@ cellular context or background. We aim to address several questions:
     previously?
 
 To address these questions we have curated a set of over 1,000 ChIPseq
-data sets comprised of 48 DBPs in HEPG2 cells from the ENCODE
+data sets comprised of 486 DBPs in HEPG2 cells from the ENCODE
 consortium. We required duplicate ChIP-seq experiments for a given DBP
 and other criterion that can be found here :
 
